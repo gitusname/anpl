@@ -6,6 +6,7 @@
   "include": ["vitest.config.ts", "tests/**/*.ts"],
   "references": [
     { "path": "./packages/core" },
+    { "path": "./packages/ast" },
     { "path": "./packages/parser" },
     { "path": "./packages/validator" },
     { "path": "./packages/normalizer" },

@@ -12,6 +12,7 @@
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
+      "@anpl/ast": ["packages/ast/src/index.ts"],
       "@anpl/core": ["packages/core/src/index.ts"]
     },
     "resolveJsonModule": true,

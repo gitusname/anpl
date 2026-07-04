@@ -1,278 +1,305 @@
 # ANPL Technical Architecture
 
-## Overview
+ANPL is an experimental AI-native programming language and compiler toolchain.
+It is not a CRUD generator. The project direction is a real language pipeline
+that AI coding agents can generate, validate, execute, transform, and debug.
 
-ANPL is an experimental AI-native programming language and diagnostics layer for coding agents.
-
-The project is built around this idea:
-
-```text
-AI should not always generate production code directly.
-AI should first generate a compact, validated software intent representation.
-```
-
-ANPL provides that representation.
-
-## High-level pipeline
+## Compiler Pipeline
 
 ```text
-.anpl source file
-    ↓
-Lexer
-    ↓
-Parser
-    ↓
-AST
-    ↓
-Validator
-    ↓
-Canonical IR
-    ↓
-Generator
-    ↓
-Generated project files
+ANPL source code
+    -> Lexer
+    -> Parser
+    -> AST
+    -> Semantic analyzer
+    -> ANPL IR
+    -> Optimizer
+    -> Backend
+       -> Interpreter
+       -> JavaScript / TypeScript target
+       -> later: WASM, LLVM, Python
+    -> Runtime
+    -> AI-native diagnostics
 ```
 
-For diagnostics:
+## Package Structure
+
+The target monorepo structure is:
 
 ```text
-Raw terminal log
-    ↓
-Rule matcher
-    ↓
-Evidence extractor
-    ↓
-Compact diagnostic
-    ↓
-AI coding agent
+packages/core
+packages/lexer
+packages/parser
+packages/ast
+packages/semantic
+packages/ir
+packages/optimizer
+packages/compiler-js
+packages/interpreter
+packages/runtime
+packages/diagnostics
+packages/cli
+packages/benchmark
 ```
 
-## Why ANPL separates AST and IR
+Current packages can be migrated gradually. Older package names such as
+`validator`, `normalizer`, and `generator-prisma` are early scaffolding and
+should not define the project identity.
 
-The AST represents the source file structure.
+## Dependency Rules
 
-The IR represents normalized software intent.
+```text
+core
+  <- lexer
+  <- ast
+  <- parser
+  <- semantic
+  <- ir
+  <- optimizer
+  <- compiler-js / interpreter
+  <- cli
+```
+
+Rules:
+
+- `core` must not depend on other ANPL packages.
+- `ast` may depend on `core`.
+- `lexer` may depend on `core`.
+- `parser` may depend on `lexer`, `ast`, and `core`.
+- `semantic` may depend on `ast` and `core`.
+- `ir` may depend on `semantic` and `core`.
+- `optimizer` may depend on `ir` and `core`.
+- `compiler-js` and `interpreter` may depend on `ir`, `runtime`, and `core`.
+- `cli` may orchestrate the full pipeline.
+
+## Language v0.1 Scope
+
+ANPL v0.1 should be small, but it must be a real language seed.
+
+Supported language concepts:
+
+- `module`
+- `import`
+- `type`
+- `fn`
+- `let`
+- `return`
+- `if` / `else`
+- basic expressions
+- function calls
+- records
+- enums
+- structured errors
 
 Example:
 
 ```anpl
-entity Customer {
-  id: uuid primary
-  name: string required
+module math
+
+fn add(a: int, b: int) -> int {
+  return a + b
+}
+
+fn main() -> int {
+  let result = add(2, 3)
+  return result
 }
 ```
 
-AST preserves syntax-level information:
+Record example:
 
-* line
-* column
-* original modifiers
-* source structure
+```anpl
+module crm
 
-IR prepares generator-friendly information:
+type Customer {
+  id: uuid
+  name: text
+  age?: int
+}
 
-* entity name
-* table name
-* field metadata
-* required/optional status
-* primary key status
-* relation metadata
-
-This separation is important because parser output should not directly drive code generation.
-
-## Package architecture
-
-```text
-packages/core
-    Shared types and diagnostics
-
-packages/parser
-    Source code → AST
-
-packages/validator
-    AST → validation diagnostics
-
-packages/normalizer
-    AST → canonical IR
-
-packages/generator-prisma
-    IR → Prisma schema
-
-packages/diagnostics
-    Raw logs → compact diagnostics
-
-packages/cli
-    User-facing terminal interface
+fn createCustomer(name: text) -> Customer {
+  return Customer {
+    id: uuid()
+    name: name
+  }
+}
 ```
 
-## Data flow
+## Core
 
-### 1. Source input
+`packages/core` owns shared primitives:
 
-Input file:
+- `Span`
+- `Diagnostic`
+- `Result`
+- `SourceFile`
+- generated file metadata
 
-```text
-examples/crm.anpl
+It should stay dependency-free.
+
+## AST
+
+`packages/ast` owns syntax tree definitions for the real ANPL language.
+
+Core AST model:
+
+```ts
+type Program = {
+  kind: "Program";
+  modules: ModuleDecl[];
+};
+
+type ModuleDecl = {
+  kind: "ModuleDecl";
+  name: string;
+  body: Decl[];
+  span: Span;
+};
+
+type Decl = FunctionDecl | TypeDecl | ImportDecl;
+type Stmt = LetStmt | ReturnStmt | IfStmt | ExprStmt;
+type Expr =
+  | LiteralExpr
+  | IdentifierExpr
+  | BinaryExpr
+  | CallExpr
+  | RecordExpr
+  | MemberExpr;
 ```
 
-### 2. Lexer
+## Lexer
 
-The lexer converts source text into tokens.
+The lexer converts source text into tokens with source location metadata.
 
-Example tokens:
+Responsibilities:
 
-```text
-keyword(app)
-identifier(CRM)
-keyword(entity)
-identifier(Customer)
-lbrace
-identifier(id)
-colon
-keyword(uuid)
-keyword(primary)
-rbrace
-```
+- identify keywords
+- identify identifiers
+- identify numbers and strings
+- identify punctuation and operators
+- ignore comments
+- preserve line, column, and offset
+- return structured lexical diagnostics
 
-### 3. Parser
+## Parser
 
 The parser converts tokens into AST.
 
-Example AST shape:
+Responsibilities:
+
+- parse modules
+- parse imports
+- parse type declarations
+- parse function declarations
+- parse statements
+- parse expressions
+- preserve spans on AST nodes
+- return structured parse diagnostics
+
+The parser must not perform semantic validation.
+
+## Semantic Analyzer
+
+The semantic analyzer runs after parsing.
+
+Responsibilities:
+
+- build symbol tables
+- resolve scopes
+- check undefined variables
+- check function calls
+- check return types
+- check record fields
+- produce structured semantic diagnostics
+
+Example diagnostic:
 
 ```json
 {
-  "kind": "Program",
-  "app": {
-    "kind": "App",
-    "name": "CRM"
-  },
-  "entities": [
-    {
-      "kind": "Entity",
-      "name": "Customer",
-      "fields": []
-    }
-  ]
+  "code": "ANPL_TYPE_MISMATCH",
+  "severity": "error",
+  "message": "Cannot add int and text.",
+  "expected": "int",
+  "received": "text",
+  "fix": "Convert text to int or change the expression.",
+  "confidence": "high"
 }
 ```
 
-### 4. Validator
+## ANPL IR
 
-The validator checks semantic correctness.
+AST is syntax-oriented. IR is compiler-oriented.
 
-Validation examples:
-
-* Entity names must be unique.
-* Field names inside an entity must be unique.
-* Every entity should have a primary key.
-* Reference fields must point to existing entities.
-* API operations must reference existing entities.
-* Database provider must be supported.
-
-Validator output:
+Example IR shape:
 
 ```ts
-type ValidationResult = {
-  ok: boolean;
-  diagnostics: Diagnostic[];
+type IRProgram = {
+  modules: IRModule[];
 };
+
+type IRInstruction =
+  | { op: "const"; target: string; value: unknown }
+  | { op: "load"; target: string; name: string }
+  | { op: "store"; name: string; value: string }
+  | { op: "binary"; target: string; operator: string; left: string; right: string }
+  | { op: "call"; target: string; fn: string; args: string[] }
+  | { op: "return"; value: string }
+  | { op: "branch"; condition: string; thenBlock: string; elseBlock?: string };
 ```
 
-### 5. Normalizer
+## Backends
 
-The normalizer converts AST into canonical IR.
+The first backend target is JavaScript.
 
-Example:
+ANPL:
 
-```json
-{
-  "appName": "CRM",
-  "entities": [
-    {
-      "name": "Customer",
-      "tableName": "customer",
-      "fields": [
-        {
-          "name": "id",
-          "type": "uuid",
-          "primary": true,
-          "required": true
-        }
-      ]
-    }
-  ]
+```anpl
+fn add(a: int, b: int) -> int {
+  return a + b
 }
 ```
 
-### 6. Generator
+Generated JavaScript:
 
-The generator takes IR and produces files.
+```js
+function add(a, b) {
+  return a + b;
+}
+```
 
-Example output:
+Future targets:
+
+- v0.2: TypeScript
+- v0.3: Python
+- v0.4: WASM
+- v1.0: self-hosted runtime and advanced compiler
+
+## Runtime
+
+The initial runtime should stay small:
 
 ```text
-generated/prisma/schema.prisma
+stdlib/text
+stdlib/int
+stdlib/bool
+stdlib/list
+stdlib/map
+stdlib/uuid
+stdlib/time
+stdlib/result
+stdlib/error
 ```
 
-Generator interface:
+Initial built-ins:
 
-```ts
-type GeneratedFile = {
-  path: string;
-  content: string;
-};
-```
+- `uuid()`
+- `now()`
+- `print(value)`
+- `len(value)`
 
-## CLI commands
+## Diagnostics
 
-### anpl check
-
-```bash
-anpl check examples/crm.anpl
-```
-
-Responsibilities:
-
-1. Read file.
-2. Parse source.
-3. Validate AST.
-4. Print diagnostics.
-5. Exit with code `0` if valid, `1` if invalid.
-
-### anpl compile
-
-```bash
-anpl compile examples/crm.anpl --target prisma --out generated
-```
-
-Responsibilities:
-
-1. Read file.
-2. Parse source.
-3. Validate AST.
-4. Stop if validation fails.
-5. Normalize AST into IR.
-6. Run generator.
-7. Write generated files.
-8. Print compact summary.
-
-### anpl diagnose
-
-```bash
-anpl diagnose logs.txt
-```
-
-Responsibilities:
-
-1. Read raw log file.
-2. Match known error patterns.
-3. Extract useful evidence.
-4. Return compact diagnostic.
-
-## Diagnostic format
-
-All errors should use one shared diagnostic format.
+All compiler, runtime, and toolchain errors should use one structured format:
 
 ```ts
 type Diagnostic = {
@@ -282,136 +309,61 @@ type Diagnostic = {
   file?: string;
   line?: number;
   column?: number;
+  symbol?: string;
+  expected?: string;
+  received?: string;
   cause?: string;
   fix?: string;
   evidence?: string[];
-  confidence?: "low" | "medium" | "high";
+  confidence: "low" | "medium" | "high";
 };
 ```
 
-Example:
+Diagnostic families:
 
-```json
-{
-  "code": "ANPL_UNKNOWN_ENTITY",
-  "severity": "error",
-  "message": "Entity 'Product' is referenced but not defined.",
-  "file": "examples/crm.anpl",
-  "line": 18,
-  "cause": "API operation references a missing entity.",
-  "fix": "Define entity Product or change the API operation.",
-  "confidence": "high"
-}
-```
+- `ANPL_LEX_INVALID_CHAR`
+- `ANPL_PARSE_UNEXPECTED_TOKEN`
+- `ANPL_SEMANTIC_UNKNOWN_SYMBOL`
+- `ANPL_TYPE_MISMATCH`
+- `ANPL_RETURN_TYPE_MISMATCH`
+- `ANPL_CALL_ARG_COUNT_MISMATCH`
+- `ANPL_FIELD_NOT_FOUND`
+- `ANPL_RUNTIME_ERROR`
 
-## v0.1 grammar draft
+## CLI
 
-```text
-program      := appDecl? block*
-block        := entityDecl | apiDecl | authDecl | databaseDecl
-
-appDecl      := "app" Identifier
-
-entityDecl   := "entity" Identifier "{" fieldDecl* "}"
-fieldDecl    := Identifier ":" fieldType modifier*
-
-fieldType    := scalarType | refType | enumType
-scalarType   := "string" | "int" | "uuid" | "datetime" | "decimal" | "boolean"
-refType      := "ref" Identifier
-enumType     := "enum" "[" Identifier ("," Identifier)* "]"
-
-modifier     := "primary" | "required" | "optional" | "auto" | "unique" | defaultModifier
-defaultModifier := "default" Identifier
-
-apiDecl      := "api" Identifier "{" apiOperation* "}"
-apiOperation := action Identifier apiFlag*
-action       := "create" | "list" | "get" | "update" | "delete"
-apiFlag      := "paginated" | "soft" | "by" Identifier
-
-authDecl     := "auth" "{" authField* "}"
-authField    := "type" ":" Identifier | "roles" ":" Identifier ("," Identifier)*
-
-databaseDecl := "database" "{" databaseField* "}"
-databaseField := "provider" ":" Identifier | "orm" ":" Identifier
-```
-
-## v0.1 target output
-
-The first generator target is Prisma.
-
-ANPL:
-
-```anpl
-entity Customer {
-  id: uuid primary
-  name: string required
-  phone: string optional
-}
-```
-
-Prisma:
-
-```prisma
-model Customer {
-  id    String @id @default(uuid())
-  name  String
-  phone String?
-}
-```
-
-## Project milestones
-
-### Milestone 1: Foundation
-
-* Set up TypeScript monorepo.
-* Add core types.
-* Add example ANPL file.
-* Add basic docs.
-
-### Milestone 2: Parser
-
-* Implement lexer.
-* Implement parser.
-* Parse CRM example into AST.
-
-### Milestone 3: Validator
-
-* Add semantic validation.
-* Return structured diagnostics.
-* Stop compilation on errors.
-
-### Milestone 4: Prisma generator
-
-* Normalize AST to IR.
-* Generate Prisma schema.
-* Write output files.
-
-### Milestone 5: Diagnostics
-
-* Add log diagnostic engine.
-* Support common npm, TypeScript, Docker, Prisma errors.
-* Return compact AI-friendly diagnostics.
-
-## Success definition for v0.1
-
-ANPL v0.1 is successful when this command:
+Target commands:
 
 ```bash
-anpl compile examples/crm.anpl --target prisma --out generated
+anpl check file.anpl
+anpl run file.anpl
+anpl build file.anpl --target js
+anpl emit-ast file.anpl
+anpl emit-ir file.anpl
+anpl diagnose logs.txt
 ```
 
-successfully generates:
+Flows:
 
 ```text
-generated/prisma/schema.prisma
+check:
+  lexer -> parser -> semantic analyzer -> diagnostics
+
+run:
+  lexer -> parser -> semantic analyzer -> IR -> interpreter
+
+build:
+  lexer -> parser -> semantic analyzer -> IR -> backend compiler
 ```
 
-from a valid ANPL file.
+## Milestones
 
-And this command:
-
-```bash
-anpl diagnose examples/logs/prisma-error.log
-```
-
-compresses a noisy raw error log into a compact structured diagnostic.
+1. Foundation: monorepo, core, basic CLI, tests, build.
+2. Real language AST: `module`, `type`, `fn`, statements, expressions.
+3. Lexer update: real-language tokens, operators, strings, numbers, comments.
+4. Parser: modules, declarations, statements, expressions, calls, records.
+5. Semantic analyzer: symbols, scopes, type checking, returns, records.
+6. IR: AST to ANPL IR, basic instructions, control flow.
+7. Interpreter: run `main()`, evaluate expressions, call functions.
+8. JavaScript compiler: generate runnable JS.
+9. AI diagnostics: compiler/runtime diagnostics and log compression.

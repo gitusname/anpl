@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const packages = [
   "core",
+  "ast",
   "parser",
   "validator",
   "normalizer",
