@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["vitest.config.ts", "tests/**/*.ts"],
+  "references": [
+    { "path": "./packages/core" },
+    { "path": "./packages/parser" },
+    { "path": "./packages/validator" },
+    { "path": "./packages/normalizer" },
+    { "path": "./packages/generator-prisma" },
+    { "path": "./packages/cli" }
+  ]
+}

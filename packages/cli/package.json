@@ -1,0 +1,30 @@
+{
+  "name": "@anpl/cli",
+  "version": "0.0.0",
+  "type": "module",
+  "license": "Apache-2.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "anpl": "./dist/index.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@anpl/core": "workspace:*",
+    "@anpl/generator-prisma": "workspace:*",
+    "@anpl/normalizer": "workspace:*",
+    "@anpl/parser": "workspace:*",
+    "@anpl/validator": "workspace:*",
+    "commander": "^12.1.0"
+  }
+}
