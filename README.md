@@ -72,7 +72,8 @@ An AI coding tool can translate that intent into ANPL:
 Human intent
     -> AI coding tool / planner
     -> ANPL machine-first program
-    -> ANPL validator
+    -> Parser
+    -> Semantic analyzer
     -> ANPL IR
     -> Compiler / interpreter
     -> Target code or runtime execution
@@ -233,7 +234,7 @@ Current implemented foundation:
 * JavaScript compiler target
 * runtime built-ins: `uuid()`, `now()`, `print(value)`, `len(value)`
 * CLI commands: `check`, `run`, `build`, `emit-ast`, `emit-ir`, `diagnose`
-* initial benchmark metrics for ANPL-vs-target source comparison
+* initial source-size comparison utilities for ANPL-vs-target source comparison
 
 ## Roadmap
 
@@ -241,6 +242,8 @@ Technical references:
 
 * [Architecture](docs/architecture.md)
 * [Grammar v0.1](docs/grammar-v0.1.md)
+* [Status](docs/status.md)
+* [Next Milestones](docs/next-milestones.md)
 
 ### Phase 1: Language Foundation
 

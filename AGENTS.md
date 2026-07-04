@@ -35,7 +35,9 @@ Machine interpretation second
 
 ANPL:
 Machine clarity first
-Human readability optional
+AI generation first
+Human hand-authoring second
+Human inspection still supported
 ```
 
 AI coding tools need:
@@ -238,7 +240,7 @@ packages/diagnostics
 packages/cli
 ```
 
-The current repository may still contain earlier package names such as `validator`, `normalizer`, or `generator-prisma`. These can be gradually renamed or repurposed.
+The current repository still contains legacy scaffolding package names such as `validator`, `normalizer`, and `generator-prisma`. They are documented in `docs/status.md`; do not expand them or add CRUD/Prisma-specific work.
 
 ## Core Compiler Pipeline
 
