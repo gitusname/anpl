@@ -1,0 +1,39 @@
+app CRM
+
+entity Customer {
+  id: uuid primary
+  name: string required
+  phone: string optional
+  createdAt: datetime auto
+}
+
+entity Order {
+  id: uuid primary
+  customerId: ref Customer required
+  amount: decimal required
+  status: enum[pending, paid, cancelled] default pending
+}
+
+api CustomerAPI {
+  create Customer
+  list Customer paginated
+  get Customer by id
+  update Customer
+  delete Customer soft
+}
+
+api OrderAPI {
+  create Order
+  list Order paginated
+  get Order by id
+}
+
+auth {
+  type: jwt
+  roles: admin, user
+}
+
+database {
+  provider: postgres
+  orm: prisma
+}
