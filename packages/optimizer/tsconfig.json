@@ -9,16 +9,8 @@
   "include": [
     "src/**/*.ts",
     "../ast/src/**/*.ts",
-    "../compiler-js/src/**/*.ts",
     "../core/src/**/*.ts",
-    "../diagnostics/src/**/*.ts",
-    "../interpreter/src/**/*.ts",
-    "../ir/src/**/*.ts",
-    "../lexer/src/**/*.ts",
-    "../optimizer/src/**/*.ts",
-    "../parser/src/**/*.ts",
-    "../runtime/src/**/*.ts",
-    "../semantic/src/**/*.ts"
+    "../ir/src/**/*.ts"
   ],
   "exclude": ["**/*.test.ts", "../**/*.test.ts"]
 }

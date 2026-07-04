@@ -1,3 +1,5 @@
+import type { Span } from "@anpl/core";
+
 export type TokenType =
   | "identifier"
   | "keyword"
@@ -5,10 +7,27 @@ export type TokenType =
   | "string"
   | "lbrace"
   | "rbrace"
+  | "lparen"
+  | "rparen"
   | "lbracket"
   | "rbracket"
   | "colon"
   | "comma"
+  | "dot"
+  | "question"
+  | "arrow"
+  | "plus"
+  | "minus"
+  | "star"
+  | "slash"
+  | "percent"
+  | "equal"
+  | "equalEqual"
+  | "bangEqual"
+  | "less"
+  | "lessEqual"
+  | "greater"
+  | "greaterEqual"
   | "newline"
   | "eof";
 
@@ -18,46 +37,30 @@ export type Token = {
   line: number;
   column: number;
   offset: number;
+  span: Span;
 };
 
 export const keywords = [
-  "app",
-  "entity",
-  "api",
-  "auth",
-  "database",
-  "create",
-  "list",
-  "get",
-  "update",
-  "delete",
-  "by",
+  "module",
+  "import",
   "type",
-  "roles",
-  "provider",
-  "orm",
-  "ref",
+  "fn",
+  "let",
+  "return",
+  "if",
+  "else",
+  "true",
+  "false",
+  "null",
+  "and",
+  "or",
   "enum",
-  "primary",
-  "required",
-  "optional",
-  "auto",
-  "default",
-  "paginated",
-  "soft",
-  "unique",
-  "jwt",
-  "none",
-  "postgres",
-  "sqlite",
-  "mysql",
-  "prisma",
-  "string",
   "int",
+  "text",
+  "bool",
   "uuid",
-  "datetime",
   "decimal",
-  "boolean"
+  "string"
 ] as const;
 
 export type Keyword = (typeof keywords)[number];

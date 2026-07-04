@@ -1,5 +1,5 @@
 {
-  "name": "@anpl/parser",
+  "name": "@anpl/optimizer",
   "version": "0.0.0",
   "type": "module",
   "license": "Apache-2.0",
@@ -18,8 +18,6 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@anpl/ast": "workspace:*",
-    "@anpl/core": "workspace:*",
-    "@anpl/lexer": "workspace:*"
+    "@anpl/ir": "workspace:*"
   }
 }

@@ -1,722 +1,633 @@
 import type {
-  ApiAction,
-  ApiNode,
-  ApiOperationNode,
-  AppNode,
-  AuthNode,
-  DatabaseNode,
-  Diagnostic,
-  EntityNode,
-  FieldModifier,
-  FieldNode,
-  FieldTypeNode,
-  ProgramNode,
-  ScalarFieldName,
-  Span
-} from "@anpl/core";
-import { lex, LexerError } from "./lexer.js";
-import type { Token, TokenType } from "./tokens.js";
+  BinaryOperator,
+  BlockStmt,
+  CallExpr,
+  Decl,
+  Expr,
+  FieldDecl,
+  FunctionDecl,
+  IdentifierExpr,
+  IfStmt,
+  ImportDecl,
+  LetStmt,
+  LiteralExpr,
+  MemberExpr,
+  ModuleDecl,
+  Param,
+  Program,
+  RecordExpr,
+  RecordFieldExpr,
+  ReturnStmt,
+  Stmt,
+  TypeDecl,
+  TypeRef
+} from "@anpl/ast";
+import type { Diagnostic, Span } from "@anpl/core";
+import { createDiagnostic } from "@anpl/core";
+import { lexAnpl } from "@anpl/lexer";
+import type { Token, TokenType } from "@anpl/lexer";
 
 export type ParseResult =
   | {
       ok: true;
-      program: ProgramNode;
+      program: Program;
       diagnostics: [];
     }
   | {
       ok: false;
-      program?: ProgramNode;
+      program?: Program;
       diagnostics: Diagnostic[];
     };
 
-const scalarFieldNames = new Set<string>([
-  "string",
-  "int",
-  "uuid",
-  "datetime",
-  "decimal",
-  "boolean"
-]);
-
-const apiActions = new Set<string>([
-  "create",
-  "list",
-  "get",
-  "update",
-  "delete"
-]);
-const fieldModifiers = new Set<string>([
-  "primary",
-  "required",
-  "optional",
-  "auto",
-  "unique",
-  "default"
-]);
+const typeKeywords = new Set(["int", "text", "bool", "uuid", "decimal", "string"]);
 
 export function parseAnpl(source: string, file?: string): ParseResult {
-  try {
-    const parser = new Parser(lex(source), file);
-    const program = parser.parseProgram();
+  const lexResult = lexAnpl(source, file);
+  const parser = new Parser(lexResult.tokens, file, [...lexResult.diagnostics]);
+  const program = parser.parseProgram();
+  const diagnostics = parser.getDiagnostics();
 
-    if (parser.diagnostics.length > 0) {
-      return {
-        ok: false,
-        program,
-        diagnostics: parser.diagnostics
-      };
-    }
-
+  if (!lexResult.ok || diagnostics.length > 0) {
     return {
-      ok: true,
+      ok: false,
       program,
-      diagnostics: []
+      diagnostics
     };
-  } catch (error) {
-    if (error instanceof LexerError) {
-      return {
-        ok: false,
-        diagnostics: [
-          {
-            code: "ANPL_PARSE_UNEXPECTED_TOKEN",
-            severity: "error",
-            message: error.message,
-            file,
-            line: error.line,
-            column: error.column,
-            confidence: "high"
-          }
-        ]
-      };
-    }
-
-    throw error;
   }
+
+  return {
+    ok: true,
+    program,
+    diagnostics: []
+  };
 }
 
 class Parser {
-  readonly diagnostics: Diagnostic[] = [];
   private current = 0;
 
   constructor(
     private readonly tokens: Token[],
-    private readonly file?: string
+    private readonly file: string | undefined,
+    private readonly diagnostics: Diagnostic[]
   ) {}
 
-  parseProgram(): ProgramNode {
-    this.skipNewlines();
+  getDiagnostics(): Diagnostic[] {
+    return this.diagnostics;
+  }
 
+  parseProgram(): Program {
+    this.skipNewlines();
     const start = this.peek();
-    let app: AppNode | undefined;
-    const entities: EntityNode[] = [];
-    const apis: ApiNode[] = [];
-    let auth: AuthNode | undefined;
-    let database: DatabaseNode | undefined;
+    const modules: ModuleDecl[] = [];
 
     while (!this.isAtEnd()) {
-      this.skipNewlines();
-
-      if (this.isAtEnd()) {
-        break;
-      }
-
-      if (this.checkKeyword("app")) {
-        app = this.parseApp();
-      } else if (this.checkKeyword("entity")) {
-        const entity = this.parseEntity();
-        if (entity !== undefined) {
-          entities.push(entity);
-        }
-      } else if (this.checkKeyword("api")) {
-        const api = this.parseApi();
-        if (api !== undefined) {
-          apis.push(api);
-        }
-      } else if (this.checkKeyword("auth")) {
-        auth = this.parseAuth();
-      } else if (this.checkKeyword("database")) {
-        database = this.parseDatabase();
+      if (this.checkKeyword("module")) {
+        modules.push(this.parseModule());
       } else {
         this.addDiagnostic(
           "ANPL_PARSE_UNEXPECTED_TOKEN",
           this.peek(),
-          `Unexpected token '${this.peek().value}'.`
+          `Expected module declaration, received '${this.peek().value}'.`
         );
         this.advance();
       }
+      this.skipNewlines();
     }
 
     return {
       kind: "Program",
-      app,
-      entities,
-      apis,
-      auth,
-      database,
+      modules,
       span: this.spanBetween(start, this.previous())
     };
   }
 
-  private parseApp(): AppNode | undefined {
-    const start = this.expectKeyword("app", "ANPL_PARSE_UNEXPECTED_TOKEN");
-    if (start === undefined) {
-      return undefined;
-    }
-
-    const name = this.expectIdentifier();
-    if (name === undefined) {
-      this.synchronizeToLineEnd();
-      return undefined;
-    }
-
-    return {
-      kind: "App",
-      name: name.value,
-      span: this.spanBetween(start, name)
-    };
-  }
-
-  private parseEntity(): EntityNode | undefined {
-    const start = this.expectKeyword("entity", "ANPL_PARSE_UNEXPECTED_TOKEN");
-    if (start === undefined) {
-      return undefined;
-    }
-
-    const name = this.expectIdentifier();
-    if (name === undefined) {
-      this.synchronizeToBlockEnd();
-      return undefined;
-    }
-
-    const lbrace = this.expectType(
-      "lbrace",
-      "ANPL_PARSE_EXPECTED_LBRACE",
-      "Expected '{' after entity name."
-    );
-    if (lbrace === undefined) {
-      this.synchronizeToBlockEnd();
-      return undefined;
-    }
-
-    const fields: FieldNode[] = [];
+  private parseModule(): ModuleDecl {
+    const start = this.expectKeyword("module");
+    const name = this.expectIdentifier("ANPL_PARSE_EXPECTED_IDENTIFIER");
+    const body: Decl[] = [];
     this.skipNewlines();
 
-    while (!this.isAtEnd() && !this.check("rbrace")) {
-      const field = this.parseField();
-      if (field !== undefined) {
-        fields.push(field);
+    while (!this.isAtEnd() && !this.checkKeyword("module")) {
+      if (this.checkKeyword("import")) {
+        body.push(this.parseImport());
+      } else if (this.checkKeyword("type")) {
+        body.push(this.parseTypeDecl());
+      } else if (this.checkKeyword("fn")) {
+        body.push(this.parseFunctionDecl());
+      } else {
+        this.addDiagnostic(
+          "ANPL_PARSE_UNEXPECTED_TOKEN",
+          this.peek(),
+          `Unexpected module item '${this.peek().value}'.`
+        );
+        this.synchronizeToNextDecl();
       }
       this.skipNewlines();
     }
 
-    const rbrace = this.expectType(
-      "rbrace",
-      "ANPL_PARSE_EXPECTED_RBRACE",
-      "Expected '}' after entity block."
-    );
+    return {
+      kind: "ModuleDecl",
+      name: name.value,
+      body,
+      span: this.spanBetween(start, this.previous())
+    };
+  }
+
+  private parseImport(): ImportDecl {
+    const start = this.expectKeyword("import");
+    const module = this.expectIdentifier("ANPL_PARSE_EXPECTED_IDENTIFIER");
 
     return {
-      kind: "Entity",
+      kind: "ImportDecl",
+      module: module.value,
+      span: this.spanBetween(start, module)
+    };
+  }
+
+  private parseTypeDecl(): TypeDecl {
+    const start = this.expectKeyword("type");
+    const name = this.expectIdentifier("ANPL_PARSE_EXPECTED_IDENTIFIER");
+    this.expect("lbrace", "ANPL_PARSE_EXPECTED_LBRACE", "Expected '{' after type name.");
+    this.skipNewlines();
+    const fields: FieldDecl[] = [];
+
+    while (!this.isAtEnd() && !this.check("rbrace")) {
+      fields.push(this.parseFieldDecl());
+      this.skipFieldSeparator();
+    }
+
+    const end = this.expect("rbrace", "ANPL_PARSE_EXPECTED_RBRACE", "Expected '}' after type.");
+
+    return {
+      kind: "TypeDecl",
       name: name.value,
       fields,
-      span: this.spanBetween(start, rbrace ?? this.previous())
+      span: this.spanBetween(start, end)
     };
   }
 
-  private parseField(): FieldNode | undefined {
-    const name = this.expectIdentifier();
-    if (name === undefined) {
-      this.synchronizeToLineEnd();
-      return undefined;
+  private parseFieldDecl(): FieldDecl {
+    const start = this.expectIdentifier("ANPL_PARSE_EXPECTED_IDENTIFIER");
+    const optional = this.match("question");
+    this.expect("colon", "ANPL_PARSE_EXPECTED_COLON", "Expected ':' after field name.");
+    const type = this.parseTypeRef();
+
+    return {
+      kind: "FieldDecl",
+      name: start.value,
+      optional,
+      type,
+      span: this.spanBetween(start, this.previous())
+    };
+  }
+
+  private parseFunctionDecl(): FunctionDecl {
+    const start = this.expectKeyword("fn");
+    const name = this.expectIdentifier("ANPL_PARSE_EXPECTED_IDENTIFIER");
+    this.expect("lparen", "ANPL_PARSE_EXPECTED_LPAREN", "Expected '(' after function name.");
+    const params: Param[] = [];
+
+    if (!this.check("rparen")) {
+      do {
+        params.push(this.parseParam());
+      } while (this.match("comma"));
     }
 
-    const colon = this.expectType(
-      "colon",
-      "ANPL_PARSE_EXPECTED_COLON",
-      "Expected ':' after field name."
-    );
-    if (colon === undefined) {
-      this.synchronizeToLineEnd();
-      return undefined;
-    }
+    this.expect("rparen", "ANPL_PARSE_EXPECTED_RPAREN", "Expected ')' after parameters.");
+    this.expect("arrow", "ANPL_PARSE_EXPECTED_ARROW", "Expected '->' before return type.");
+    const returnType = this.parseTypeRef();
+    const body = this.parseBlock();
 
-    const type = this.parseFieldType();
-    if (type === undefined) {
-      this.synchronizeToLineEnd();
-      return undefined;
-    }
+    return {
+      kind: "FunctionDecl",
+      name: name.value,
+      params,
+      returnType,
+      body,
+      span: this.spanBetweenSpans(start.span, body.span)
+    };
+  }
 
-    const modifiers: FieldModifier[] = [];
-    while (!this.isAtEnd() && !this.check("newline") && !this.check("rbrace")) {
-      const modifier = this.parseFieldModifier();
-      if (modifier === undefined) {
-        this.synchronizeToLineEnd();
-        break;
+  private parseParam(): Param {
+    const start = this.expectIdentifier("ANPL_PARSE_EXPECTED_IDENTIFIER");
+    this.expect("colon", "ANPL_PARSE_EXPECTED_COLON", "Expected ':' after parameter name.");
+    const type = this.parseTypeRef();
+
+    return {
+      kind: "Param",
+      name: start.value,
+      type,
+      span: this.spanBetween(start, this.previous())
+    };
+  }
+
+  private parseTypeRef(): TypeRef {
+    const start = this.expectTypeName();
+    let typeArgs: TypeRef[] | undefined;
+
+    if (this.match("lbracket")) {
+      typeArgs = [];
+      if (!this.check("rbracket")) {
+        do {
+          typeArgs.push(this.parseTypeRef());
+        } while (this.match("comma"));
       }
-      modifiers.push(modifier);
+      this.expect("rbracket", "ANPL_PARSE_EXPECTED_RBRACKET", "Expected ']' after type arguments.");
     }
 
     return {
-      kind: "Field",
-      name: name.value,
-      type,
-      modifiers,
-      span: this.spanBetween(name, this.previous())
+      kind: "TypeRef",
+      name: start.value,
+      typeArgs,
+      span: this.spanBetween(start, this.previous())
     };
   }
 
-  private parseFieldType(): FieldTypeNode | undefined {
-    const token = this.peek();
+  private parseBlock(): BlockStmt {
+    const start = this.expect("lbrace", "ANPL_PARSE_EXPECTED_LBRACE", "Expected '{' before block.");
+    this.skipNewlines();
+    const statements: Stmt[] = [];
 
-    if (this.checkKeyword("ref")) {
-      const start = this.advance();
-      const entity = this.expectIdentifier();
-      if (entity === undefined) {
-        return undefined;
-      }
-
-      return {
-        kind: "ReferenceFieldType",
-        entityName: entity.value,
-        span: this.spanBetween(start, entity)
-      };
+    while (!this.isAtEnd() && !this.check("rbrace")) {
+      statements.push(this.parseStatement());
+      this.skipStatementSeparator();
     }
 
-    if (this.checkKeyword("enum")) {
-      const start = this.advance();
-      this.expectType(
-        "lbracket",
-        "ANPL_PARSE_UNEXPECTED_TOKEN",
-        "Expected '[' after enum."
-      );
-      const values: string[] = [];
+    const end = this.expect("rbrace", "ANPL_PARSE_EXPECTED_RBRACE", "Expected '}' after block.");
+    const block: BlockStmt = {
+      kind: "BlockStmt",
+      statements,
+      span: this.spanBetween(start, end)
+    };
 
-      while (!this.isAtEnd() && !this.check("rbracket")) {
-        const value = this.expectValue("ANPL_PARSE_EXPECTED_IDENTIFIER");
-        if (value === undefined) {
-          return undefined;
-        }
-        values.push(value.value);
+    return block;
+  }
 
-        if (!this.match("comma")) {
-          break;
-        }
-      }
-
-      const rbracket = this.expectType(
-        "rbracket",
-        "ANPL_PARSE_UNEXPECTED_TOKEN",
-        "Expected ']' after enum values."
-      );
-
-      return {
-        kind: "EnumFieldType",
-        values,
-        span: this.spanBetween(start, rbracket ?? this.previous())
-      };
+  private parseStatement(): Stmt {
+    if (this.checkKeyword("let")) {
+      return this.parseLetStmt();
+    }
+    if (this.checkKeyword("return")) {
+      return this.parseReturnStmt();
+    }
+    if (this.checkKeyword("if")) {
+      return this.parseIfStmt();
     }
 
-    if (this.check("keyword") && scalarFieldNames.has(token.value)) {
-      const scalar = this.advance();
+    const expression = this.parseExpression();
+    return {
+      kind: "ExprStmt",
+      expression,
+      span: expression.span
+    };
+  }
+
+  private parseLetStmt(): LetStmt {
+    const start = this.expectKeyword("let");
+    const name = this.expectIdentifier("ANPL_PARSE_EXPECTED_IDENTIFIER");
+    let type: TypeRef | undefined;
+
+    if (this.match("colon")) {
+      type = this.parseTypeRef();
+    }
+
+    this.expect("equal", "ANPL_PARSE_EXPECTED_EQUAL", "Expected '=' in let statement.");
+    const value = this.parseExpression();
+
+    return {
+      kind: "LetStmt",
+      name: name.value,
+      type,
+      value,
+      span: this.spanBetween(start, this.previous())
+    };
+  }
+
+  private parseReturnStmt(): ReturnStmt {
+    const start = this.expectKeyword("return");
+    const value =
+      this.check("newline") || this.check("rbrace") || this.isAtEnd()
+        ? undefined
+        : this.parseExpression();
+
+    return {
+      kind: "ReturnStmt",
+      value,
+      span: this.spanBetween(start, this.previous())
+    };
+  }
+
+  private parseIfStmt(): IfStmt {
+    const start = this.expectKeyword("if");
+    const condition = this.parseExpression();
+    const thenBranch = this.parseBlock();
+    let elseBranch: BlockStmt | IfStmt | undefined;
+
+    this.skipNewlines();
+    if (this.matchKeyword("else")) {
+      elseBranch = this.checkKeyword("if") ? this.parseIfStmt() : this.parseBlock();
+    }
+
+    return {
+      kind: "IfStmt",
+      condition,
+      thenBranch,
+      elseBranch,
+      span: this.spanBetween(start, this.previous())
+    };
+  }
+
+  private parseExpression(): Expr {
+    return this.parseOr();
+  }
+
+  private parseOr(): Expr {
+    let expr = this.parseAnd();
+
+    while (this.matchKeyword("or")) {
+      const operator = this.previous();
+      const right = this.parseAnd();
+      expr = this.binary(expr, operator, right);
+    }
+
+    return expr;
+  }
+
+  private parseAnd(): Expr {
+    let expr = this.parseEquality();
+
+    while (this.matchKeyword("and")) {
+      const operator = this.previous();
+      const right = this.parseEquality();
+      expr = this.binary(expr, operator, right);
+    }
+
+    return expr;
+  }
+
+  private parseEquality(): Expr {
+    let expr = this.parseComparison();
+
+    while (this.match("equalEqual") || this.match("bangEqual")) {
+      const operator = this.previous();
+      const right = this.parseComparison();
+      expr = this.binary(expr, operator, right);
+    }
+
+    return expr;
+  }
+
+  private parseComparison(): Expr {
+    let expr = this.parseTerm();
+
+    while (
+      this.match("less") ||
+      this.match("lessEqual") ||
+      this.match("greater") ||
+      this.match("greaterEqual")
+    ) {
+      const operator = this.previous();
+      const right = this.parseTerm();
+      expr = this.binary(expr, operator, right);
+    }
+
+    return expr;
+  }
+
+  private parseTerm(): Expr {
+    let expr = this.parseFactor();
+
+    while (this.match("plus") || this.match("minus")) {
+      const operator = this.previous();
+      const right = this.parseFactor();
+      expr = this.binary(expr, operator, right);
+    }
+
+    return expr;
+  }
+
+  private parseFactor(): Expr {
+    let expr = this.parseCall();
+
+    while (this.match("star") || this.match("slash") || this.match("percent")) {
+      const operator = this.previous();
+      const right = this.parseCall();
+      expr = this.binary(expr, operator, right);
+    }
+
+    return expr;
+  }
+
+  private parseCall(): Expr {
+    let expr = this.parsePrimary();
+
+    while (true) {
+      if (this.match("lparen")) {
+        const args: Expr[] = [];
+        if (!this.check("rparen")) {
+          do {
+            args.push(this.parseExpression());
+          } while (this.match("comma"));
+        }
+        const end = this.expect("rparen", "ANPL_PARSE_EXPECTED_RPAREN", "Expected ')' after call.");
+        expr = {
+          kind: "CallExpr",
+          callee: expr,
+          args,
+          span: this.spanBetweenExpr(expr, end)
+        } satisfies CallExpr;
+      } else if (this.match("dot")) {
+        const property = this.expectIdentifier("ANPL_PARSE_EXPECTED_IDENTIFIER");
+        expr = {
+          kind: "MemberExpr",
+          object: expr,
+          property: property.value,
+          span: this.spanBetweenExpr(expr, property)
+        } satisfies MemberExpr;
+      } else {
+        break;
+      }
+    }
+
+    return expr;
+  }
+
+  private parsePrimary(): Expr {
+    if (this.match("number")) {
+      const token = this.previous();
+      return this.literal(Number(token.value), token);
+    }
+
+    if (this.match("string")) {
+      const token = this.previous();
+      return this.literal(token.value, token);
+    }
+
+    if (this.matchKeyword("true")) {
+      return this.literal(true, this.previous());
+    }
+
+    if (this.matchKeyword("false")) {
+      return this.literal(false, this.previous());
+    }
+
+    if (this.matchKeyword("null")) {
+      return this.literal(null, this.previous());
+    }
+
+    if (this.check("identifier") || this.check("keyword")) {
+      const name = this.advance();
+      if (this.check("lbrace")) {
+        return this.parseRecordExpr(name);
+      }
       return {
-        kind: "ScalarFieldType",
-        name: scalar.value as ScalarFieldName,
-        span: this.spanFromToken(scalar)
-      };
+        kind: "IdentifierExpr",
+        name: name.value,
+        span: name.span
+      } satisfies IdentifierExpr;
+    }
+
+    if (this.match("lparen")) {
+      const expr = this.parseExpression();
+      this.expect("rparen", "ANPL_PARSE_EXPECTED_RPAREN", "Expected ')' after expression.");
+      return expr;
     }
 
     this.addDiagnostic(
-      "ANPL_PARSE_INVALID_FIELD_TYPE",
-      token,
-      `Invalid field type '${token.value}'.`
-    );
-    return undefined;
-  }
-
-  private parseFieldModifier(): FieldModifier | undefined {
-    const token = this.peek();
-
-    if (!this.check("keyword") || !fieldModifiers.has(token.value)) {
-      this.addDiagnostic(
-        "ANPL_PARSE_UNEXPECTED_TOKEN",
-        token,
-        `Unexpected field modifier '${token.value}'.`
-      );
-      return undefined;
-    }
-
-    const modifier = this.advance();
-
-    switch (modifier.value) {
-      case "primary":
-        return {
-          kind: "PrimaryModifier",
-          span: this.spanFromToken(modifier)
-        };
-      case "required":
-        return {
-          kind: "RequiredModifier",
-          span: this.spanFromToken(modifier)
-        };
-      case "optional":
-        return {
-          kind: "OptionalModifier",
-          span: this.spanFromToken(modifier)
-        };
-      case "auto":
-        return {
-          kind: "AutoModifier",
-          span: this.spanFromToken(modifier)
-        };
-      case "unique":
-        return {
-          kind: "UniqueModifier",
-          span: this.spanFromToken(modifier)
-        };
-      case "default": {
-        const value = this.expectValue("ANPL_PARSE_EXPECTED_IDENTIFIER");
-        if (value === undefined) {
-          return undefined;
-        }
-        return {
-          kind: "DefaultModifier",
-          value: value.value,
-          span: this.spanBetween(modifier, value)
-        };
-      }
-      default:
-        return undefined;
-    }
-  }
-
-  private parseApi(): ApiNode | undefined {
-    const start = this.expectKeyword("api", "ANPL_PARSE_UNEXPECTED_TOKEN");
-    if (start === undefined) {
-      return undefined;
-    }
-
-    const name = this.expectIdentifier();
-    if (name === undefined) {
-      this.synchronizeToBlockEnd();
-      return undefined;
-    }
-
-    const lbrace = this.expectType(
-      "lbrace",
-      "ANPL_PARSE_EXPECTED_LBRACE",
-      "Expected '{' after api name."
-    );
-    if (lbrace === undefined) {
-      this.synchronizeToBlockEnd();
-      return undefined;
-    }
-
-    const operations: ApiOperationNode[] = [];
-    this.skipNewlines();
-
-    while (!this.isAtEnd() && !this.check("rbrace")) {
-      const operation = this.parseApiOperation();
-      if (operation !== undefined) {
-        operations.push(operation);
-      }
-      this.skipNewlines();
-    }
-
-    const rbrace = this.expectType(
-      "rbrace",
-      "ANPL_PARSE_EXPECTED_RBRACE",
-      "Expected '}' after api block."
-    );
-
-    return {
-      kind: "Api",
-      name: name.value,
-      operations,
-      span: this.spanBetween(start, rbrace ?? this.previous())
-    };
-  }
-
-  private parseApiOperation(): ApiOperationNode | undefined {
-    const action = this.peek();
-    if (!this.check("keyword") || !apiActions.has(action.value)) {
-      this.addDiagnostic(
-        "ANPL_PARSE_UNEXPECTED_TOKEN",
-        action,
-        `Expected API operation, received '${action.value}'.`
-      );
-      this.synchronizeToLineEnd();
-      return undefined;
-    }
-    this.advance();
-
-    const entity = this.expectIdentifier();
-    if (entity === undefined) {
-      this.synchronizeToLineEnd();
-      return undefined;
-    }
-
-    const flags: string[] = [];
-    while (!this.isAtEnd() && !this.check("newline") && !this.check("rbrace")) {
-      if (this.matchKeyword("paginated")) {
-        flags.push("paginated");
-      } else if (this.matchKeyword("soft")) {
-        flags.push("soft");
-      } else if (this.matchKeyword("by")) {
-        flags.push("by");
-        const field = this.expectIdentifier();
-        if (field === undefined) {
-          this.synchronizeToLineEnd();
-          break;
-        }
-        flags.push(field.value);
-      } else {
-        this.addDiagnostic(
-          "ANPL_PARSE_UNEXPECTED_TOKEN",
-          this.peek(),
-          `Unexpected API flag '${this.peek().value}'.`
-        );
-        this.synchronizeToLineEnd();
-        break;
-      }
-    }
-
-    return {
-      kind: "ApiOperation",
-      action: action.value as ApiAction,
-      entityName: entity.value,
-      flags,
-      span: this.spanBetween(action, this.previous())
-    };
-  }
-
-  private parseAuth(): AuthNode | undefined {
-    const start = this.expectKeyword("auth", "ANPL_PARSE_UNEXPECTED_TOKEN");
-    if (start === undefined) {
-      return undefined;
-    }
-
-    const lbrace = this.expectType(
-      "lbrace",
-      "ANPL_PARSE_EXPECTED_LBRACE",
-      "Expected '{' after auth."
-    );
-    if (lbrace === undefined) {
-      this.synchronizeToBlockEnd();
-      return undefined;
-    }
-
-    let type: string | undefined;
-    const roles: string[] = [];
-    this.skipNewlines();
-
-    while (!this.isAtEnd() && !this.check("rbrace")) {
-      if (this.matchKeyword("type")) {
-        if (
-          this.expectType(
-            "colon",
-            "ANPL_PARSE_EXPECTED_COLON",
-            "Expected ':' after type."
-          ) === undefined
-        ) {
-          this.synchronizeToLineEnd();
-        } else {
-          const value = this.expectValue("ANPL_PARSE_EXPECTED_IDENTIFIER");
-          if (value !== undefined) {
-            type = value.value;
-          }
-        }
-      } else if (this.matchKeyword("roles")) {
-        if (
-          this.expectType(
-            "colon",
-            "ANPL_PARSE_EXPECTED_COLON",
-            "Expected ':' after roles."
-          ) === undefined
-        ) {
-          this.synchronizeToLineEnd();
-        } else {
-          roles.push(...this.parseValueList());
-        }
-      } else {
-        this.addDiagnostic(
-          "ANPL_PARSE_UNEXPECTED_TOKEN",
-          this.peek(),
-          `Unexpected auth field '${this.peek().value}'.`
-        );
-        this.synchronizeToLineEnd();
-      }
-
-      this.skipNewlines();
-    }
-
-    const rbrace = this.expectType(
-      "rbrace",
-      "ANPL_PARSE_EXPECTED_RBRACE",
-      "Expected '}' after auth block."
-    );
-
-    return {
-      kind: "Auth",
-      type,
-      roles,
-      span: this.spanBetween(start, rbrace ?? this.previous())
-    };
-  }
-
-  private parseDatabase(): DatabaseNode | undefined {
-    const start = this.expectKeyword("database", "ANPL_PARSE_UNEXPECTED_TOKEN");
-    if (start === undefined) {
-      return undefined;
-    }
-
-    const lbrace = this.expectType(
-      "lbrace",
-      "ANPL_PARSE_EXPECTED_LBRACE",
-      "Expected '{' after database."
-    );
-    if (lbrace === undefined) {
-      this.synchronizeToBlockEnd();
-      return undefined;
-    }
-
-    let provider: string | undefined;
-    let orm: string | undefined;
-    this.skipNewlines();
-
-    while (!this.isAtEnd() && !this.check("rbrace")) {
-      if (this.matchKeyword("provider")) {
-        if (
-          this.expectType(
-            "colon",
-            "ANPL_PARSE_EXPECTED_COLON",
-            "Expected ':' after provider."
-          ) === undefined
-        ) {
-          this.synchronizeToLineEnd();
-        } else {
-          const value = this.expectValue("ANPL_PARSE_EXPECTED_IDENTIFIER");
-          if (value !== undefined) {
-            provider = value.value;
-          }
-        }
-      } else if (this.matchKeyword("orm")) {
-        if (
-          this.expectType(
-            "colon",
-            "ANPL_PARSE_EXPECTED_COLON",
-            "Expected ':' after orm."
-          ) === undefined
-        ) {
-          this.synchronizeToLineEnd();
-        } else {
-          const value = this.expectValue("ANPL_PARSE_EXPECTED_IDENTIFIER");
-          if (value !== undefined) {
-            orm = value.value;
-          }
-        }
-      } else {
-        this.addDiagnostic(
-          "ANPL_PARSE_UNEXPECTED_TOKEN",
-          this.peek(),
-          `Unexpected database field '${this.peek().value}'.`
-        );
-        this.synchronizeToLineEnd();
-      }
-
-      this.skipNewlines();
-    }
-
-    const rbrace = this.expectType(
-      "rbrace",
-      "ANPL_PARSE_EXPECTED_RBRACE",
-      "Expected '}' after database block."
-    );
-
-    return {
-      kind: "Database",
-      provider,
-      orm,
-      span: this.spanBetween(start, rbrace ?? this.previous())
-    };
-  }
-
-  private parseValueList(): string[] {
-    const values: string[] = [];
-
-    while (!this.isAtEnd() && !this.check("newline") && !this.check("rbrace")) {
-      const value = this.expectValue("ANPL_PARSE_EXPECTED_IDENTIFIER");
-      if (value === undefined) {
-        this.synchronizeToLineEnd();
-        break;
-      }
-      values.push(value.value);
-
-      if (!this.match("comma")) {
-        break;
-      }
-    }
-
-    return values;
-  }
-
-  private expectIdentifier(): Token | undefined {
-    if (this.check("identifier")) {
-      return this.advance();
-    }
-
-    this.addDiagnostic(
-      "ANPL_PARSE_EXPECTED_IDENTIFIER",
+      "ANPL_PARSE_UNEXPECTED_TOKEN",
       this.peek(),
-      `Expected identifier, received '${this.peek().value}'.`
+      `Expected expression, received '${this.peek().value}'.`
     );
-    return undefined;
+    const token = this.advance();
+    return this.literal(null, token);
   }
 
-  private expectValue(code: string): Token | undefined {
+  private parseRecordExpr(name: Token): RecordExpr {
+    this.expect("lbrace", "ANPL_PARSE_EXPECTED_LBRACE", "Expected '{' after record type.");
+    this.skipNewlines();
+    const fields: RecordFieldExpr[] = [];
+
+    while (!this.isAtEnd() && !this.check("rbrace")) {
+      const fieldName = this.expectIdentifier("ANPL_PARSE_EXPECTED_IDENTIFIER");
+      this.expect("colon", "ANPL_PARSE_EXPECTED_COLON", "Expected ':' after record field.");
+      const value = this.parseExpression();
+      fields.push({
+        kind: "RecordFieldExpr",
+        name: fieldName.value,
+        value,
+        span: this.spanBetween(fieldName, this.previous())
+      });
+      this.skipFieldSeparator();
+    }
+
+    const end = this.expect("rbrace", "ANPL_PARSE_EXPECTED_RBRACE", "Expected '}' after record.");
+
+    return {
+      kind: "RecordExpr",
+      typeName: name.value,
+      fields,
+      span: this.spanBetween(name, end)
+    };
+  }
+
+  private binary(left: Expr, operator: Token, right: Expr): Expr {
+    return {
+      kind: "BinaryExpr",
+      operator: operator.value as BinaryOperator,
+      left,
+      right,
+      span: this.spanBetweenSpans(left.span, right.span)
+    };
+  }
+
+  private literal(value: LiteralExpr["value"], token: Token): LiteralExpr {
+    return {
+      kind: "LiteralExpr",
+      value,
+      span: token.span
+    };
+  }
+
+  private skipStatementSeparator(): void {
+    this.skipNewlines();
+  }
+
+  private skipFieldSeparator(): void {
+    while (this.match("comma") || this.match("newline")) {
+      // Fields can be comma-separated or newline-separated.
+    }
+  }
+
+  private skipNewlines(): void {
+    while (this.match("newline")) {
+      // Newlines are statement separators.
+    }
+  }
+
+  private synchronizeToNextDecl(): void {
+    while (
+      !this.isAtEnd() &&
+      !this.checkKeyword("import") &&
+      !this.checkKeyword("type") &&
+      !this.checkKeyword("fn") &&
+      !this.checkKeyword("module")
+    ) {
+      this.advance();
+    }
+  }
+
+  private expectTypeName(): Token {
     if (
       this.check("identifier") ||
-      this.check("keyword") ||
-      this.check("string") ||
-      this.check("number")
+      (this.check("keyword") && typeKeywords.has(this.peek().value)) ||
+      this.checkKeyword("enum")
     ) {
       return this.advance();
     }
 
     this.addDiagnostic(
-      code,
+      "ANPL_PARSE_EXPECTED_TYPE",
       this.peek(),
-      `Expected value, received '${this.peek().value}'.`
+      `Expected type name, received '${this.peek().value}'.`
     );
-    return undefined;
+    return this.advance();
   }
 
-  private expectKeyword(value: string, code: string): Token | undefined {
+  private expectIdentifier(code: string): Token {
+    if (this.check("identifier")) {
+      return this.advance();
+    }
+
+    this.addDiagnostic(code, this.peek(), `Expected identifier, received '${this.peek().value}'.`);
+    return this.advance();
+  }
+
+  private expectKeyword(value: string): Token {
     if (this.checkKeyword(value)) {
       return this.advance();
     }
 
     this.addDiagnostic(
-      code,
+      "ANPL_PARSE_UNEXPECTED_TOKEN",
       this.peek(),
       `Expected '${value}', received '${this.peek().value}'.`
     );
-    return undefined;
+    return this.advance();
   }
 
-  private expectType(type: TokenType, code: string, message: string): Token | undefined {
+  private expect(type: TokenType, code: string, message: string): Token {
     if (this.check(type)) {
       return this.advance();
     }
 
     this.addDiagnostic(code, this.peek(), message);
-    return undefined;
+    return this.peek();
   }
 
   private match(type: TokenType): boolean {
     if (!this.check(type)) {
       return false;
     }
-
     this.advance();
     return true;
   }
@@ -725,7 +636,6 @@ class Parser {
     if (!this.checkKeyword(value)) {
       return false;
     }
-
     this.advance();
     return true;
   }
@@ -736,28 +646,6 @@ class Parser {
 
   private checkKeyword(value: string): boolean {
     return this.peek().type === "keyword" && this.peek().value === value;
-  }
-
-  private skipNewlines(): void {
-    while (this.match("newline")) {
-      // Keep newlines in the token stream, but they are separators for the parser.
-    }
-  }
-
-  private synchronizeToLineEnd(): void {
-    while (!this.isAtEnd() && !this.check("newline") && !this.check("rbrace")) {
-      this.advance();
-    }
-  }
-
-  private synchronizeToBlockEnd(): void {
-    while (!this.isAtEnd() && !this.check("rbrace")) {
-      this.advance();
-    }
-
-    if (this.check("rbrace")) {
-      this.advance();
-    }
   }
 
   private isAtEnd(): boolean {
@@ -776,59 +664,37 @@ class Parser {
     if (!this.isAtEnd()) {
       this.current += 1;
     }
-
     return this.previous();
   }
 
   private addDiagnostic(code: string, token: Token, message: string): void {
-    this.diagnostics.push({
-      code,
-      severity: "error",
-      message,
-      file: this.file,
-      line: token.line,
-      column: token.column,
-      span: this.spanFromToken(token),
-      confidence: "high"
-    });
-  }
-
-  private spanFromToken(token: Token): Span {
-    return this.spanBetween(token, token);
+    this.diagnostics.push(
+      createDiagnostic({
+        code,
+        severity: "error",
+        message,
+        file: this.file,
+        line: token.line,
+        column: token.column,
+        span: token.span,
+        confidence: "high"
+      })
+    );
   }
 
   private spanBetween(start: Token, end: Token): Span {
-    return {
-      file: this.file,
-      start: {
-        offset: start.offset,
-        line: start.line,
-        column: start.column
-      },
-      end: this.endPosition(end)
-    };
+    return this.spanBetweenSpans(start.span, end.span);
   }
 
-  private endPosition(token: Token): Span["end"] {
-    const width =
-      token.type === "eof"
-        ? 0
-        : token.type === "string"
-          ? token.value.length + 2
-          : token.value.length;
+  private spanBetweenExpr(start: Expr, end: Token): Span {
+    return this.spanBetweenSpans(start.span, end.span);
+  }
 
-    if (token.type === "newline") {
-      return {
-        offset: token.offset + 1,
-        line: token.line + 1,
-        column: 1
-      };
-    }
-
+  private spanBetweenSpans(start: Span, end: Span): Span {
     return {
-      offset: token.offset + width,
-      line: token.line,
-      column: token.column + width
+      file: start.file ?? end.file,
+      start: start.start,
+      end: end.end
     };
   }
 }

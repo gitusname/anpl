@@ -13,7 +13,16 @@
     "baseUrl": ".",
     "paths": {
       "@anpl/ast": ["packages/ast/src/index.ts"],
-      "@anpl/core": ["packages/core/src/index.ts"]
+      "@anpl/compiler-js": ["packages/compiler-js/src/index.ts"],
+      "@anpl/lexer": ["packages/lexer/src/index.ts"],
+      "@anpl/core": ["packages/core/src/index.ts"],
+      "@anpl/diagnostics": ["packages/diagnostics/src/index.ts"],
+      "@anpl/interpreter": ["packages/interpreter/src/index.ts"],
+      "@anpl/ir": ["packages/ir/src/index.ts"],
+      "@anpl/optimizer": ["packages/optimizer/src/index.ts"],
+      "@anpl/runtime": ["packages/runtime/src/index.ts"],
+      "@anpl/semantic": ["packages/semantic/src/index.ts"],
+      "@anpl/parser": ["packages/parser/src/index.ts"]
     },
     "resolveJsonModule": true,
     "isolatedModules": true,

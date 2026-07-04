@@ -82,8 +82,8 @@ module crm
 
 type Customer {
   id: uuid
-  name: string
-  phone?: string
+  name: text
+  phone?: text
 }
 
 type Order {
@@ -93,8 +93,7 @@ type Order {
   status: enum[pending, paid, cancelled]
 }
 
-action createOrder(customer: Customer, amount: decimal) -> Order {
-  require amount > 0
+fn createOrder(customer: Customer, amount: decimal) -> Order {
   let order = Order {
     id: uuid()
     customer: customer

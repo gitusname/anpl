@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseAnpl } from "./parser.js";
 
@@ -16,135 +14,95 @@ function parseOk(source: string) {
   return result.program;
 }
 
-describe("parser", () => {
-  it("parses app declaration", () => {
-    const program = parseOk("app CRM");
+describe("real language parser", () => {
+  it("parses module and function declarations", () => {
+    const program = parseOk(`module math
 
-    expect(program.app?.name).toBe("CRM");
-    expect(program.span.start).toMatchObject({ line: 1, column: 1, offset: 0 });
-  });
-
-  it("parses Customer entity with fields", () => {
-    const program = parseOk(`entity Customer {
-  id: uuid primary
-  name: string required
-  phone: string optional
+fn add(a: int, b: int) -> int {
+  return a + b
 }`);
-    const customer = program.entities[0];
+    const moduleDecl = program.modules[0];
+    const fn = moduleDecl?.body[0];
 
-    expect(customer?.name).toBe("Customer");
-    expect(customer?.fields).toHaveLength(3);
-    expect(customer?.fields.map((field) => field.name)).toEqual([
-      "id",
-      "name",
-      "phone"
-    ]);
-    expect(customer?.fields[0]?.modifiers[0]?.kind).toBe("PrimaryModifier");
-  });
-
-  it("parses ref field", () => {
-    const program = parseOk(`entity Order {
-  customerId: ref Customer required
-}`);
-    const field = program.entities[0]?.fields[0];
-
-    expect(field?.type).toMatchObject({
-      kind: "ReferenceFieldType",
-      entityName: "Customer"
-    });
-    expect(field?.modifiers[0]?.kind).toBe("RequiredModifier");
-  });
-
-  it("parses enum field with default", () => {
-    const program = parseOk(`entity Order {
-  status: enum[pending, paid, cancelled] default pending
-}`);
-    const field = program.entities[0]?.fields[0];
-
-    expect(field?.type).toMatchObject({
-      kind: "EnumFieldType",
-      values: ["pending", "paid", "cancelled"]
-    });
-    expect(field?.modifiers[0]).toMatchObject({
-      kind: "DefaultModifier",
-      value: "pending"
+    expect(moduleDecl?.name).toBe("math");
+    expect(fn).toMatchObject({
+      kind: "FunctionDecl",
+      name: "add"
     });
   });
 
-  it("parses API operations", () => {
-    const program = parseOk(`api CustomerAPI {
-  create Customer
-  list Customer paginated
-  get Customer by id
-  update Customer
-  delete Customer soft
+  it("parses let, calls, and returns", () => {
+    const program = parseOk(`module math
+
+fn add(a: int, b: int) -> int {
+  return a + b
+}
+
+fn main() -> int {
+  let result = add(2, 3)
+  return result
 }`);
-    const api = program.apis[0];
+    const main = program.modules[0]?.body[1];
 
-    expect(api?.name).toBe("CustomerAPI");
-    expect(api?.operations.map((operation) => operation.action)).toEqual([
-      "create",
-      "list",
-      "get",
-      "update",
-      "delete"
-    ]);
-    expect(api?.operations[1]?.flags).toEqual(["paginated"]);
-    expect(api?.operations[2]?.flags).toEqual(["by", "id"]);
-    expect(api?.operations[4]?.flags).toEqual(["soft"]);
-  });
-
-  it("parses auth block", () => {
-    const program = parseOk(`auth {
-  type: jwt
-  roles: admin, user
-}`);
-
-    expect(program.auth?.type).toBe("jwt");
-    expect(program.auth?.roles).toEqual(["admin", "user"]);
-  });
-
-  it("parses database block", () => {
-    const program = parseOk(`database {
-  provider: postgres
-  orm: prisma
-}`);
-
-    expect(program.database?.provider).toBe("postgres");
-    expect(program.database?.orm).toBe("prisma");
-  });
-
-  it("parses examples/crm.anpl successfully", () => {
-    const source = readFileSync(
-      join(process.cwd(), "examples", "crm.anpl"),
-      "utf8"
-    );
-    const result = parseAnpl(source, "examples/crm.anpl");
-
-    expect(result.ok).toBe(true);
-    if (!result.ok) {
-      throw new Error(
-        result.diagnostics.map((diagnostic) => diagnostic.message).join("\n")
-      );
+    expect(main).toMatchObject({
+      kind: "FunctionDecl",
+      name: "main"
+    });
+    if (main?.kind !== "FunctionDecl") {
+      throw new Error("Expected FunctionDecl");
     }
-
-    expect(result.program.app?.name).toBe("CRM");
-    expect(result.program.entities).toHaveLength(2);
-    expect(result.program.entities.some((entity) => entity.name === "Customer")).toBe(
-      true
-    );
-    expect(result.program.entities.some((entity) => entity.name === "Order")).toBe(
-      true
-    );
-    expect(result.program.apis).toHaveLength(2);
-    expect(result.program.auth?.type).toBe("jwt");
-    expect(result.program.database?.provider).toBe("postgres");
-    expect(result.program.database?.orm).toBe("prisma");
+    expect(main.body.statements[0]).toMatchObject({
+      kind: "LetStmt",
+      name: "result"
+    });
   });
 
-  it("returns diagnostics for invalid syntax", () => {
-    const result = parseAnpl(`entity Customer {
-  id uuid primary
+  it("parses type declarations and record literals", () => {
+    const program = parseOk(`module crm
+
+type Customer {
+  id: uuid
+  name: text
+  age?: int
+}
+
+fn createCustomer(name: text) -> Customer {
+  return Customer {
+    id: uuid()
+    name: name
+  }
+}`);
+    const typeDecl = program.modules[0]?.body[0];
+    const fn = program.modules[0]?.body[1];
+
+    expect(typeDecl).toMatchObject({
+      kind: "TypeDecl",
+      name: "Customer"
+    });
+    if (typeDecl?.kind !== "TypeDecl") {
+      throw new Error("Expected TypeDecl");
+    }
+    expect(typeDecl.fields[2]).toMatchObject({
+      name: "age",
+      optional: true
+    });
+    if (fn?.kind !== "FunctionDecl") {
+      throw new Error("Expected FunctionDecl");
+    }
+    expect(fn.body.statements[0]).toMatchObject({
+      kind: "ReturnStmt",
+      value: {
+        kind: "RecordExpr",
+        typeName: "Customer"
+      }
+    });
+  });
+
+  it("returns structured diagnostics for invalid syntax", () => {
+    const result = parseAnpl(`module math
+
+fn add(a int) -> int {
+  return a
 }`);
 
     expect(result.ok).toBe(false);
