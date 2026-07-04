@@ -27,7 +27,7 @@ type PipelineResult =
 
 const program = new Command()
   .name("anpl")
-  .description("AI-native programming language toolchain")
+  .description("Machine-first programming language toolchain for AI coding tools")
   .version("0.0.0");
 
 program

@@ -1,8 +1,41 @@
 # ANPL Grammar v0.1
 
 This grammar documents the implemented ANPL v0.1 syntax. It is intentionally
-small and compiler-first: each construct maps directly to AST nodes in
-`packages/ast`.
+small, machine-first, and compiler-friendly: each construct maps directly to AST
+nodes in `packages/ast`.
+
+## Machine-First Grammar Contract
+
+ANPL grammar is designed for AI-generated programs.
+
+The grammar prioritizes:
+
+* deterministic parsing
+* low ambiguity
+* explicit structure
+* stable formatting
+* easy repair by AI coding tools
+* direct mapping into AST and IR
+* structured diagnostics on invalid output
+
+Human readability is useful, but it is not the primary goal.
+
+The primary goal is that AI systems can generate valid ANPL more reliably than
+they generate large human-first codebases directly.
+
+## Canonical Form
+
+Every valid ANPL program should eventually have one canonical formatted
+representation.
+
+This is important because AI coding tools need stable diffs, stable diagnostics,
+and stable repair loops.
+
+Future ANPL tooling should include:
+
+```bash
+anpl format file.anpl
+```
 
 ## Lexical Rules
 

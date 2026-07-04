@@ -1,13 +1,32 @@
 # ANPL Technical Architecture
 
-ANPL is an experimental AI-native programming language and compiler toolchain.
+ANPL is a machine-first programming language, AI-native software intent layer,
+and compiler toolchain.
+
 It is not a CRUD generator. The project direction is a real language pipeline
-that AI coding agents can generate, validate, execute, transform, and debug.
+that AI coding tools can generate, validate, execute, transform, repair, and
+debug before producing production code.
+
+## System Boundary
+
+ANPL is designed to sit between human intent and target production code.
+
+```text
+Human intent
+    -> AI coding tool / planner
+    -> ANPL machine-first program
+    -> ANPL compiler pipeline
+    -> Runtime execution or target code
+```
+
+ANPL programs are expected to be generated mostly by AI systems.
+
+Humans may inspect ANPL, but the primary producer is an AI coding tool.
 
 ## Compiler Pipeline
 
 ```text
-ANPL source code
+ANPL machine-first program
     -> Lexer
     -> Parser
     -> AST
@@ -72,8 +91,8 @@ Rules:
 - `lexer` may depend on `core`.
 - `parser` may depend on `lexer`, `ast`, and `core`.
 - `semantic` may depend on `ast` and `core`.
-- `ir` may depend on `semantic` and `core`.
-- `optimizer` may depend on `ir` and `core`.
+- `ir` may depend on `ast`.
+- `optimizer` may depend on `ir`.
 - `compiler-js` and `interpreter` may depend on `ir`, `runtime`, and `core`.
 - `cli` may orchestrate the full pipeline.
 - `benchmark` stays independent unless a benchmark needs to call a specific
@@ -83,6 +102,9 @@ Rules:
 
 ANPL v0.1 should be small, but it must be a real language seed.
 The implemented grammar is documented in [Grammar v0.1](./grammar-v0.1.md).
+
+The scope is optimized for reliable AI generation first. Human authoring is
+allowed, but it is not the primary design target.
 
 Supported language concepts:
 
