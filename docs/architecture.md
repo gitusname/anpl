@@ -61,10 +61,9 @@ packages/cli
 packages/benchmark
 ```
 
-Current packages can be migrated gradually. Older package names such as
-`validator`, `normalizer`, and `generator-prisma` are retired early scaffolding.
-They must not be used by the core compiler pipeline and must not define the
-project identity.
+Older package names such as `validator`, `normalizer`, and `generator-prisma`
+were retired early scaffolding. They have been removed from the active workspace
+and must not define the project identity.
 
 ## Dependency Rules
 

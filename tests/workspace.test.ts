@@ -15,9 +15,6 @@ const packages = [
   "parser",
   "runtime",
   "semantic",
-  "validator",
-  "normalizer",
-  "generator-prisma",
   "cli"
 ];
 

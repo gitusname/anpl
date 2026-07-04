@@ -79,12 +79,6 @@ importers:
         specifier: workspace:*
         version: link:../core
 
-  packages/generator-prisma:
-    dependencies:
-      '@anpl/core':
-        specifier: workspace:*
-        version: link:../core
-
   packages/interpreter:
     dependencies:
       '@anpl/core':
@@ -104,12 +98,6 @@ importers:
         version: link:../ast
 
   packages/lexer:
-    dependencies:
-      '@anpl/core':
-        specifier: workspace:*
-        version: link:../core
-
-  packages/normalizer:
     dependencies:
       '@anpl/core':
         specifier: workspace:*
@@ -144,12 +132,6 @@ importers:
       '@anpl/ast':
         specifier: workspace:*
         version: link:../ast
-      '@anpl/core':
-        specifier: workspace:*
-        version: link:../core
-
-  packages/validator:
-    dependencies:
       '@anpl/core':
         specifier: workspace:*
         version: link:../core

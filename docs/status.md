@@ -62,19 +62,17 @@ remain planned.
 - Additional compiler targets such as TypeScript, Python, WASM, or LLVM.
 - More complete runtime and standard library primitives.
 
-## Legacy Scaffolding
+## Removed Legacy Scaffolding
 
-The repository still contains these retired early scaffolding packages:
+These retired early scaffolding packages were removed from the active workspace:
 
-- `packages/validator`
-- `packages/normalizer`
-- `packages/generator-prisma`
+- `validator`
+- `normalizer`
+- `generator-prisma`
 
-They are kept only as historical scaffolding while the project direction settles
+They are preserved only in Git history while the project direction settles
 around the compiler pipeline.
 
-Do not expand these packages.
-
-Do not add CRUD, Prisma, NestJS, schema-generator, or backend-generator work
-unless it is explicitly framed as a temporary compiler target and does not
-define ANPL's identity.
+Do not reintroduce or expand these packages. Do not add CRUD, Prisma, NestJS,
+schema-generator, or backend-generator work unless it is explicitly framed as a
+temporary compiler target and does not define ANPL's identity.

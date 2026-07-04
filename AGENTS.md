@@ -234,13 +234,13 @@ packages/lexer
 packages/parser
 packages/semantic
 packages/ir
-packages/compiler
+packages/compiler-js
 packages/runtime
 packages/diagnostics
 packages/cli
 ```
 
-The current repository still contains legacy scaffolding package names such as `validator`, `normalizer`, and `generator-prisma`. They are documented in `docs/status.md`; do not expand them or add CRUD/Prisma-specific work.
+The retired legacy scaffolding packages `validator`, `normalizer`, and `generator-prisma` have been removed from the active workspace. They are documented in `docs/status.md`; do not reintroduce or expand them, and do not add CRUD/Prisma-specific work.
 
 ## Core Compiler Pipeline
 
