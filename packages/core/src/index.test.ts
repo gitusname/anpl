@@ -68,7 +68,7 @@ describe("core exports", () => {
       kind: "ApiOperation",
       action: "list",
       entityName: "Customer",
-      flags: [{ kind: "PaginatedFlag", span }],
+      flags: ["paginated"],
       span
     };
     const api: ApiNode = {

@@ -100,16 +100,7 @@ export type FieldModifier =
 
 export type ApiAction = "create" | "list" | "get" | "update" | "delete";
 
-export type ApiOperationFlag =
-  | (AstNode<"PaginatedFlag"> & {
-      value?: never;
-    })
-  | (AstNode<"SoftFlag"> & {
-      value?: never;
-    })
-  | (AstNode<"ByFlag"> & {
-      fieldName: string;
-    });
+export type ApiOperationFlag = string;
 
 export type ApiNode = AstNode<"Api"> & {
   name: string;
