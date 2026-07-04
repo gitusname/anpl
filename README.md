@@ -133,49 +133,57 @@ ANPL may compile to existing languages during early development, but the long-te
 
 ANPL is currently experimental and in early development.
 
-Current focus:
+Current implemented foundation:
 
-* language philosophy
-* grammar v0.1
-* lexer
-* parser
-* AST
-* semantic analyzer
-* ANPL IR
-* structured diagnostics
-* first compiler or interpreter target
+* language philosophy and technical architecture
+* ANPL v0.1 grammar and AST for modules, imports, types, functions, statements, and expressions
+* lexer with keywords, operators, strings, numbers, comments, and source spans
+* parser for modules, imports, type declarations, functions, blocks, control flow, calls, records, members, and enum type references
+* semantic analyzer with module imports, symbol tables, scope checks, type checks, return checks, record checks, enum field checks, and structured diagnostics
+* ANPL IR lowering and constant-folding optimizer
+* interpreter that runs `main()`
+* JavaScript compiler target
+* runtime built-ins: `uuid()`, `now()`, `print(value)`, `len(value)`
+* CLI commands: `check`, `run`, `build`, `emit-ast`, `emit-ir`, `diagnose`
+* initial benchmark metrics for ANPL-vs-target source comparison
 
 ## Roadmap
 
+Technical references:
+
+* [Architecture](docs/architecture.md)
+* [Grammar v0.1](docs/grammar-v0.1.md)
+
 ### Phase 1: Language Foundation
 
-* [ ] Define ANPL language philosophy
-* [ ] Define grammar v0.1
-* [ ] Define AST
-* [ ] Implement lexer
-* [ ] Implement parser
-* [ ] Add structured syntax diagnostics
+* [x] Define ANPL language philosophy
+* [x] Define grammar v0.1 direction
+* [x] Define AST
+* [x] Implement lexer
+* [x] Implement parser
+* [x] Add structured syntax diagnostics
 
 ### Phase 2: Semantics
 
-* [ ] Define type system v0.1
-* [ ] Implement semantic analyzer
-* [ ] Add symbol table
-* [ ] Add type checking
-* [ ] Add structured semantic diagnostics
+* [x] Define type system v0.1
+* [x] Implement semantic analyzer
+* [x] Add symbol table
+* [x] Add type checking
+* [x] Add structured semantic diagnostics
 
 ### Phase 3: Execution
 
-* [ ] Define ANPL IR
-* [ ] Build interpreter or compiler target
-* [ ] Execute small ANPL programs
-* [ ] Add runtime diagnostics
+* [x] Define ANPL IR
+* [x] Build interpreter and JavaScript compiler target
+* [x] Execute small ANPL programs
+* [x] Add runtime diagnostics
 
 ### Phase 4: AI-Native Tooling
 
 * [ ] AI-readable documentation format
 * [ ] AI-optimized error compression
-* [ ] Benchmark ANPL against direct code generation
+* [x] Initial benchmark metrics package
+* [ ] Benchmark ANPL against direct code generation across real tasks
 * [ ] Measure token usage and debugging iterations
 
 ## Research Questions

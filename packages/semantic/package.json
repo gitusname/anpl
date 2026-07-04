@@ -19,8 +19,6 @@
   },
   "dependencies": {
     "@anpl/ast": "workspace:*",
-    "@anpl/core": "workspace:*",
-    "@anpl/lexer": "workspace:*",
-    "@anpl/parser": "workspace:*"
+    "@anpl/core": "workspace:*"
   }
 }

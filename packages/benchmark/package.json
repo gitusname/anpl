@@ -1,5 +1,5 @@
 {
-  "name": "@anpl/ir",
+  "name": "@anpl/benchmark",
   "version": "0.0.0",
   "type": "module",
   "license": "Apache-2.0",
@@ -16,8 +16,5 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean --tsconfig ../../tsconfig.base.json",
     "typecheck": "tsc -p tsconfig.json --noEmit"
-  },
-  "dependencies": {
-    "@anpl/ast": "workspace:*"
   }
 }

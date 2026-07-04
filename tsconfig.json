@@ -7,6 +7,7 @@
   "references": [
     { "path": "./packages/core" },
     { "path": "./packages/ast" },
+    { "path": "./packages/benchmark" },
     { "path": "./packages/compiler-js" },
     { "path": "./packages/diagnostics" },
     { "path": "./packages/interpreter" },

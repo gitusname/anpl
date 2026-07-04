@@ -30,11 +30,10 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/benchmark: {}
+
   packages/cli:
     dependencies:
-      '@anpl/ast':
-        specifier: workspace:*
-        version: link:../ast
       '@anpl/compiler-js':
         specifier: workspace:*
         version: link:../compiler-js
@@ -44,57 +43,33 @@ importers:
       '@anpl/diagnostics':
         specifier: workspace:*
         version: link:../diagnostics
-      '@anpl/generator-prisma':
-        specifier: workspace:*
-        version: link:../generator-prisma
       '@anpl/interpreter':
         specifier: workspace:*
         version: link:../interpreter
       '@anpl/ir':
         specifier: workspace:*
         version: link:../ir
-      '@anpl/lexer':
-        specifier: workspace:*
-        version: link:../lexer
-      '@anpl/normalizer':
-        specifier: workspace:*
-        version: link:../normalizer
       '@anpl/optimizer':
         specifier: workspace:*
         version: link:../optimizer
       '@anpl/parser':
         specifier: workspace:*
         version: link:../parser
-      '@anpl/runtime':
-        specifier: workspace:*
-        version: link:../runtime
       '@anpl/semantic':
         specifier: workspace:*
         version: link:../semantic
-      '@anpl/validator':
-        specifier: workspace:*
-        version: link:../validator
       commander:
         specifier: ^12.1.0
         version: 12.1.0
 
   packages/compiler-js:
     dependencies:
-      '@anpl/ast':
-        specifier: workspace:*
-        version: link:../ast
       '@anpl/core':
         specifier: workspace:*
         version: link:../core
       '@anpl/ir':
         specifier: workspace:*
         version: link:../ir
-      '@anpl/lexer':
-        specifier: workspace:*
-        version: link:../lexer
-      '@anpl/parser':
-        specifier: workspace:*
-        version: link:../parser
 
   packages/core: {}
 
@@ -112,42 +87,21 @@ importers:
 
   packages/interpreter:
     dependencies:
-      '@anpl/ast':
-        specifier: workspace:*
-        version: link:../ast
       '@anpl/core':
         specifier: workspace:*
         version: link:../core
       '@anpl/ir':
         specifier: workspace:*
         version: link:../ir
-      '@anpl/lexer':
-        specifier: workspace:*
-        version: link:../lexer
-      '@anpl/parser':
-        specifier: workspace:*
-        version: link:../parser
       '@anpl/runtime':
         specifier: workspace:*
         version: link:../runtime
-      '@anpl/semantic':
-        specifier: workspace:*
-        version: link:../semantic
 
   packages/ir:
     dependencies:
       '@anpl/ast':
         specifier: workspace:*
         version: link:../ast
-      '@anpl/core':
-        specifier: workspace:*
-        version: link:../core
-      '@anpl/lexer':
-        specifier: workspace:*
-        version: link:../lexer
-      '@anpl/parser':
-        specifier: workspace:*
-        version: link:../parser
 
   packages/lexer:
     dependencies:
@@ -193,12 +147,6 @@ importers:
       '@anpl/core':
         specifier: workspace:*
         version: link:../core
-      '@anpl/lexer':
-        specifier: workspace:*
-        version: link:../lexer
-      '@anpl/parser':
-        specifier: workspace:*
-        version: link:../parser
 
   packages/validator:
     dependencies:

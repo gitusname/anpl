@@ -43,21 +43,26 @@ packages/benchmark
 ```
 
 Current packages can be migrated gradually. Older package names such as
-`validator`, `normalizer`, and `generator-prisma` are early scaffolding and
-should not define the project identity.
+`validator`, `normalizer`, and `generator-prisma` are retired early scaffolding.
+They must not be used by the core compiler pipeline and must not define the
+project identity.
 
 ## Dependency Rules
 
 ```text
 core
-  <- lexer
   <- ast
-  <- parser
-  <- semantic
-  <- ir
-  <- optimizer
-  <- compiler-js / interpreter
-  <- cli
+  <- lexer
+  <- diagnostics
+  <- runtime
+  <- parser <- lexer + ast + core
+  <- semantic <- ast + core
+  <- ir <- ast
+  <- optimizer <- ir
+  <- compiler-js <- ir + core
+  <- interpreter <- ir + runtime + core
+  <- cli <- parser + semantic + ir + optimizer + interpreter + compiler-js + diagnostics
+benchmark
 ```
 
 Rules:
@@ -71,10 +76,13 @@ Rules:
 - `optimizer` may depend on `ir` and `core`.
 - `compiler-js` and `interpreter` may depend on `ir`, `runtime`, and `core`.
 - `cli` may orchestrate the full pipeline.
+- `benchmark` stays independent unless a benchmark needs to call a specific
+  pipeline stage.
 
 ## Language v0.1 Scope
 
 ANPL v0.1 should be small, but it must be a real language seed.
+The implemented grammar is documented in [Grammar v0.1](./grammar-v0.1.md).
 
 Supported language concepts:
 
@@ -90,6 +98,16 @@ Supported language concepts:
 - records
 - enums
 - structured errors
+
+Current implementation status:
+
+- Implemented: modules, simple module imports, type declarations, functions,
+  `let`, `return`, `if` / `else`, binary expressions, function calls, records,
+  member access, enum type references, structured compiler/runtime diagnostics.
+- Implemented execution paths: semantic check, IR emission, optimization,
+  interpreter, JavaScript build target.
+- Still intentionally small: no package manager, no cross-file module loader,
+  no advanced generics, no WASM/LLVM/Python backend, and no self-hosted runtime.
 
 Example:
 
@@ -229,6 +247,11 @@ Example diagnostic:
 ## ANPL IR
 
 AST is syntax-oriented. IR is compiler-oriented.
+
+The current v0.1 IR is a structured expression IR. It preserves function,
+record, statement, and expression boundaries so the interpreter and JavaScript
+compiler can run meaningful programs. A lower-level SSA-like instruction IR can
+be introduced later without changing the AST contract.
 
 Example IR shape:
 

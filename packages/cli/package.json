@@ -20,20 +20,14 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@anpl/ast": "workspace:*",
     "@anpl/compiler-js": "workspace:*",
     "@anpl/core": "workspace:*",
     "@anpl/diagnostics": "workspace:*",
-    "@anpl/generator-prisma": "workspace:*",
     "@anpl/interpreter": "workspace:*",
     "@anpl/ir": "workspace:*",
-    "@anpl/lexer": "workspace:*",
-    "@anpl/normalizer": "workspace:*",
     "@anpl/optimizer": "workspace:*",
     "@anpl/parser": "workspace:*",
-    "@anpl/runtime": "workspace:*",
     "@anpl/semantic": "workspace:*",
-    "@anpl/validator": "workspace:*",
     "commander": "^12.1.0"
   }
 }

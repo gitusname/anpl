@@ -33,4 +33,64 @@ fn main() -> int {
       value: 5
     });
   });
+
+  it("runs record and enum field access", () => {
+    const result = run(`module crm
+
+type Customer {
+  name: text
+  status: enum[active, archived]
+}
+
+fn createCustomer(name: text) -> Customer {
+  return Customer {
+    name: name
+    status: active
+  }
+}
+
+fn main() -> int {
+  let customer = createCustomer("Ada")
+  return len(customer.status)
+}`);
+
+    expect(result).toMatchObject({
+      ok: true,
+      value: 6
+    });
+  });
+
+  it("runs enum variants through typed lets and return values", () => {
+    const result = run(`module workflow
+
+fn selectStatus() -> enum[active, archived] {
+  return active
+}
+
+fn main() -> int {
+  return len(selectStatus())
+}`);
+
+    expect(result).toMatchObject({
+      ok: true,
+      value: 6
+    });
+  });
+
+  it("runs enum variants passed as function arguments", () => {
+    const result = run(`module workflow
+
+fn score(status: enum[active, archived]) -> int {
+  return len(status)
+}
+
+fn main() -> int {
+  return score(active)
+}`);
+
+    expect(result).toMatchObject({
+      ok: true,
+      value: 6
+    });
+  });
 });

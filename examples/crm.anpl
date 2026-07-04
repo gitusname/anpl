@@ -3,6 +3,7 @@ module crm
 type Customer {
   id: uuid
   name: text
+  status: enum[active, archived]
   age?: int
 }
 
@@ -10,10 +11,11 @@ fn createCustomer(name: text) -> Customer {
   return Customer {
     id: uuid()
     name: name
+    status: active
   }
 }
 
 fn main() -> int {
   let customer = createCustomer("Ada")
-  return len(customer.name)
+  return len(customer.status)
 }

@@ -3,6 +3,7 @@ import type {
   Decl,
   Expr,
   FunctionDecl,
+  ImportDecl,
   ModuleDecl,
   Program,
   RecordExpr,
@@ -32,8 +33,14 @@ type FunctionSymbol = {
 };
 
 type ModuleSymbols = {
+  module: ModuleDecl;
   functions: Map<string, FunctionSymbol>;
   types: Map<string, TypeDecl>;
+};
+
+type BuiltinFunction = {
+  params: string[];
+  returnType: string;
 };
 
 const builtinTypes = new Set([
@@ -44,6 +51,13 @@ const builtinTypes = new Set([
   "bool",
   "uuid",
   "enum"
+]);
+
+const builtinFunctions: ReadonlyMap<string, BuiltinFunction> = new Map([
+  ["uuid", { params: [], returnType: "uuid" }],
+  ["now", { params: [], returnType: "text" }],
+  ["print", { params: ["any"], returnType: "void" }],
+  ["len", { params: ["any"], returnType: "int" }]
 ]);
 
 export function analyzeProgram(program: Program): SemanticResult {
@@ -71,8 +85,14 @@ class SemanticAnalyzer {
   constructor(private readonly program: Program) {}
 
   analyze(): Diagnostic[] {
+    const programSymbols = this.collectProgramSymbols();
+
     for (const moduleDecl of this.program.modules) {
-      const symbols = this.collectModuleSymbols(moduleDecl);
+      const localSymbols = programSymbols.get(moduleDecl.name);
+      if (localSymbols === undefined) {
+        continue;
+      }
+      const symbols = this.resolveVisibleSymbols(localSymbols, programSymbols);
 
       for (const decl of moduleDecl.body) {
         if (decl.kind === "FunctionDecl") {
@@ -84,6 +104,26 @@ class SemanticAnalyzer {
     }
 
     return this.diagnostics;
+  }
+
+  private collectProgramSymbols(): Map<string, ModuleSymbols> {
+    const programSymbols = new Map<string, ModuleSymbols>();
+
+    for (const moduleDecl of this.program.modules) {
+      if (programSymbols.has(moduleDecl.name)) {
+        this.addDiagnostic({
+          code: "ANPL_SEMANTIC_DUPLICATE_SYMBOL",
+          message: `Module '${moduleDecl.name}' is already defined.`,
+          span: moduleDecl.span,
+          symbol: moduleDecl.name
+        });
+        continue;
+      }
+
+      programSymbols.set(moduleDecl.name, this.collectModuleSymbols(moduleDecl));
+    }
+
+    return programSymbols;
   }
 
   private collectModuleSymbols(moduleDecl: ModuleDecl): ModuleSymbols {
@@ -121,9 +161,106 @@ class SemanticAnalyzer {
     }
 
     return {
+      module: moduleDecl,
       functions,
       types
     };
+  }
+
+  private resolveVisibleSymbols(
+    localSymbols: ModuleSymbols,
+    programSymbols: Map<string, ModuleSymbols>
+  ): ModuleSymbols {
+    const functions = new Map(localSymbols.functions);
+    const types = new Map(localSymbols.types);
+
+    for (const importDecl of this.importsFor(localSymbols.module)) {
+      if (importDecl.module === localSymbols.module.name) {
+        this.addDiagnostic({
+          code: "ANPL_SEMANTIC_IMPORT_SELF",
+          message: `Module '${localSymbols.module.name}' cannot import itself.`,
+          span: importDecl.span,
+          symbol: importDecl.module
+        });
+        continue;
+      }
+
+      const importedSymbols = programSymbols.get(importDecl.module);
+      if (importedSymbols === undefined) {
+        this.addDiagnostic({
+          code: "ANPL_SEMANTIC_UNKNOWN_MODULE",
+          message: `Module '${importDecl.module}' is not defined.`,
+          span: importDecl.span,
+          symbol: importDecl.module
+        });
+        continue;
+      }
+
+      this.mergeImportedSymbols(importDecl, importedSymbols, functions, types);
+    }
+
+    return {
+      module: localSymbols.module,
+      functions,
+      types
+    };
+  }
+
+  private importsFor(moduleDecl: ModuleDecl): ImportDecl[] {
+    return moduleDecl.body.filter((decl): decl is ImportDecl => decl.kind === "ImportDecl");
+  }
+
+  private mergeImportedSymbols(
+    importDecl: ImportDecl,
+    importedSymbols: ModuleSymbols,
+    functions: Map<string, FunctionSymbol>,
+    types: Map<string, TypeDecl>
+  ): void {
+    const names = importDecl.names ?? [
+      ...importedSymbols.functions.keys(),
+      ...importedSymbols.types.keys()
+    ];
+
+    for (const name of names) {
+      const importedFunction = importedSymbols.functions.get(name);
+      const importedType = importedSymbols.types.get(name);
+
+      if (importedFunction === undefined && importedType === undefined) {
+        this.addDiagnostic({
+          code: "ANPL_SEMANTIC_UNKNOWN_SYMBOL",
+          message: `Module '${importDecl.module}' does not export '${name}'.`,
+          span: importDecl.span,
+          symbol: name
+        });
+        continue;
+      }
+
+      if (importedFunction !== undefined) {
+        if (functions.has(name)) {
+          this.addDiagnostic({
+            code: "ANPL_SEMANTIC_IMPORT_CONFLICT",
+            message: `Imported function '${name}' conflicts with an existing function.`,
+            span: importDecl.span,
+            symbol: name
+          });
+        } else {
+          functions.set(name, importedFunction);
+        }
+      }
+
+      if (importedType !== undefined) {
+        if (types.has(name)) {
+          this.addDiagnostic({
+            code: "ANPL_SEMANTIC_IMPORT_CONFLICT",
+            message: `Imported type '${name}' conflicts with an existing type.`,
+            span: importDecl.span,
+            symbol: name
+          });
+        } else {
+          types.set(name, importedType);
+        }
+      }
+    }
   }
 
   private checkTypeDecl(typeDecl: TypeDecl, symbols: ModuleSymbols): void {
@@ -161,6 +298,16 @@ class SemanticAnalyzer {
     }
 
     this.checkBlock(fn.body, fn.returnType, scope, symbols);
+    if (fn.returnType.name !== "void" && !this.blockAlwaysReturns(fn.body)) {
+      this.addDiagnostic({
+        code: "ANPL_RETURN_MISSING",
+        message: `Function '${fn.name}' must return ${fn.returnType.name}.`,
+        span: fn.span,
+        symbol: fn.name,
+        expected: fn.returnType.name,
+        received: "void"
+      });
+    }
   }
 
   private checkBlock(
@@ -182,6 +329,26 @@ class SemanticAnalyzer {
   ): void {
     switch (statement.kind) {
       case "LetStmt": {
+        if (scope.has(statement.name)) {
+          this.addDiagnostic({
+            code: "ANPL_SEMANTIC_DUPLICATE_SYMBOL",
+            message: `Variable '${statement.name}' is already defined in this scope.`,
+            span: statement.span,
+            symbol: statement.name
+          });
+        }
+        if (statement.type !== undefined && this.isEnumType(statement.type)) {
+          this.checkTypeRef(statement.type, symbols);
+          this.checkEnumValue(
+            statement.type,
+            statement.value,
+            scope,
+            symbols,
+            statement.span
+          );
+          scope.set(statement.name, statement.type);
+          break;
+        }
         const valueType = this.inferExpr(statement.value, scope, symbols);
         if (statement.type !== undefined) {
           this.checkTypeRef(statement.type, symbols);
@@ -191,6 +358,10 @@ class SemanticAnalyzer {
         break;
       }
       case "ReturnStmt": {
+        if (statement.value !== undefined && this.isEnumType(returnType)) {
+          this.checkEnumValue(returnType, statement.value, scope, symbols, statement.span);
+          break;
+        }
         const valueType = statement.value
           ? this.inferExpr(statement.value, scope, symbols)
           : this.typeRef("void", statement.span);
@@ -288,12 +459,10 @@ class SemanticAnalyzer {
           return this.typeRef("unknown", expr.span);
         }
 
-        const builtin = this.builtinCallType(expr.callee.name, expr.span);
+        const builtin = builtinFunctions.get(expr.callee.name);
         if (builtin !== undefined) {
-          for (const arg of expr.args) {
-            this.inferExpr(arg, scope, symbols);
-          }
-          return builtin;
+          this.checkCallArgs(expr.callee.name, builtin, expr.args, scope, symbols, expr.span);
+          return this.typeRef(builtin.returnType, expr.span);
         }
 
         const fn = symbols.functions.get(expr.callee.name);
@@ -320,9 +489,13 @@ class SemanticAnalyzer {
 
         for (const [index, arg] of expr.args.entries()) {
           const expected = fn.params[index];
-          const received = this.inferExpr(arg, scope, symbols);
           if (expected !== undefined) {
-            this.expectType(expected, received, arg.span);
+            if (this.isEnumType(expected)) {
+              this.checkEnumValue(expected, arg, scope, symbols, arg.span);
+            } else {
+              const received = this.inferExpr(arg, scope, symbols);
+              this.expectType(expected, received, arg.span);
+            }
           }
         }
 
@@ -334,6 +507,9 @@ class SemanticAnalyzer {
 
       case "MemberExpr": {
         const objectType = this.inferExpr(expr.object, scope, symbols);
+        if (objectType.name === "unknown") {
+          return objectType;
+        }
         const typeDecl = symbols.types.get(objectType.name);
         const field = typeDecl?.fields.find((candidate) => candidate.name === expr.property);
         if (field === undefined) {
@@ -366,9 +542,19 @@ class SemanticAnalyzer {
       return this.typeRef("unknown", expr.span);
     }
 
+    const seenFields = new Set<string>();
     for (const field of expr.fields) {
+      if (seenFields.has(field.name)) {
+        this.addDiagnostic({
+          code: "ANPL_SEMANTIC_DUPLICATE_SYMBOL",
+          message: `Field '${field.name}' is already assigned in '${expr.typeName}'.`,
+          span: field.span,
+          symbol: field.name
+        });
+      }
+      seenFields.add(field.name);
+
       const expected = typeDecl.fields.find((candidate) => candidate.name === field.name);
-      const received = this.inferExpr(field.value, scope, symbols);
       if (expected === undefined) {
         this.addDiagnostic({
           code: "ANPL_FIELD_NOT_FOUND",
@@ -376,7 +562,10 @@ class SemanticAnalyzer {
           span: field.span,
           symbol: field.name
         });
+      } else if (this.isEnumType(expected.type)) {
+        this.checkEnumValue(expected.type, field.value, scope, symbols, field.span);
       } else {
+        const received = this.inferExpr(field.value, scope, symbols);
         this.expectType(expected.type, received, field.span);
       }
     }
@@ -396,6 +585,19 @@ class SemanticAnalyzer {
   }
 
   private checkTypeRef(typeRef: TypeRef, symbols: ModuleSymbols): void {
+    if (typeRef.name === "enum") {
+      const variants = this.enumVariants(typeRef);
+      if (variants.length === 0) {
+        this.addDiagnostic({
+          code: "ANPL_ENUM_EMPTY",
+          message: "Enum type must declare at least one variant.",
+          span: typeRef.span,
+          symbol: "enum"
+        });
+      }
+      return;
+    }
+
     if (
       !builtinTypes.has(typeRef.name) &&
       typeRef.name !== "void" &&
@@ -411,6 +613,95 @@ class SemanticAnalyzer {
         symbol: typeRef.name
       });
     }
+
+    for (const typeArg of typeRef.typeArgs ?? []) {
+      this.checkTypeRef(typeArg, symbols);
+    }
+  }
+
+  private checkCallArgs(
+    name: string,
+    fn: BuiltinFunction,
+    args: Expr[],
+    scope: Map<string, TypeRef>,
+    symbols: ModuleSymbols,
+    span: Span
+  ): void {
+    if (fn.params.length !== args.length) {
+      this.addDiagnostic({
+        code: "ANPL_CALL_ARG_COUNT_MISMATCH",
+        message: `Function '${name}' expects ${fn.params.length} arguments but received ${args.length}.`,
+        span,
+        symbol: name,
+        expected: String(fn.params.length),
+        received: String(args.length)
+      });
+    }
+
+    for (const [index, arg] of args.entries()) {
+      const received = this.inferExpr(arg, scope, symbols);
+      const expected = fn.params[index];
+      if (expected !== undefined && expected !== "any") {
+        this.expectType(this.typeRef(expected, arg.span), received, arg.span);
+      }
+    }
+  }
+
+  private checkEnumValue(
+    expected: TypeRef,
+    expr: Expr,
+    scope: Map<string, TypeRef>,
+    symbols: ModuleSymbols,
+    span: Span
+  ): void {
+    const variants = this.enumVariants(expected);
+    if (expr.kind === "IdentifierExpr" && variants.includes(expr.name)) {
+      return;
+    }
+    let receivedName = expr.kind === "IdentifierExpr" ? expr.name : expr.kind;
+
+    if (expr.kind === "IdentifierExpr") {
+      const local = scope.get(expr.name);
+      if (local !== undefined) {
+        this.expectType(expected, local, span);
+        return;
+      }
+
+      if (symbols.functions.has(expr.name)) {
+        this.addDiagnostic({
+          code: "ANPL_TYPE_MISMATCH",
+          message: `Expected enum variant ${variants.map((variant) => `'${variant}'`).join(" | ")}.`,
+          span,
+          expected: `enum[${variants.join(", ")}]`,
+          received: "function"
+        });
+        return;
+      }
+    }
+
+    if (expr.kind !== "IdentifierExpr") {
+      const received = this.inferExpr(expr, scope, symbols);
+      if (this.sameType(expected, received) || received.name === "unknown") {
+        return;
+      }
+      receivedName = received.name;
+    }
+
+    this.addDiagnostic({
+      code: "ANPL_TYPE_MISMATCH",
+      message: `Expected enum variant ${variants.map((variant) => `'${variant}'`).join(" | ")}.`,
+      span,
+      expected: `enum[${variants.join(", ")}]`,
+      received: receivedName
+    });
+  }
+
+  private enumVariants(typeRef: TypeRef): string[] {
+    return (typeRef.typeArgs ?? []).map((variant) => variant.name);
+  }
+
+  private isEnumType(typeRef: TypeRef): boolean {
+    return typeRef.name === "enum";
   }
 
   private expectType(
@@ -443,19 +734,31 @@ class SemanticAnalyzer {
     return type.name === "int" || type.name === "decimal";
   }
 
-  private builtinCallType(name: string, span: Span): TypeRef | undefined {
-    switch (name) {
-      case "uuid":
-        return this.typeRef("uuid", span);
-      case "now":
-        return this.typeRef("text", span);
-      case "print":
-        return this.typeRef("void", span);
-      case "len":
-        return this.typeRef("int", span);
-      default:
-        return undefined;
+  private blockAlwaysReturns(block: BlockStmt): boolean {
+    for (const statement of block.statements) {
+      if (this.statementAlwaysReturns(statement)) {
+        return true;
+      }
     }
+    return false;
+  }
+
+  private statementAlwaysReturns(statement: Stmt): boolean {
+    if (statement.kind === "ReturnStmt") {
+      return true;
+    }
+
+    if (statement.kind !== "IfStmt" || statement.elseBranch === undefined) {
+      return false;
+    }
+
+    const thenReturns = this.blockAlwaysReturns(statement.thenBranch);
+    const elseReturns =
+      statement.elseBranch.kind === "BlockStmt"
+        ? this.blockAlwaysReturns(statement.elseBranch)
+        : this.statementAlwaysReturns(statement.elseBranch);
+
+    return thenReturns && elseReturns;
   }
 
   private typeRef(name: string, span: Span): TypeRef {

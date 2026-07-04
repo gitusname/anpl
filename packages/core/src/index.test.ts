@@ -1,172 +1,73 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
-import type {
-  AnplIR,
-  ApiNode,
-  ApiOperationNode,
-  AppNode,
-  AuthNode,
-  DatabaseNode,
-  Diagnostic,
-  EntityNode,
-  FieldModifier,
-  FieldNode,
-  FieldTypeNode,
-  GeneratedFile,
-  IRApi,
-  IRAuth,
-  IRDatabase,
-  IREntity,
-  IRField,
-  ProgramNode,
-  Span
-} from "./index.js";
+import type { Diagnostic, GeneratedFile, Result, SourceFile, Span } from "./index.js";
+import { createDiagnostic, createSpan } from "./index.js";
 
-const span: Span = {
-  file: "examples/crm.anpl",
-  start: {
-    offset: 0,
-    line: 1,
-    column: 1
-  },
-  end: {
-    offset: 7,
-    line: 1,
-    column: 8
-  }
+const start = {
+  offset: 0,
+  line: 1,
+  column: 1
 };
 
-describe("core exports", () => {
-  it("exposes AST types", () => {
-    const fieldType: FieldTypeNode = {
-      kind: "ScalarFieldType",
-      name: "uuid",
-      span
-    };
-    const modifier: FieldModifier = {
-      kind: "PrimaryModifier",
-      span
-    };
-    const field: FieldNode = {
-      kind: "Field",
-      name: "id",
-      type: fieldType,
-      modifiers: [modifier],
-      span
-    };
-    const entity: EntityNode = {
-      kind: "Entity",
-      name: "Customer",
-      fields: [field],
-      span
-    };
-    const app: AppNode = {
-      kind: "App",
-      name: "CRM",
-      span
-    };
-    const operation: ApiOperationNode = {
-      kind: "ApiOperation",
-      action: "list",
-      entityName: "Customer",
-      flags: ["paginated"],
-      span
-    };
-    const api: ApiNode = {
-      kind: "Api",
-      name: "CustomerAPI",
-      operations: [operation],
-      span
-    };
-    const auth: AuthNode = {
-      kind: "Auth",
-      type: "jwt",
-      roles: ["admin", "user"],
-      span
-    };
-    const database: DatabaseNode = {
-      kind: "Database",
-      provider: "postgres",
-      orm: "prisma",
-      span
-    };
-    const program: ProgramNode = {
-      kind: "Program",
-      app,
-      entities: [entity],
-      apis: [api],
-      auth,
-      database,
-      span
-    };
+const end = {
+  offset: 11,
+  line: 1,
+  column: 12
+};
 
-    expect(program.entities[0]?.fields[0]?.name).toBe("id");
-    expectTypeOf(program).toMatchTypeOf<ProgramNode>();
+describe("core primitives", () => {
+  it("models source files and spans", () => {
+    const source: SourceFile = {
+      path: "examples/math.anpl",
+      content: "module math"
+    };
+    const span = createSpan(source.path, start, end);
+
+    expect(span.file).toBe(source.path);
+    expect(span.start.line).toBe(1);
+    expectTypeOf(span).toMatchTypeOf<Span>();
   });
 
-  it("exposes IR and generated file types", () => {
-    const field: IRField = {
-      name: "id",
-      columnName: "id",
-      type: {
-        kind: "scalar",
-        name: "uuid"
-      },
-      primary: true,
-      required: true,
-      unique: false,
-      auto: false
+  it("models structured AI-readable diagnostics", () => {
+    const span = createSpan("examples/math.anpl", start, end);
+    const diagnostic = createDiagnostic({
+      code: "ANPL_TYPE_MISMATCH",
+      severity: "error",
+      message: "Expected int but received text.",
+      expected: "int",
+      received: "text",
+      fix: "Convert the expression to int or update the function return type.",
+      span,
+      confidence: "high"
+    });
+
+    expect(diagnostic.code).toBe("ANPL_TYPE_MISMATCH");
+    expect(diagnostic.confidence).toBe("high");
+    expectTypeOf(diagnostic).toMatchTypeOf<Diagnostic>();
+  });
+
+  it("models typed pipeline results and generated files", () => {
+    const ok: Result<GeneratedFile> = {
+      ok: true,
+      value: {
+        path: "generated/anpl.js",
+        content: "export {};"
+      }
     };
-    const entity: IREntity = {
-      name: "Customer",
-      tableName: "customer",
-      fields: [field]
-    };
-    const api: IRApi = {
-      name: "CustomerAPI",
-      operations: [
+
+    const failure: Result<GeneratedFile> = {
+      ok: false,
+      diagnostics: [
         {
-          action: "list",
-          entityName: "Customer",
-          paginated: true,
-          softDelete: false
+          code: "ANPL_PARSE_UNEXPECTED_TOKEN",
+          severity: "error",
+          message: "Unexpected token.",
+          confidence: "high"
         }
       ]
     };
-    const auth: IRAuth = {
-      type: "jwt",
-      roles: ["admin", "user"]
-    };
-    const database: IRDatabase = {
-      provider: "postgres",
-      orm: "prisma"
-    };
-    const ir: AnplIR = {
-      appName: "CRM",
-      entities: [entity],
-      apis: [api],
-      auth,
-      database
-    };
-    const generatedFile: GeneratedFile = {
-      path: "generated/prisma/schema.prisma",
-      content: "model Customer {}"
-    };
 
-    expect(ir.entities[0]?.tableName).toBe("customer");
-    expect(generatedFile.path).toBe("generated/prisma/schema.prisma");
-    expectTypeOf(ir).toMatchTypeOf<AnplIR>();
-  });
-
-  it("exposes diagnostic types", () => {
-    const diagnostic: Diagnostic = {
-      code: "ANPL_TEST",
-      severity: "info",
-      message: "Core diagnostic type is available.",
-      span,
-      confidence: "high"
-    };
-
-    expect(diagnostic.code).toBe("ANPL_TEST");
-    expectTypeOf(diagnostic).toMatchTypeOf<Diagnostic>();
+    expect(ok.ok).toBe(true);
+    expect(failure.ok).toBe(false);
+    expectTypeOf(ok).toMatchTypeOf<Result<GeneratedFile>>();
   });
 });

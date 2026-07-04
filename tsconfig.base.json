@@ -13,6 +13,7 @@
     "baseUrl": ".",
     "paths": {
       "@anpl/ast": ["packages/ast/src/index.ts"],
+      "@anpl/benchmark": ["packages/benchmark/src/index.ts"],
       "@anpl/compiler-js": ["packages/compiler-js/src/index.ts"],
       "@anpl/lexer": ["packages/lexer/src/index.ts"],
       "@anpl/core": ["packages/core/src/index.ts"],

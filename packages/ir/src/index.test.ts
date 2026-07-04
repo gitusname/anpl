@@ -29,4 +29,40 @@ fn add(a: int, b: int) -> int {
       ]
     });
   });
+
+  it("lowers enum record variants as literal values", () => {
+    const parsed = parseAnpl(`module crm
+
+type Customer {
+  status: enum[active, archived]
+}
+
+fn createCustomer() -> Customer {
+  return Customer {
+    status: active
+  }
+}`);
+
+    if (!parsed.ok) {
+      throw new Error(parsed.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+
+    const ir = lowerProgram(parsed.program);
+
+    expect(ir.modules[0]?.functions[0]?.body[0]).toMatchObject({
+      op: "return",
+      value: {
+        op: "record",
+        fields: [
+          {
+            name: "status",
+            value: {
+              op: "literal",
+              value: "active"
+            }
+          }
+        ]
+      }
+    });
+  });
 });

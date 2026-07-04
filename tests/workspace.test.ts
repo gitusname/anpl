@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 const packages = [
   "core",
   "ast",
+  "benchmark",
   "compiler-js",
   "diagnostics",
   "interpreter",

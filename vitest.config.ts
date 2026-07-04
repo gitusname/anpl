@@ -4,6 +4,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@anpl/ast": new URL("./packages/ast/src/index.ts", import.meta.url).pathname,
+      "@anpl/benchmark": new URL(
+        "./packages/benchmark/src/index.ts",
+        import.meta.url
+      ).pathname,
       "@anpl/compiler-js": new URL(
         "./packages/compiler-js/src/index.ts",
         import.meta.url

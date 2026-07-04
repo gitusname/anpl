@@ -98,6 +98,45 @@ fn createCustomer(name: text) -> Customer {
     });
   });
 
+  it("parses imports and enum type references", () => {
+    const program = parseOk(`module shared
+
+type Status {
+  value: enum[active, archived]
+}
+
+module app
+
+import shared
+
+fn main() -> int {
+  return 1
+}`);
+    const shared = program.modules[0];
+    const app = program.modules[1];
+    const status = shared?.body[0];
+    const importDecl = app?.body[0];
+
+    expect(importDecl).toMatchObject({
+      kind: "ImportDecl",
+      module: "shared"
+    });
+    if (status?.kind !== "TypeDecl") {
+      throw new Error("Expected TypeDecl");
+    }
+    expect(status.fields[0]?.type).toMatchObject({
+      name: "enum",
+      typeArgs: [
+        {
+          name: "active"
+        },
+        {
+          name: "archived"
+        }
+      ]
+    });
+  });
+
   it("returns structured diagnostics for invalid syntax", () => {
     const result = parseAnpl(`module math
 
