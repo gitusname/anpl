@@ -18,6 +18,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@anpl/ir": "workspace:*"
+    "@anpl/core": "workspace:*",
+    "@anpl/ir": "workspace:*",
+    "@anpl/mir": "workspace:*"
   }
 }

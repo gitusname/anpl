@@ -170,9 +170,15 @@ importers:
 
   packages/optimizer:
     dependencies:
+      '@anpl/core':
+        specifier: workspace:*
+        version: link:../core
       '@anpl/ir':
         specifier: workspace:*
         version: link:../ir
+      '@anpl/mir':
+        specifier: workspace:*
+        version: link:../mir
 
   packages/parser:
     dependencies:

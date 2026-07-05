@@ -232,7 +232,7 @@ Current implemented foundation:
 * project manifest loading, source glob discovery, cross-file source loading, and same-project module graph checks
 * pass-oriented semantic analyzer with module imports, module-aware symbol tables, type registry output, scope checks, type checks, return checks, record checks, enum field checks, and structured diagnostics
 * compiler facade with host abstraction, timings, artifacts, and CLI delegation
-* HIR/MIR foundations plus current structured ANPL IR lowering and constant-folding optimizer
+* HIR/MIR foundations plus current structured ANPL IR lowering and MIR optimizer pass architecture
 * interpreter that runs `main()`
 * module-aware interpreter calls and JavaScript compiler namespace output
 * runtime built-ins: `uuid()`, `now()`, `print(value)`, `len(value)`

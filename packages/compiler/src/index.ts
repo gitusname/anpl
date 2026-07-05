@@ -10,7 +10,7 @@ import { lowerProgramToHir } from "@anpl/hir";
 import { interpretProgram } from "@anpl/interpreter";
 import { lowerProgram } from "@anpl/ir";
 import { lowerHirToMir } from "@anpl/mir";
-import { optimizeProgram } from "@anpl/optimizer";
+import { optimizeMir, optimizeProgram } from "@anpl/optimizer";
 import { parseAnpl } from "@anpl/parser";
 import { buildModuleGraph, loadProject, type ProjectDirEntry } from "@anpl/project";
 import { analyzeProgram, type SemanticResult } from "@anpl/semantic";
@@ -180,8 +180,10 @@ export async function compileProject(
     timings.irMs = host.now() - irStart;
 
     const optimizeStart = host.now();
+    const optimizedMir = optimizeMir(mir);
     const optimized = optimizeProgram(ir);
     timings.optimizeMs = host.now() - optimizeStart;
+    diagnostics.push(...optimizedMir.diagnostics);
 
     const state: PipelineState = {
       sourcePath,
@@ -190,7 +192,7 @@ export async function compileProject(
       entryParsed,
       semantic,
       hir,
-      mir,
+      mir: optimizedMir.program,
       ir: optimized
     };
 

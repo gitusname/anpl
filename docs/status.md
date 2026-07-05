@@ -29,7 +29,9 @@ remain planned.
   module-aware symbol tables, type registry output, and structured diagnostics.
 - HIR and MIR package foundations, plus the current structured ANPL IR v0.1
   lowering from AST.
-- Constant-folding optimizer for simple IR expressions.
+- Optimizer support for the current structured IR plus a MIR optimization pass
+  architecture with constant folding, copy propagation, dead branch removal, and
+  unused local elimination foundations.
 - Interpreter support for `main()`, functions, `let`, `return`, `if`, records,
   member access, calls, basic operators, runtime built-ins, and module-qualified
   function lookup.
@@ -48,6 +50,8 @@ remain planned.
 - The language syntax is intentionally small and may evolve.
 - HIR and MIR are early structural foundations; executable lowering still uses
   the current structured expression IR.
+- MIR optimization passes operate on the MIR shape, but MIR lowering is still
+  skeletal and not yet the executable backend input.
 - Module imports work across files discovered from `anpl.json` source patterns,
   but ANPL does not yet have package boundaries or external dependency
   resolution.

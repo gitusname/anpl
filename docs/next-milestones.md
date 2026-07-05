@@ -80,10 +80,20 @@ Next work:
 
 ## 6. IR Evolution
 
-The current IR is a structured expression IR, which is appropriate for v0.1.
+The current executable IR is a structured expression IR, while MIR now has a
+production-style optimizer pass contract.
+
+Implemented foundation:
+
+- `optimizeMir(program, passes)` with diagnostics, changed metadata, and pass
+  results.
+- Starter MIR passes for constant folding, copy propagation, dead branch
+  removal, and unused local elimination.
 
 Next work:
 
 - Document the current structured ANPL IR v0.1 contract.
-- Decide when a lower-level instruction or SSA-like IR is needed.
-- Keep AST-to-IR lowering deterministic and easy for AI tools to inspect.
+- Lower real function bodies into MIR instructions instead of MIR shells.
+- Move interpreter and JavaScript backend input from structured IR to HIR/MIR.
+- Keep AST-to-IR/HIR/MIR lowering deterministic and easy for AI tools to
+  inspect.

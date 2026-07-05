@@ -10,7 +10,11 @@
     "src/**/*.ts",
     "../ast/src/**/*.ts",
     "../core/src/**/*.ts",
-    "../ir/src/**/*.ts"
+    "../hir/src/**/*.ts",
+    "../ir/src/**/*.ts",
+    "../mir/src/**/*.ts",
+    "../symbols/src/**/*.ts",
+    "../types/src/**/*.ts"
   ],
   "exclude": ["**/*.test.ts", "../**/*.test.ts"]
 }
