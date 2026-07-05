@@ -36,4 +36,28 @@ describe("real language lexer", () => {
     expect(result.tokens.map((token) => token.type)).toContain("newline");
     expect(result.tokens.some((token) => token.value === "comment")).toBe(false);
   });
+
+  it("preserves whitespace and comments as token trivia", () => {
+    const result = lexAnpl("module math # comment\n  fn main() -> int");
+    const math = result.tokens.find((token) => token.value === "math");
+    const fn = result.tokens.find((token) => token.value === "fn");
+
+    expect(result.ok).toBe(true);
+    expect(math?.trailingTrivia).toMatchObject([
+      {
+        kind: "Whitespace",
+        text: " "
+      },
+      {
+        kind: "Comment",
+        text: "# comment"
+      }
+    ]);
+    expect(fn?.leadingTrivia).toMatchObject([
+      {
+        kind: "Whitespace",
+        text: "  "
+      }
+    ]);
+  });
 });

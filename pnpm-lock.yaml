@@ -225,6 +225,9 @@ importers:
       '@anpl/lexer':
         specifier: workspace:*
         version: link:../lexer
+      '@anpl/syntax':
+        specifier: workspace:*
+        version: link:../syntax
 
   packages/project:
     dependencies:

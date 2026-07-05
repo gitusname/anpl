@@ -33,12 +33,14 @@ Implemented foundation:
 - Keep nested block indentation stable across parse -> format -> parse ->
   format loops.
 - Cover current valid conformance fixtures with formatter idempotency tests.
+- Preserve lexer comment/whitespace trivia on tokens for future CST-aware
+  formatting.
 
 Next work:
 
 - Preserve semantic meaning while normalizing whitespace and separators.
 - Add broader formatter snapshots for nested expressions and future syntax.
-- Preserve comments/trivia once CST trivia is wired into the parser.
+- Preserve comments in formatted output once the formatter consumes CST trivia.
 
 ## 3. Project System Hardening
 
@@ -145,6 +147,7 @@ Implemented foundation:
 - MIR interpreter execution checks for runnable valid fixtures.
 - MIR JavaScript execution checks for runnable valid fixtures.
 - A deterministic MIR golden snapshot for the math fixture.
+- Parser CST output and synchronization recovery metadata tests.
 
 Next work:
 
@@ -152,4 +155,4 @@ Next work:
   valid/invalid fixture.
 - Add broader CLI integration conformance tests.
 - Broaden formatter idempotency coverage as new valid fixtures are added.
-- Add parser robustness and recovery tests.
+- Broaden parser robustness and recovery fixture coverage.

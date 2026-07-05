@@ -12,6 +12,7 @@
     "../core/src/**/*.ts",
     "../lexer/src/**/*.ts",
     "../parser/src/**/*.ts",
+    "../syntax/src/**/*.ts",
     "../semantic/src/**/*.ts",
     "../symbols/src/**/*.ts",
     "../types/src/**/*.ts"

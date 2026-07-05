@@ -26,17 +26,22 @@ import type { Diagnostic, DiagnosticRepair, Span } from "@anpl/core";
 import { createDiagnostic } from "@anpl/core";
 import { lexAnpl } from "@anpl/lexer";
 import type { Token, TokenType } from "@anpl/lexer";
+import { createCstNode, type CstNode, type ParseRecoveryData } from "@anpl/syntax";
 
 export type ParseResult =
   | {
       ok: true;
       program: Program;
       diagnostics: [];
+      cst?: CstNode;
+      recoveryData?: ParseRecoveryData[];
     }
   | {
       ok: false;
       program?: Program;
+      cst?: CstNode;
       diagnostics: Diagnostic[];
+      recoveryData?: ParseRecoveryData[];
     };
 
 const typeKeywords = new Set(["int", "text", "bool", "uuid", "decimal", "string"]);
@@ -46,24 +51,31 @@ export function parseAnpl(source: string, file?: string): ParseResult {
   const parser = new Parser(lexResult.tokens, file, [...lexResult.diagnostics]);
   const program = parser.parseProgram();
   const diagnostics = parser.getDiagnostics();
+  const recoveryData = parser.getRecoveryData();
+  const cst = createCstNode("Program", lexResult.tokens, diagnostics, recoveryData);
 
   if (!lexResult.ok || diagnostics.length > 0) {
     return {
       ok: false,
       program,
-      diagnostics
+      cst,
+      diagnostics,
+      recoveryData
     };
   }
 
   return {
     ok: true,
     program,
-    diagnostics: []
+    diagnostics: [],
+    cst,
+    recoveryData
   };
 }
 
 class Parser {
   private current = 0;
+  private readonly recoveryData: ParseRecoveryData[] = [];
 
   constructor(
     private readonly tokens: Token[],
@@ -73,6 +85,10 @@ class Parser {
 
   getDiagnostics(): Diagnostic[] {
     return this.diagnostics;
+  }
+
+  getRecoveryData(): ParseRecoveryData[] {
+    return this.recoveryData;
   }
 
   parseProgram(): Program {
@@ -565,6 +581,7 @@ class Parser {
   }
 
   private synchronizeToNextDecl(): void {
+    const skippedTokens: Token[] = [];
     while (
       !this.isAtEnd() &&
       !this.checkKeyword("import") &&
@@ -572,7 +589,18 @@ class Parser {
       !this.checkKeyword("fn") &&
       !this.checkKeyword("module")
     ) {
-      this.advance();
+      skippedTokens.push(this.advance());
+    }
+
+    if (skippedTokens.length > 0) {
+      const first = skippedTokens[0]!;
+      const last = skippedTokens[skippedTokens.length - 1]!;
+      this.recoveryData.push({
+        recovered: true,
+        skippedTokens,
+        reason: "synchronize-to-next-declaration",
+        span: this.spanBetween(first, last)
+      });
     }
   }
 

@@ -1,5 +1,10 @@
 import type { Span } from "@anpl/core";
 
+export type Trivia =
+  | { kind: "Whitespace"; text: string; span: Span }
+  | { kind: "Newline"; text: string; span: Span }
+  | { kind: "Comment"; text: string; span: Span };
+
 export type TokenType =
   | "identifier"
   | "keyword"
@@ -38,6 +43,8 @@ export type Token = {
   column: number;
   offset: number;
   span: Span;
+  leadingTrivia?: Trivia[];
+  trailingTrivia?: Trivia[];
 };
 
 export const keywords = [

@@ -22,6 +22,7 @@
     "../mir/src/**/*.ts",
     "../optimizer/src/**/*.ts",
     "../parser/src/**/*.ts",
+    "../syntax/src/**/*.ts",
     "../project/src/**/*.ts",
     "../runtime/src/**/*.ts",
     "../semantic/src/**/*.ts",

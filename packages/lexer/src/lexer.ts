@@ -1,6 +1,6 @@
 import type { Diagnostic, SourceFile, Span } from "@anpl/core";
 import { createDiagnostic } from "@anpl/core";
-import { keywordSet, type Token, type TokenType } from "./tokens.js";
+import { keywordSet, type Token, type TokenType, type Trivia } from "./tokens.js";
 
 export type LexResult =
   | {
@@ -49,6 +49,7 @@ export const lex = lexAnpl;
 class Lexer {
   private readonly tokens: Token[] = [];
   private readonly diagnostics: Diagnostic[] = [];
+  private pendingLeadingTrivia: Trivia[] = [];
   private offset = 0;
   private line = 1;
   private column = 1;
@@ -63,12 +64,12 @@ class Lexer {
       const char = this.current();
 
       if (char === " " || char === "\t") {
-        this.advance();
+        this.addWhitespaceTrivia();
         continue;
       }
 
       if (char === "#") {
-        this.skipComment();
+        this.addCommentTrivia();
         continue;
       }
 
@@ -195,13 +196,26 @@ class Lexer {
   }
 
   private makeToken(type: TokenType, value: string, width: number): Token {
+    return this.makeTokenFromRange(type, value, this.offset, this.line, this.column, width);
+  }
+
+  private makeTokenFromRange(
+    type: TokenType,
+    value: string,
+    offset: number,
+    line: number,
+    column: number,
+    width: number
+  ): Token {
+    const leadingTrivia = this.consumeLeadingTrivia();
     return {
       type,
       value,
-      line: this.line,
-      column: this.column,
-      offset: this.offset,
-      span: this.spanFor(this.offset, this.line, this.column, width)
+      line,
+      column,
+      offset,
+      span: this.spanFor(offset, line, column, width),
+      leadingTrivia: leadingTrivia.length > 0 ? leadingTrivia : undefined
     };
   }
 
@@ -214,14 +228,54 @@ class Lexer {
     this.tokens.push(token);
   }
 
-  private skipComment(): void {
+  private addWhitespaceTrivia(): void {
+    const startOffset = this.offset;
+    const startLine = this.line;
+    const startColumn = this.column;
+    let text = "";
+
+    while (!this.isAtEnd() && (this.current() === " " || this.current() === "\t")) {
+      text += this.advance();
+    }
+
+    this.pendingLeadingTrivia.push({
+      kind: "Whitespace",
+      text,
+      span: this.spanFor(startOffset, startLine, startColumn, text.length)
+    });
+  }
+
+  private addCommentTrivia(): void {
+    const startOffset = this.offset;
+    const startLine = this.line;
+    const startColumn = this.column;
+    let text = "";
+
     while (!this.isAtEnd()) {
       const char = this.current();
       if (char === "\n" || char === "\r") {
-        return;
+        break;
       }
-      this.advance();
+      text += this.advance();
     }
+
+    const comment: Trivia = {
+      kind: "Comment",
+      text,
+      span: this.spanFor(startOffset, startLine, startColumn, text.length)
+    };
+    const previous = this.tokens.at(-1);
+
+    if (previous !== undefined && previous.type !== "newline" && previous.line === startLine) {
+      previous.trailingTrivia = [
+        ...(previous.trailingTrivia ?? []),
+        ...this.consumeLeadingTrivia(),
+        comment
+      ];
+      return;
+    }
+
+    this.pendingLeadingTrivia.push(comment);
   }
 
   private addStringToken(): void {
@@ -236,19 +290,16 @@ class Lexer {
 
       if (char === "\"") {
         this.advance();
-        this.tokens.push({
-          type: "string",
-          value,
-          line: startLine,
-          column: startColumn,
-          offset: startOffset,
-          span: this.spanFor(
+        this.tokens.push(
+          this.makeTokenFromRange(
+            "string",
+            value,
             startOffset,
             startLine,
             startColumn,
             this.offset - startOffset
           )
-        });
+        );
         return;
       }
 
@@ -320,19 +371,16 @@ class Lexer {
       }
     }
 
-    this.tokens.push({
-      type: "number",
-      value,
-      line: startLine,
-      column: startColumn,
-      offset: startOffset,
-      span: this.spanFor(
+    this.tokens.push(
+      this.makeTokenFromRange(
+        "number",
+        value,
         startOffset,
         startLine,
         startColumn,
         this.offset - startOffset
       )
-    });
+    );
   }
 
   private addIdentifierOrKeywordToken(): void {
@@ -345,19 +393,16 @@ class Lexer {
       value += this.advance();
     }
 
-    this.tokens.push({
-      type: keywordSet.has(value) ? "keyword" : "identifier",
-      value,
-      line: startLine,
-      column: startColumn,
-      offset: startOffset,
-      span: this.spanFor(
+    this.tokens.push(
+      this.makeTokenFromRange(
+        keywordSet.has(value) ? "keyword" : "identifier",
+        value,
         startOffset,
         startLine,
         startColumn,
         this.offset - startOffset
       )
-    });
+    );
   }
 
   private spanFor(
@@ -386,14 +431,24 @@ class Lexer {
       createDiagnostic({
         code,
         severity: "error",
+        category: "lex",
         message,
         file: this.file,
         line: span.start.line,
         column: span.start.column,
         span,
+        cause: "The lexer found source text that cannot be represented as an ANPL token.",
+        fix: "Remove the invalid text or replace it with valid ANPL syntax.",
+        evidence: [`offset ${span.start.offset}`],
         confidence: "high"
       })
     );
+  }
+
+  private consumeLeadingTrivia(): Trivia[] {
+    const trivia = this.pendingLeadingTrivia;
+    this.pendingLeadingTrivia = [];
+    return trivia;
   }
 }
 

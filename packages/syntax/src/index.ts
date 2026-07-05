@@ -1,27 +1,28 @@
 import type { Diagnostic, Span } from "@anpl/core";
 import type { Token } from "@anpl/lexer";
 
-export type Trivia =
-  | { kind: "Whitespace"; text: string; span: Span }
-  | { kind: "Newline"; text: string; span: Span }
-  | { kind: "Comment"; text: string; span: Span };
+export type { Trivia } from "@anpl/lexer";
 
 export type CstNode = {
   kind: string;
   span: Span;
   children: Array<CstNode | Token>;
   diagnostics?: Diagnostic[];
+  recoveryData?: ParseRecoveryData[];
 };
 
 export type ParseRecoveryData = {
   recovered: boolean;
   skippedTokens: Token[];
+  reason?: string;
+  span?: Span;
 };
 
 export function createCstNode(
   kind: string,
   children: Array<CstNode | Token>,
-  diagnostics: Diagnostic[] = []
+  diagnostics: Diagnostic[] = [],
+  recoveryData: ParseRecoveryData[] = []
 ): CstNode {
   const first = children[0];
   const last = children[children.length - 1] ?? first;
@@ -38,7 +39,8 @@ export function createCstNode(
     kind,
     span,
     children,
-    diagnostics: diagnostics.length > 0 ? diagnostics : undefined
+    diagnostics: diagnostics.length > 0 ? diagnostics : undefined,
+    recoveryData: recoveryData.length > 0 ? recoveryData : undefined
   };
 }
 

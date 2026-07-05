@@ -11,7 +11,8 @@
     "../ast/src/**/*.ts",
     "../core/src/**/*.ts",
     "../lexer/src/**/*.ts",
-    "../parser/src/**/*.ts"
+    "../parser/src/**/*.ts",
+    "../syntax/src/**/*.ts"
   ],
   "exclude": ["**/*.test.ts", "../**/*.test.ts"]
 }

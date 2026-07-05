@@ -13,12 +13,14 @@ remain planned.
   `optimizer`, `interpreter`, `compiler-js`, `runtime`, `diagnostics`,
   `stdlib`, `compiler`, `cli`, `lsp`, `benchmark`, and `testkit`.
 - Lexer with keywords, identifiers, numbers, strings, comments, operators,
-  newline tokens, EOF tokens, and source spans.
+  newline tokens, EOF tokens, source spans, and token trivia for comments plus
+  whitespace.
 - AST model for modules, imports, type declarations, fields, functions,
   parameters, blocks, statements, expressions, calls, records, members, and type
   references.
 - Parser for the ANPL v0.1 grammar documented in
-  [Grammar v0.1](./grammar-v0.1.md).
+  [Grammar v0.1](./grammar-v0.1.md), with CST output and parser recovery
+  metadata attached to parse results.
 - Compiler facade with host abstraction, timings, artifacts, and CLI delegation
   through `compileProject`.
 - Source file hashing and line map primitives.
@@ -65,6 +67,9 @@ remain planned.
 ## Experimental
 
 - The language syntax is intentionally small and may evolve.
+- CST output is currently token-stream-level and recovery metadata records
+  parser synchronization events; deeper CST nesting and comment-preserving
+  formatter integration are still future work.
 - HIR and MIR now model real function bodies, and `run` plus JavaScript `build`
   execute through MIR.
 - MIR optimization passes operate on the MIR shape and MIR lowering is

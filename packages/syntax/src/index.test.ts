@@ -11,4 +11,23 @@ describe("CST helpers", () => {
     expect(node.span.start.offset).toBe(0);
     expect(node.span.end.offset).toBe(11);
   });
+
+  it("stores diagnostics and recovery data on CST nodes", () => {
+    const lexed = lexAnpl("module math bad");
+    const skippedTokens = lexed.tokens.filter((token) => token.value === "bad");
+    const node = createCstNode("Program", lexed.tokens, [], [
+      {
+        recovered: true,
+        skippedTokens,
+        reason: "test-recovery"
+      }
+    ]);
+
+    expect(node.recoveryData).toMatchObject([
+      {
+        recovered: true,
+        reason: "test-recovery"
+      }
+    ]);
+  });
 });

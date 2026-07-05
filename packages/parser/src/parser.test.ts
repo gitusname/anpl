@@ -145,6 +145,10 @@ fn add(a int) -> int {
 }`);
 
     expect(result.ok).toBe(false);
+    expect(result.cst?.kind).toBe("Program");
+    expect(result.cst?.diagnostics?.map((diagnostic) => diagnostic.code)).toContain(
+      "ANPL_PARSE_EXPECTED_COLON"
+    );
     expect(result.diagnostics).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -161,5 +165,25 @@ fn add(a int) -> int {
         })
       ])
     );
+  });
+
+  it("returns CST recovery data when synchronizing after invalid module items", () => {
+    const result = parseAnpl(`module app
+
+oops here
+
+fn main() -> int {
+  return 1
+}`);
+
+    expect(result.ok).toBe(false);
+    expect(result.program?.modules[0]?.body.some((decl) => decl.kind === "FunctionDecl")).toBe(true);
+    expect(result.recoveryData).toMatchObject([
+      {
+        recovered: true,
+        reason: "synchronize-to-next-declaration"
+      }
+    ]);
+    expect(result.cst?.recoveryData?.[0]?.skippedTokens.map((token) => token.value)).toContain("oops");
   });
 });
