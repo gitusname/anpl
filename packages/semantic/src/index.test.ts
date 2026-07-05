@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseAnpl } from "@anpl/parser";
+import { primitiveTypeId } from "@anpl/types";
 import { analyzeProgram } from "./index.js";
 
 function analyze(source: string) {
@@ -24,6 +25,26 @@ fn main() -> int {
 }`);
 
     expect(result.ok).toBe(true);
+  });
+
+  it("returns module-aware symbols, type registry, and pass traces", () => {
+    const result = analyze(`module math
+
+fn add(a: int, b: int) -> int {
+  return a + b
+}`);
+
+    expect(result.ok).toBe(true);
+    expect(result.symbols.byQualifiedName.get("math.add")).toBe("math.add");
+    expect(result.types.display(primitiveTypeId("int"))).toBe("int");
+    expect(result.typedProgram.symbols).toBe(result.symbols);
+    expect(result.passes.map((pass) => pass.name)).toEqual([
+      "collect-modules",
+      "collect-declarations",
+      "resolve-imports",
+      "resolve-types",
+      "check-expressions"
+    ]);
   });
 
   it("resolves imported module functions", () => {

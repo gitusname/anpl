@@ -6,29 +6,36 @@ schema-generator territory.
 
 ## 1. Module Namespace Fix
 
-Current v0.1 lowering and execution are vulnerable to function/type name
-collisions across modules.
+The first function-level namespace fix is implemented: semantic results expose
+module-aware symbols, structured IR records qualified function names, the
+interpreter resolves module-qualified calls, and JavaScript output uses
+`__anpl_modules`.
 
-Next work:
+Next hardening work:
 
-- Define canonical symbol IDs, for example `moduleName.symbolName`.
-- Preserve module context in semantic symbols and IR.
-- Update interpreter function lookup to use module-aware names.
-- Update JavaScript compiler output to avoid global function/type collisions.
-- Add tests for two modules that define the same function name.
+- Carry module-qualified type IDs through HIR and MIR.
+- Extend namespace handling to cross-file projects.
+- Decide whether emitted JavaScript should stay object-namespaced or become
+  one ESM file per ANPL module.
+- Add more collision tests for types, imported symbols, and multiple `main`
+  functions.
 
 ## 2. Canonical Formatter
 
 The grammar document defines canonical formatting as a future requirement for
 stable AI repair loops.
 
-Next work:
+Implemented foundation:
 
 - Add `anpl format file.anpl`.
 - Produce one stable formatted representation for any valid ANPL program.
+
+Next work:
+
 - Preserve semantic meaning while normalizing whitespace and separators.
 - Add formatter tests for modules, types, functions, records, and nested
   expressions.
+- Preserve comments/trivia once CST trivia is wired into the parser.
 
 ## 3. Structured Diagnostic Improvements
 

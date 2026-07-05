@@ -226,14 +226,16 @@ Current implemented foundation:
 
 * machine-first language philosophy and technical architecture
 * ANPL v0.1 grammar and AST for modules, imports, types, functions, statements, and expressions
+* source, project, syntax, symbols, types, HIR, MIR, formatter, stdlib, compiler, LSP, and testkit package foundations
 * lexer with keywords, operators, strings, numbers, comments, and source spans
 * parser for modules, imports, type declarations, functions, blocks, control flow, calls, records, members, and enum type references
-* semantic analyzer with module imports, symbol tables, scope checks, type checks, return checks, record checks, enum field checks, and structured diagnostics
-* ANPL IR lowering and constant-folding optimizer
+* pass-oriented semantic analyzer with module imports, module-aware symbol tables, type registry output, scope checks, type checks, return checks, record checks, enum field checks, and structured diagnostics
+* compiler facade with host abstraction, timings, artifacts, and CLI delegation
+* HIR/MIR foundations plus current structured ANPL IR lowering and constant-folding optimizer
 * interpreter that runs `main()`
-* JavaScript compiler target
+* module-aware interpreter calls and JavaScript compiler namespace output
 * runtime built-ins: `uuid()`, `now()`, `print(value)`, `len(value)`
-* CLI commands: `check`, `run`, `build`, `emit-ast`, `emit-ir`, `diagnose`
+* CLI commands: `check`, `run`, `build`, `emit-ast`, `emit-hir`, `emit-mir`, `emit-ir`, `format`, `diagnose`
 * initial source-size comparison utilities for ANPL-vs-target source comparison
 
 ## Roadmap

@@ -230,14 +230,29 @@ Main packages:
 
 ```text
 packages/core
+packages/source
+packages/project
 packages/lexer
+packages/syntax
+packages/ast
 packages/parser
+packages/formatter
+packages/symbols
+packages/types
 packages/semantic
 packages/ir
+packages/hir
+packages/mir
 packages/compiler-js
+packages/interpreter
 packages/runtime
 packages/diagnostics
+packages/stdlib
+packages/compiler
 packages/cli
+packages/lsp
+packages/benchmark
+packages/testkit
 ```
 
 The retired legacy scaffolding packages `validator`, `normalizer`, and `generator-prisma` have been removed from the active workspace. They are documented in `docs/status.md`; do not reintroduce or expand them, and do not add CRUD/Prisma-specific work.

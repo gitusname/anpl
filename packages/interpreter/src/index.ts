@@ -44,15 +44,17 @@ class Interpreter {
   ) {
     for (const moduleDecl of program.modules) {
       for (const fn of moduleDecl.functions) {
-        this.functions.set(fn.name, fn);
+        this.functions.set(fn.qualifiedName, fn);
       }
     }
   }
 
   run(entry: string): InterpretResult {
-    const fn = this.functions.get(entry);
+    const fn = this.resolveEntry(entry);
     if (fn === undefined) {
-      this.runtimeError(`Entry function '${entry}' was not found.`, entry);
+      if (this.diagnostics.length === 0) {
+        this.runtimeError(`Entry function '${entry}' was not found.`, entry);
+      }
       return this.fail();
     }
 
@@ -114,6 +116,26 @@ class Interpreter {
         this.evaluate(stmt.expression, env);
         return undefined;
     }
+  }
+
+  private resolveEntry(entry: string): IRFunction | undefined {
+    if (entry.includes(".")) {
+      return this.functions.get(entry);
+    }
+
+    const matches = [...this.functions.values()].filter((fn) => fn.name === entry);
+    if (matches.length === 1) {
+      return matches[0];
+    }
+
+    if (matches.length > 1) {
+      this.runtimeError(
+        `Entry function '${entry}' is ambiguous. Use a module-qualified entry name.`,
+        entry
+      );
+    }
+
+    return undefined;
   }
 
   private evaluate(expr: IRExpr, env: Environment): RuntimeValue {

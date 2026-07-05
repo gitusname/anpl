@@ -1,13 +1,10 @@
 import type { GeneratedFile } from "@anpl/core";
-import type { IRExpr, IRFunction, IRProgram, IRStmt } from "@anpl/ir";
+import type { IRExpr, IRFunction, IRModule, IRProgram, IRStmt } from "@anpl/ir";
 
 export function compileProgramToJavaScript(program: IRProgram): string {
-  const functions = program.modules.flatMap((moduleDecl) => moduleDecl.functions);
-  const body = functions.map(compileFunction).join("\n\n");
+  const modules = program.modules.map(compileModule).join("\n\n");
 
-  return `${runtimePrelude()}\n\n${body}\n\nexport { ${functions
-    .map((fn) => fn.name)
-    .join(", ")} };\n`;
+  return `${runtimePrelude()}\n\nconst __anpl_modules = {};\n\n${modules}\n\nexport { __anpl_modules };\n`;
 }
 
 export function compileProgramToJavaScriptFile(
@@ -20,11 +17,16 @@ export function compileProgramToJavaScriptFile(
   };
 }
 
-function compileFunction(fn: IRFunction): string {
+function compileModule(moduleDecl: IRModule): string {
+  const members = moduleDecl.functions.map(compileFunctionMember).join(",\n\n");
+  return `__anpl_modules[${JSON.stringify(moduleDecl.name)}] = {\n${indent(members)}\n};`;
+}
+
+function compileFunctionMember(fn: IRFunction): string {
   const params = fn.params.map((param) => param.name).join(", ");
   const body = fn.body.map((stmt) => indent(compileStmt(stmt))).join("\n");
 
-  return `function ${fn.name}(${params}) {\n${body}\n}`;
+  return `${fn.name}(${params}) {\n${body}\n}`;
 }
 
 function compileStmt(stmt: IRStmt): string {
@@ -54,7 +56,7 @@ function compileExpr(expr: IRExpr): string {
     case "binary":
       return `(${compileExpr(expr.left)} ${compileOperator(expr.operator)} ${compileExpr(expr.right)})`;
     case "call":
-      return `${expr.callee}(${expr.args.map(compileExpr).join(", ")})`;
+      return `${compileCallee(expr.callee)}(${expr.args.map(compileExpr).join(", ")})`;
     case "record":
       return `{ ${expr.fields
         .map((field) => `${field.name}: ${compileExpr(field.value)}`)
@@ -62,6 +64,14 @@ function compileExpr(expr: IRExpr): string {
     case "member":
       return `${compileExpr(expr.object)}.${expr.property}`;
   }
+}
+
+function compileCallee(callee: string): string {
+  const [moduleName, functionName, ...rest] = callee.split(".");
+  if (moduleName !== undefined && functionName !== undefined && rest.length === 0) {
+    return `__anpl_modules[${JSON.stringify(moduleName)}].${functionName}`;
+  }
+  return callee;
 }
 
 function compileOperator(operator: string): string {

@@ -8,9 +8,10 @@ remain planned.
 
 ## Implemented
 
-- Monorepo packages for `core`, `ast`, `lexer`, `parser`, `semantic`, `ir`,
-  `optimizer`, `interpreter`, `compiler-js`, `runtime`, `diagnostics`, `cli`,
-  and `benchmark`.
+- Monorepo packages for `core`, `source`, `project`, `lexer`, `syntax`, `ast`,
+  `parser`, `formatter`, `symbols`, `types`, `semantic`, `hir`, `mir`, `ir`,
+  `optimizer`, `interpreter`, `compiler-js`, `runtime`, `diagnostics`,
+  `stdlib`, `compiler`, `cli`, `lsp`, `benchmark`, and `testkit`.
 - Lexer with keywords, identifiers, numbers, strings, comments, operators,
   newline tokens, EOF tokens, and source spans.
 - AST model for modules, imports, type declarations, fields, functions,
@@ -18,29 +19,40 @@ remain planned.
   references.
 - Parser for the ANPL v0.1 grammar documented in
   [Grammar v0.1](./grammar-v0.1.md).
-- Semantic analyzer with symbol collection, simple same-file module imports,
-  scope checks, type checks, function call checks, return checks, record field
-  checks, enum field checks, and structured diagnostics.
-- Structured ANPL IR v0.1 lowering from AST.
+- Compiler facade with host abstraction, timings, artifacts, and CLI delegation
+  through `compileProject`.
+- Source file hashing and line map primitives.
+- Project manifest and same-program module graph primitives.
+- Semantic analyzer split into early production passes for module collection,
+  declaration collection, import resolution, type checks, expression checks,
+  module-aware symbol tables, type registry output, and structured diagnostics.
+- HIR and MIR package foundations, plus the current structured ANPL IR v0.1
+  lowering from AST.
 - Constant-folding optimizer for simple IR expressions.
 - Interpreter support for `main()`, functions, `let`, `return`, `if`, records,
-  member access, calls, basic operators, and runtime built-ins.
-- JavaScript compiler target for the current structured IR.
+  member access, calls, basic operators, runtime built-ins, and module-qualified
+  function lookup.
+- JavaScript compiler target for the current structured IR with module namespace
+  output.
 - Runtime built-ins: `uuid()`, `now()`, `print(value)`, and `len(value)`.
-- CLI commands: `check`, `run`, `build`, `emit-ast`, `emit-ir`, and `diagnose`.
+- CLI commands: `check`, `run`, `build`, `emit-ast`, `emit-hir`, `emit-mir`,
+  `emit-ir` compatibility alias, `format`, and `diagnose`.
 - Structured diagnostic primitives with codes, severity, location data,
   expected/received values, fix hints, evidence, and confidence.
+- Canonical AST formatter foundation.
 - Initial source-size comparison utilities in `packages/benchmark`.
 
 ## Experimental
 
 - The language syntax is intentionally small and may evolve.
-- The current IR is a structured expression IR, not a low-level SSA or LLVM-like
-  IR.
-- Module imports are simple same-file semantic imports, not a package or
-  cross-file module system.
-- JavaScript output is useful for v0.1 demos, but it does not yet implement
-  robust module namespacing, source maps, or target runtime policy.
+- HIR and MIR are early structural foundations; executable lowering still uses
+  the current structured expression IR.
+- Module imports are same-program semantic imports, not yet a cross-file package
+  or module discovery system.
+- JavaScript output has module namespacing, but it does not yet implement source
+  maps, target runtime policy, or ESM-per-module output.
+- The formatter is deterministic for the current AST surface, but comment/trivia
+  preservation is still future work.
 - Runtime diagnostics exist, but cause/fix/evidence quality needs improvement.
 - The `diagnose` CLI command is a simple heuristic log classifier, not yet an
   AI-optimized error compression system.
@@ -50,14 +62,13 @@ remain planned.
 
 ## Planned
 
-- Module namespace model for functions, types, imports, IR, interpreter, and
-  generated JavaScript.
-- Canonical formatter: `anpl format file.anpl`.
+- Cross-file modules and package boundaries.
+- Deeper module namespace model for type IDs, HIR/MIR, emitted source maps, and
+  cross-file projects.
 - Stronger structured diagnostics with cause, fix, evidence, and repair-oriented
   context across all compiler/runtime phases.
 - Real benchmark suite comparing direct human-first target code generation with
   human intent -> ANPL -> compiler flows.
-- Cross-file modules and package boundaries.
 - Expanded type system and effect model.
 - Additional compiler targets such as TypeScript, Python, WASM, or LLVM.
 - More complete runtime and standard library primitives.

@@ -13,10 +13,8 @@ import { lowerHirToMir } from "@anpl/mir";
 import { optimizeProgram } from "@anpl/optimizer";
 import { parseAnpl } from "@anpl/parser";
 import { buildModuleGraph } from "@anpl/project";
-import { analyzeProgram } from "@anpl/semantic";
+import { analyzeProgram, type SemanticResult } from "@anpl/semantic";
 import { createSourceFile } from "@anpl/source";
-import { collectProgramSymbols } from "@anpl/symbols";
-import { createTypeRegistry } from "@anpl/types";
 
 export type CompileMode =
   | "check"
@@ -94,6 +92,7 @@ type PipelineState = {
   sourcePath: string;
   source: string;
   parsed: ReturnType<typeof parseAnpl>;
+  semantic?: SemanticResult;
   hir?: ReturnType<typeof lowerProgramToHir>;
   mir?: ReturnType<typeof lowerHirToMir>;
   ir?: ReturnType<typeof lowerProgram>;
@@ -135,10 +134,6 @@ export async function compileProject(
     const semanticStart = host.now();
     const semantic = analyzeProgram(parsed.program);
     const moduleGraph = buildModuleGraph(parsed.program, sourcePath);
-    const symbols = collectProgramSymbols(parsed.program);
-    const types = createTypeRegistry();
-    void symbols;
-    void types;
     timings.semanticMs = host.now() - semanticStart;
     diagnostics.push(...moduleGraph.diagnostics);
 
@@ -168,6 +163,7 @@ export async function compileProject(
       sourcePath,
       source,
       parsed,
+      semantic,
       hir,
       mir,
       ir: optimized

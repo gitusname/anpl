@@ -12,7 +12,9 @@
     "../core/src/**/*.ts",
     "../lexer/src/**/*.ts",
     "../parser/src/**/*.ts",
-    "../semantic/src/**/*.ts"
+    "../semantic/src/**/*.ts",
+    "../symbols/src/**/*.ts",
+    "../types/src/**/*.ts"
   ],
   "exclude": ["**/*.test.ts", "../**/*.test.ts"]
 }

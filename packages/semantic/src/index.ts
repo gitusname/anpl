@@ -1,10 +1,7 @@
 import type {
   BlockStmt,
-  Decl,
   Expr,
   FunctionDecl,
-  ImportDecl,
-  ModuleDecl,
   Program,
   RecordExpr,
   Stmt,
@@ -12,31 +9,51 @@ import type {
   TypeRef
 } from "@anpl/ast";
 import type { Diagnostic, Span } from "@anpl/core";
-import { createDiagnostic } from "@anpl/core";
+import type { SymbolTable } from "@anpl/symbols";
+import type { TypeRegistry } from "@anpl/types";
+import { collectDeclarations } from "./passes/collect-declarations.js";
+import { collectModules } from "./passes/collect-modules.js";
+import { resolveVisibleSymbols } from "./passes/resolve-imports.js";
+import { createScope, type Scope } from "./scopes/scope.js";
+import {
+  addSemanticDiagnostic,
+  createSemanticContext,
+  runSemanticPass,
+  typedProgramFromContext,
+  type ModuleSymbols,
+  type SemanticContext,
+  type SemanticPassTrace,
+  type TypedProgram
+} from "./semantic-context.js";
+
+export type {
+  FunctionSymbol,
+  ModuleSymbols,
+  SemanticContext,
+  SemanticPassName,
+  SemanticPassTrace,
+  TypedProgram
+} from "./semantic-context.js";
 
 export type SemanticResult =
   | {
       ok: true;
       program: Program;
+      symbols: SymbolTable;
+      types: TypeRegistry;
+      typedProgram: TypedProgram;
       diagnostics: [];
+      passes: SemanticPassTrace[];
     }
   | {
       ok: false;
       program: Program;
+      symbols: SymbolTable;
+      types: TypeRegistry;
+      typedProgram?: TypedProgram;
       diagnostics: Diagnostic[];
+      passes: SemanticPassTrace[];
     };
-
-type FunctionSymbol = {
-  decl: FunctionDecl;
-  params: TypeRef[];
-  returnType: TypeRef;
-};
-
-type ModuleSymbols = {
-  module: ModuleDecl;
-  functions: Map<string, FunctionSymbol>;
-  types: Map<string, TypeDecl>;
-};
 
 type BuiltinFunction = {
   params: string[];
@@ -61,206 +78,84 @@ const builtinFunctions: ReadonlyMap<string, BuiltinFunction> = new Map([
 ]);
 
 export function analyzeProgram(program: Program): SemanticResult {
-  const analyzer = new SemanticAnalyzer(program);
-  const diagnostics = analyzer.analyze();
+  const context = createSemanticContext(program);
+  runSemanticPass(context, "collect-modules", () => collectModules(context));
+  runSemanticPass(context, "collect-declarations", () => collectDeclarations(context));
 
-  if (diagnostics.length > 0) {
+  const analyzer = new SemanticAnalyzer(context);
+  analyzer.analyze();
+
+  if (context.diagnostics.length > 0) {
     return {
       ok: false,
       program,
-      diagnostics
+      symbols: context.symbols,
+      types: context.types,
+      typedProgram: typedProgramFromContext(context),
+      diagnostics: context.diagnostics,
+      passes: context.passes
     };
   }
 
   return {
     ok: true,
     program,
-    diagnostics: []
+    symbols: context.symbols,
+    types: context.types,
+    typedProgram: typedProgramFromContext(context),
+    diagnostics: [],
+    passes: context.passes
   };
 }
 
 class SemanticAnalyzer {
-  private readonly diagnostics: Diagnostic[] = [];
+  constructor(private readonly context: SemanticContext) {}
 
-  constructor(private readonly program: Program) {}
+  analyze(): void {
+    const visibleSymbolsByModule = new Map<string, ModuleSymbols>();
 
-  analyze(): Diagnostic[] {
-    const programSymbols = this.collectProgramSymbols();
-
-    for (const moduleDecl of this.program.modules) {
-      const localSymbols = programSymbols.get(moduleDecl.name);
-      if (localSymbols === undefined) {
-        continue;
+    runSemanticPass(this.context, "resolve-imports", () => {
+      for (const moduleDecl of this.context.program.modules) {
+        const localSymbols = this.context.moduleSymbols.get(moduleDecl.name);
+        if (localSymbols === undefined) {
+          continue;
+        }
+        visibleSymbolsByModule.set(
+          moduleDecl.name,
+          resolveVisibleSymbols(this.context, localSymbols)
+        );
       }
-      const symbols = this.resolveVisibleSymbols(localSymbols, programSymbols);
+    });
 
-      for (const decl of moduleDecl.body) {
-        if (decl.kind === "FunctionDecl") {
-          this.checkFunction(decl, symbols);
-        } else if (decl.kind === "TypeDecl") {
-          this.checkTypeDecl(decl, symbols);
+    runSemanticPass(this.context, "resolve-types", () => {
+      for (const moduleDecl of this.context.program.modules) {
+        const symbols = visibleSymbolsByModule.get(moduleDecl.name);
+        if (symbols === undefined) {
+          continue;
+        }
+
+        for (const decl of moduleDecl.body) {
+          if (decl.kind === "TypeDecl") {
+            this.checkTypeDecl(decl, symbols);
+          }
         }
       }
-    }
+    });
 
-    return this.diagnostics;
-  }
-
-  private collectProgramSymbols(): Map<string, ModuleSymbols> {
-    const programSymbols = new Map<string, ModuleSymbols>();
-
-    for (const moduleDecl of this.program.modules) {
-      if (programSymbols.has(moduleDecl.name)) {
-        this.addDiagnostic({
-          code: "ANPL_SEMANTIC_DUPLICATE_SYMBOL",
-          message: `Module '${moduleDecl.name}' is already defined.`,
-          span: moduleDecl.span,
-          symbol: moduleDecl.name
-        });
-        continue;
-      }
-
-      programSymbols.set(moduleDecl.name, this.collectModuleSymbols(moduleDecl));
-    }
-
-    return programSymbols;
-  }
-
-  private collectModuleSymbols(moduleDecl: ModuleDecl): ModuleSymbols {
-    const functions = new Map<string, FunctionSymbol>();
-    const types = new Map<string, TypeDecl>();
-
-    for (const decl of moduleDecl.body) {
-      if (decl.kind === "FunctionDecl") {
-        if (functions.has(decl.name)) {
-          this.addDiagnostic({
-            code: "ANPL_SEMANTIC_DUPLICATE_SYMBOL",
-            message: `Function '${decl.name}' is already defined.`,
-            span: decl.span,
-            symbol: decl.name
-          });
+    runSemanticPass(this.context, "check-expressions", () => {
+      for (const moduleDecl of this.context.program.modules) {
+        const symbols = visibleSymbolsByModule.get(moduleDecl.name);
+        if (symbols === undefined) {
+          continue;
         }
-        functions.set(decl.name, {
-          decl,
-          params: decl.params.map((param) => param.type),
-          returnType: decl.returnType
-        });
-      }
 
-      if (decl.kind === "TypeDecl") {
-        if (types.has(decl.name)) {
-          this.addDiagnostic({
-            code: "ANPL_SEMANTIC_DUPLICATE_SYMBOL",
-            message: `Type '${decl.name}' is already defined.`,
-            span: decl.span,
-            symbol: decl.name
-          });
-        }
-        types.set(decl.name, decl);
-      }
-    }
-
-    return {
-      module: moduleDecl,
-      functions,
-      types
-    };
-  }
-
-  private resolveVisibleSymbols(
-    localSymbols: ModuleSymbols,
-    programSymbols: Map<string, ModuleSymbols>
-  ): ModuleSymbols {
-    const functions = new Map(localSymbols.functions);
-    const types = new Map(localSymbols.types);
-
-    for (const importDecl of this.importsFor(localSymbols.module)) {
-      if (importDecl.module === localSymbols.module.name) {
-        this.addDiagnostic({
-          code: "ANPL_SEMANTIC_IMPORT_SELF",
-          message: `Module '${localSymbols.module.name}' cannot import itself.`,
-          span: importDecl.span,
-          symbol: importDecl.module
-        });
-        continue;
-      }
-
-      const importedSymbols = programSymbols.get(importDecl.module);
-      if (importedSymbols === undefined) {
-        this.addDiagnostic({
-          code: "ANPL_SEMANTIC_UNKNOWN_MODULE",
-          message: `Module '${importDecl.module}' is not defined.`,
-          span: importDecl.span,
-          symbol: importDecl.module
-        });
-        continue;
-      }
-
-      this.mergeImportedSymbols(importDecl, importedSymbols, functions, types);
-    }
-
-    return {
-      module: localSymbols.module,
-      functions,
-      types
-    };
-  }
-
-  private importsFor(moduleDecl: ModuleDecl): ImportDecl[] {
-    return moduleDecl.body.filter((decl): decl is ImportDecl => decl.kind === "ImportDecl");
-  }
-
-  private mergeImportedSymbols(
-    importDecl: ImportDecl,
-    importedSymbols: ModuleSymbols,
-    functions: Map<string, FunctionSymbol>,
-    types: Map<string, TypeDecl>
-  ): void {
-    const names = importDecl.names ?? [
-      ...importedSymbols.functions.keys(),
-      ...importedSymbols.types.keys()
-    ];
-
-    for (const name of names) {
-      const importedFunction = importedSymbols.functions.get(name);
-      const importedType = importedSymbols.types.get(name);
-
-      if (importedFunction === undefined && importedType === undefined) {
-        this.addDiagnostic({
-          code: "ANPL_SEMANTIC_UNKNOWN_SYMBOL",
-          message: `Module '${importDecl.module}' does not export '${name}'.`,
-          span: importDecl.span,
-          symbol: name
-        });
-        continue;
-      }
-
-      if (importedFunction !== undefined) {
-        if (functions.has(name)) {
-          this.addDiagnostic({
-            code: "ANPL_SEMANTIC_IMPORT_CONFLICT",
-            message: `Imported function '${name}' conflicts with an existing function.`,
-            span: importDecl.span,
-            symbol: name
-          });
-        } else {
-          functions.set(name, importedFunction);
+        for (const decl of moduleDecl.body) {
+          if (decl.kind === "FunctionDecl") {
+            this.checkFunction(decl, symbols);
+          }
         }
       }
-
-      if (importedType !== undefined) {
-        if (types.has(name)) {
-          this.addDiagnostic({
-            code: "ANPL_SEMANTIC_IMPORT_CONFLICT",
-            message: `Imported type '${name}' conflicts with an existing type.`,
-            span: importDecl.span,
-            symbol: name
-          });
-        } else {
-          types.set(name, importedType);
-        }
-      }
-    }
+    });
   }
 
   private checkTypeDecl(typeDecl: TypeDecl, symbols: ModuleSymbols): void {
@@ -282,7 +177,7 @@ class SemanticAnalyzer {
 
   private checkFunction(fn: FunctionDecl, symbols: ModuleSymbols): void {
     this.checkTypeRef(fn.returnType, symbols);
-    const scope = new Map<string, TypeRef>();
+    const scope = createScope();
 
     for (const param of fn.params) {
       if (scope.has(param.name)) {
@@ -313,7 +208,7 @@ class SemanticAnalyzer {
   private checkBlock(
     block: BlockStmt,
     returnType: TypeRef,
-    scope: Map<string, TypeRef>,
+    scope: Scope,
     symbols: ModuleSymbols
   ): void {
     for (const statement of block.statements) {
@@ -324,7 +219,7 @@ class SemanticAnalyzer {
   private checkStatement(
     statement: Stmt,
     returnType: TypeRef,
-    scope: Map<string, TypeRef>,
+    scope: Scope,
     symbols: ModuleSymbols
   ): void {
     switch (statement.kind) {
@@ -371,12 +266,12 @@ class SemanticAnalyzer {
       case "IfStmt": {
         const conditionType = this.inferExpr(statement.condition, scope, symbols);
         this.expectType(this.typeRef("bool", statement.condition.span), conditionType, statement.condition.span);
-        this.checkBlock(statement.thenBranch, returnType, new Map(scope), symbols);
+        this.checkBlock(statement.thenBranch, returnType, createScope(scope), symbols);
         if (statement.elseBranch !== undefined) {
           if (statement.elseBranch.kind === "BlockStmt") {
-            this.checkBlock(statement.elseBranch, returnType, new Map(scope), symbols);
+            this.checkBlock(statement.elseBranch, returnType, createScope(scope), symbols);
           } else {
-            this.checkStatement(statement.elseBranch, returnType, new Map(scope), symbols);
+            this.checkStatement(statement.elseBranch, returnType, createScope(scope), symbols);
           }
         }
         break;
@@ -389,7 +284,7 @@ class SemanticAnalyzer {
 
   private inferExpr(
     expr: Expr,
-    scope: Map<string, TypeRef>,
+    scope: Scope,
     symbols: ModuleSymbols
   ): TypeRef {
     switch (expr.kind) {
@@ -528,7 +423,7 @@ class SemanticAnalyzer {
 
   private checkRecordExpr(
     expr: RecordExpr,
-    scope: Map<string, TypeRef>,
+    scope: Scope,
     symbols: ModuleSymbols
   ): TypeRef {
     const typeDecl = symbols.types.get(expr.typeName);
@@ -623,7 +518,7 @@ class SemanticAnalyzer {
     name: string,
     fn: BuiltinFunction,
     args: Expr[],
-    scope: Map<string, TypeRef>,
+    scope: Scope,
     symbols: ModuleSymbols,
     span: Span
   ): void {
@@ -650,7 +545,7 @@ class SemanticAnalyzer {
   private checkEnumValue(
     expected: TypeRef,
     expr: Expr,
-    scope: Map<string, TypeRef>,
+    scope: Scope,
     symbols: ModuleSymbols,
     span: Span
   ): void {
@@ -777,20 +672,6 @@ class SemanticAnalyzer {
     expected?: string;
     received?: string;
   }): void {
-    this.diagnostics.push(
-      createDiagnostic({
-        code: input.code,
-        severity: "error",
-        message: input.message,
-        file: input.span.file,
-        line: input.span.start.line,
-        column: input.span.start.column,
-        span: input.span,
-        symbol: input.symbol,
-        expected: input.expected,
-        received: input.received,
-        confidence: "high"
-      })
-    );
+    addSemanticDiagnostic(this.context, input);
   }
 }

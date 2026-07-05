@@ -47,18 +47,30 @@ The target monorepo structure is:
 
 ```text
 packages/core
+packages/source
+packages/project
 packages/lexer
+packages/syntax
 packages/parser
 packages/ast
+packages/formatter
+packages/symbols
+packages/types
 packages/semantic
+packages/hir
+packages/mir
 packages/ir
 packages/optimizer
 packages/compiler-js
 packages/interpreter
 packages/runtime
 packages/diagnostics
+packages/stdlib
+packages/compiler
 packages/cli
+packages/lsp
 packages/benchmark
+packages/testkit
 ```
 
 Older package names such as `validator`, `normalizer`, and `generator-prisma`
@@ -74,12 +86,17 @@ core
   <- diagnostics
   <- runtime
   <- parser <- lexer + ast + core
-  <- semantic <- ast + core
+  <- symbols <- core + types
+  <- types
+  <- semantic <- ast + core + symbols + types
+  <- hir <- ast + symbols + types
+  <- mir <- hir + symbols + types
   <- ir <- ast
   <- optimizer <- ir
   <- compiler-js <- ir + core
   <- interpreter <- ir + runtime + core
-  <- cli <- parser + semantic + ir + optimizer + interpreter + compiler-js + diagnostics
+  <- compiler <- parser + semantic + project + source + formatter + hir + mir + ir + optimizer + interpreter + compiler-js
+  <- cli <- compiler + diagnostics
 benchmark
 ```
 
@@ -89,7 +106,8 @@ Rules:
 - `ast` may depend on `core`.
 - `lexer` may depend on `core`.
 - `parser` may depend on `lexer`, `ast`, and `core`.
-- `semantic` may depend on `ast` and `core`.
+- `semantic` may depend on `ast`, `core`, `symbols`, and `types`.
+- `compiler` owns the production pipeline orchestration.
 - `ir` may depend on `ast`.
 - `optimizer` may depend on `ir`.
 - `compiler-js` and `interpreter` may depend on `ir`, `runtime`, and `core`.
@@ -383,7 +401,10 @@ anpl check file.anpl
 anpl run file.anpl
 anpl build file.anpl --target js
 anpl emit-ast file.anpl
-anpl emit-ir file.anpl
+anpl emit-hir file.anpl
+anpl emit-mir file.anpl
+anpl emit-ir file.anpl # compatibility alias for MIR
+anpl format file.anpl
 anpl diagnose logs.txt
 ```
 
@@ -391,13 +412,13 @@ Flows:
 
 ```text
 check:
-  lexer -> parser -> semantic analyzer -> diagnostics
+  compiler facade -> lexer -> parser -> semantic analyzer -> diagnostics
 
 run:
-  lexer -> parser -> semantic analyzer -> IR -> interpreter
+  compiler facade -> lexer -> parser -> semantic analyzer -> IR -> interpreter
 
 build:
-  lexer -> parser -> semantic analyzer -> IR -> backend compiler
+  compiler facade -> lexer -> parser -> semantic analyzer -> IR -> backend compiler
 ```
 
 ## Milestones

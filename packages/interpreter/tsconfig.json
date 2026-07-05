@@ -14,7 +14,9 @@
     "../lexer/src/**/*.ts",
     "../parser/src/**/*.ts",
     "../semantic/src/**/*.ts",
-    "../runtime/src/**/*.ts"
+    "../runtime/src/**/*.ts",
+    "../symbols/src/**/*.ts",
+    "../types/src/**/*.ts"
   ],
   "exclude": ["**/*.test.ts", "../**/*.test.ts"]
 }

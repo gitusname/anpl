@@ -17,7 +17,9 @@ fn add(a: int, b: int) -> int {
     const ir = lowerProgram(parsed.program);
 
     expect(ir.modules[0]?.functions[0]).toMatchObject({
+      moduleName: "math",
       name: "add",
+      qualifiedName: "math.add",
       body: [
         {
           op: "return",
@@ -27,6 +29,36 @@ fn add(a: int, b: int) -> int {
           }
         }
       ]
+    });
+  });
+
+  it("lowers imported function calls to module-qualified callees", () => {
+    const parsed = parseAnpl(`module math
+
+fn add(a: int, b: int) -> int {
+  return a + b
+}
+
+module app
+
+import math
+
+fn main() -> int {
+  return add(2, 3)
+}`);
+
+    if (!parsed.ok) {
+      throw new Error(parsed.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+
+    const ir = lowerProgram(parsed.program);
+
+    expect(ir.modules[1]?.functions[0]?.body[0]).toMatchObject({
+      op: "return",
+      value: {
+        op: "call",
+        callee: "math.add"
+      }
     });
   });
 

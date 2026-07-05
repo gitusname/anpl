@@ -215,6 +215,12 @@ importers:
       '@anpl/core':
         specifier: workspace:*
         version: link:../core
+      '@anpl/symbols':
+        specifier: workspace:*
+        version: link:../symbols
+      '@anpl/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/source:
     dependencies:

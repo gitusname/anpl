@@ -93,4 +93,27 @@ fn main() -> int {
       value: 6
     });
   });
+
+  it("runs module-qualified calls without global function collisions", () => {
+    const result = run(`module math
+
+fn add(a: int, b: int) -> int {
+  return a + b
+}
+
+module app
+
+fn add(a: int, b: int) -> int {
+  return a - b
+}
+
+fn main() -> int {
+  return add(5, 2)
+}`);
+
+    expect(result).toMatchObject({
+      ok: true,
+      value: 3
+    });
+  });
 });
