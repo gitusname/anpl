@@ -3,7 +3,11 @@ import { parseAnpl } from "@anpl/parser";
 import { lowerProgramToHir } from "@anpl/hir";
 import { lowerProgram } from "@anpl/ir";
 import { lowerHirToMir } from "@anpl/mir";
-import { compileMirProgramToJavaScript, compileProgramToJavaScript } from "./index.js";
+import {
+  compileMirProgramToJavaScript,
+  compileProgramToJavaScript,
+  javascriptBackend
+} from "./index.js";
 
 describe("JavaScript compiler", () => {
   it("emits runnable-looking JavaScript", () => {
@@ -135,5 +139,29 @@ fn main() -> int {
 
     expect(js).toContain("__anpl_modules[\"math\"].value()");
     expect(js).toContain("__anpl_modules[\"app\"]");
+  });
+
+  it("exposes a backend interface for MIR JavaScript emission", () => {
+    const parsed = parseAnpl(`module math
+
+fn main() -> int {
+  return 1
+}`);
+    if (!parsed.ok) {
+      throw new Error(parsed.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+
+    const result = javascriptBackend.emit(lowerHirToMir(lowerProgramToHir(parsed.program)), {
+      outFile: "dist/app.js"
+    });
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.artifacts).toMatchObject([
+      {
+        kind: "js",
+        path: "dist/app.js"
+      }
+    ]);
+    expect(result.artifacts[0]?.content).toContain("__anpl_modules[\"math\"]");
   });
 });

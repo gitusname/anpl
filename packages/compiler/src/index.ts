@@ -2,7 +2,7 @@ import { existsSync, statSync } from "node:fs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, extname, join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
-import { compileMirProgramToJavaScriptFile } from "@anpl/compiler-js";
+import { javascriptBackend } from "@anpl/compiler-js";
 import type { Diagnostic } from "@anpl/core";
 import { createDiagnostic } from "@anpl/core";
 import { formatProgram } from "@anpl/formatter";
@@ -356,14 +356,23 @@ async function runMode(
       }
 
       const outDir = options.outDir ?? "generated";
-      const generated = compileMirProgramToJavaScriptFile(state.mir, join(outDir, "anpl.js"));
-      artifacts.push({
-        kind: "js",
-        path: generated.path,
-        content: generated.content
+      const backend = javascriptBackend.emit(state.mir, {
+        outFile: join(outDir, "anpl.js")
       });
-      await host.writeFile(await host.resolvePath(options.projectRoot, generated.path), generated.content);
-      return { ok: true, value: generated, diagnostics: [] };
+      artifacts.push(...backend.artifacts);
+      for (const artifact of backend.artifacts) {
+        if (artifact.path !== undefined) {
+          await host.writeFile(
+            await host.resolvePath(options.projectRoot, artifact.path),
+            artifact.content
+          );
+        }
+      }
+      return {
+        ok: backend.diagnostics.length === 0,
+        value: backend.artifacts.find((artifact) => artifact.kind === "js"),
+        diagnostics: backend.diagnostics
+      };
     }
   }
 }

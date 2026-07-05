@@ -1,4 +1,4 @@
-import type { GeneratedFile } from "@anpl/core";
+import type { Diagnostic, GeneratedFile } from "@anpl/core";
 import type { IRExpr, IRFunction, IRModule, IRProgram, IRStmt } from "@anpl/ir";
 import type {
   MirBlock,
@@ -7,6 +7,49 @@ import type {
   MirProgram,
   MirTerminator
 } from "@anpl/mir";
+
+export type BackendArtifact = {
+  kind: "js" | "map";
+  path?: string;
+  content: string;
+};
+
+export type BackendContext = {
+  outFile?: string;
+};
+
+export type BackendResult = {
+  artifacts: BackendArtifact[];
+  diagnostics: Diagnostic[];
+};
+
+export type Backend = {
+  name: string;
+  target: string;
+  emit(program: MirProgram, context?: BackendContext): BackendResult;
+};
+
+export const javascriptBackend: Backend = {
+  name: "javascript",
+  target: "js",
+  emit(program, context = {}) {
+    const generated = compileMirProgramToJavaScriptFile(
+      program,
+      context.outFile ?? "generated/anpl.js"
+    );
+
+    return {
+      artifacts: [
+        {
+          kind: "js",
+          path: generated.path,
+          content: generated.content
+        }
+      ],
+      diagnostics: []
+    };
+  }
+};
 
 export function compileProgramToJavaScript(program: IRProgram): string {
   const modules = program.modules.map(compileModule).join("\n\n");
