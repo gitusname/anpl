@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDiagnostic } from "./index.js";
+import { formatDiagnostic, getDiagnosticDefinition } from "./index.js";
 
 describe("diagnostics formatting", () => {
   it("formats structured diagnostics", () => {
@@ -14,5 +14,12 @@ describe("diagnostics formatting", () => {
         confidence: "high"
       })
     ).toContain("test.anpl:1:2 ERROR ANPL_TEST");
+  });
+
+  it("exposes a diagnostic registry", () => {
+    expect(getDiagnosticDefinition("ANPL_TYPE_MISMATCH")).toMatchObject({
+      category: "type",
+      aiRepairable: true
+    });
   });
 });

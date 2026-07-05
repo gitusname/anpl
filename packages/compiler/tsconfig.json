@@ -9,10 +9,8 @@
   "include": [
     "src/**/*.ts",
     "../ast/src/**/*.ts",
-    "../compiler/src/**/*.ts",
     "../compiler-js/src/**/*.ts",
     "../core/src/**/*.ts",
-    "../diagnostics/src/**/*.ts",
     "../formatter/src/**/*.ts",
     "../hir/src/**/*.ts",
     "../interpreter/src/**/*.ts",

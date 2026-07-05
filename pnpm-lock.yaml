@@ -34,33 +34,63 @@ importers:
 
   packages/cli:
     dependencies:
-      '@anpl/compiler-js':
+      '@anpl/compiler':
         specifier: workspace:*
-        version: link:../compiler-js
+        version: link:../compiler
       '@anpl/core':
         specifier: workspace:*
         version: link:../core
       '@anpl/diagnostics':
         specifier: workspace:*
         version: link:../diagnostics
+      commander:
+        specifier: ^12.1.0
+        version: 12.1.0
+
+  packages/compiler:
+    dependencies:
+      '@anpl/compiler-js':
+        specifier: workspace:*
+        version: link:../compiler-js
+      '@anpl/core':
+        specifier: workspace:*
+        version: link:../core
+      '@anpl/formatter':
+        specifier: workspace:*
+        version: link:../formatter
+      '@anpl/hir':
+        specifier: workspace:*
+        version: link:../hir
       '@anpl/interpreter':
         specifier: workspace:*
         version: link:../interpreter
       '@anpl/ir':
         specifier: workspace:*
         version: link:../ir
+      '@anpl/mir':
+        specifier: workspace:*
+        version: link:../mir
       '@anpl/optimizer':
         specifier: workspace:*
         version: link:../optimizer
       '@anpl/parser':
         specifier: workspace:*
         version: link:../parser
+      '@anpl/project':
+        specifier: workspace:*
+        version: link:../project
       '@anpl/semantic':
         specifier: workspace:*
         version: link:../semantic
-      commander:
-        specifier: ^12.1.0
-        version: 12.1.0
+      '@anpl/source':
+        specifier: workspace:*
+        version: link:../source
+      '@anpl/symbols':
+        specifier: workspace:*
+        version: link:../symbols
+      '@anpl/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/compiler-js:
     dependencies:
@@ -78,6 +108,27 @@ importers:
       '@anpl/core':
         specifier: workspace:*
         version: link:../core
+
+  packages/formatter:
+    dependencies:
+      '@anpl/ast':
+        specifier: workspace:*
+        version: link:../ast
+
+  packages/hir:
+    dependencies:
+      '@anpl/ast':
+        specifier: workspace:*
+        version: link:../ast
+      '@anpl/core':
+        specifier: workspace:*
+        version: link:../core
+      '@anpl/symbols':
+        specifier: workspace:*
+        version: link:../symbols
+      '@anpl/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/interpreter:
     dependencies:
@@ -103,6 +154,20 @@ importers:
         specifier: workspace:*
         version: link:../core
 
+  packages/lsp: {}
+
+  packages/mir:
+    dependencies:
+      '@anpl/hir':
+        specifier: workspace:*
+        version: link:../hir
+      '@anpl/symbols':
+        specifier: workspace:*
+        version: link:../symbols
+      '@anpl/types':
+        specifier: workspace:*
+        version: link:../types
+
   packages/optimizer:
     dependencies:
       '@anpl/ir':
@@ -121,6 +186,21 @@ importers:
         specifier: workspace:*
         version: link:../lexer
 
+  packages/project:
+    dependencies:
+      '@anpl/ast':
+        specifier: workspace:*
+        version: link:../ast
+      '@anpl/core':
+        specifier: workspace:*
+        version: link:../core
+      '@anpl/source':
+        specifier: workspace:*
+        version: link:../source
+      '@anpl/symbols':
+        specifier: workspace:*
+        version: link:../symbols
+
   packages/runtime:
     dependencies:
       '@anpl/core':
@@ -135,6 +215,53 @@ importers:
       '@anpl/core':
         specifier: workspace:*
         version: link:../core
+
+  packages/source:
+    dependencies:
+      '@anpl/core':
+        specifier: workspace:*
+        version: link:../core
+
+  packages/stdlib:
+    dependencies:
+      '@anpl/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+
+  packages/symbols:
+    dependencies:
+      '@anpl/ast':
+        specifier: workspace:*
+        version: link:../ast
+      '@anpl/core':
+        specifier: workspace:*
+        version: link:../core
+      '@anpl/types':
+        specifier: workspace:*
+        version: link:../types
+
+  packages/syntax:
+    dependencies:
+      '@anpl/core':
+        specifier: workspace:*
+        version: link:../core
+      '@anpl/lexer':
+        specifier: workspace:*
+        version: link:../lexer
+
+  packages/testkit:
+    dependencies:
+      '@anpl/core':
+        specifier: workspace:*
+        version: link:../core
+      '@anpl/parser':
+        specifier: workspace:*
+        version: link:../parser
+      '@anpl/semantic':
+        specifier: workspace:*
+        version: link:../semantic
+
+  packages/types: {}
 
 packages:
 

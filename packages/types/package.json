@@ -1,13 +1,11 @@
 {
-  "name": "@anpl/cli",
+  "name": "@anpl/types",
   "version": "0.0.0",
   "type": "module",
   "license": "Apache-2.0",
+  "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "bin": {
-    "anpl": "./dist/index.js"
-  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -18,11 +16,5 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean --tsconfig ../../tsconfig.base.json",
     "typecheck": "tsc -p tsconfig.json --noEmit"
-  },
-  "dependencies": {
-    "@anpl/compiler": "workspace:*",
-    "@anpl/core": "workspace:*",
-    "@anpl/diagnostics": "workspace:*",
-    "commander": "^12.1.0"
   }
 }

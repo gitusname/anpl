@@ -18,6 +18,25 @@ export type BenchmarkResult = {
   tokenReductionRatio: number;
 };
 
+export type BenchmarkTask = {
+  id: string;
+  title: string;
+  intent: string;
+  expectedBehavior: string[];
+  tests?: string[];
+};
+
+export type BenchmarkRun = {
+  taskId: string;
+  mode: "direct-ts" | "anpl-first";
+  model?: string;
+  promptTokens: number;
+  outputTokens: number;
+  repairLoops: number;
+  success: boolean;
+  diagnostics: unknown[];
+};
+
 export function measureSource(source: string): SourceMetrics {
   const trimmed = source.trim();
   const wordsAndSymbols = trimmed.match(/[A-Za-z_][A-Za-z0-9_]*|\d+(?:\.\d+)?|[^\s]/g) ?? [];
