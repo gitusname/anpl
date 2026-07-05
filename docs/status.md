@@ -39,9 +39,12 @@ remain planned.
   output.
 - Runtime built-ins: `uuid()`, `now()`, `print(value)`, and `len(value)`.
 - CLI commands: `check`, `run`, `build`, `emit-ast`, `emit-hir`, `emit-mir`,
-  `emit-ir` compatibility alias, `format`, and `diagnose`.
+  `emit-ir` compatibility alias, `format`, `diagnose`, and `explain`.
 - Structured diagnostic primitives with codes, severity, location data,
-  expected/received values, fix hints, evidence, and confidence.
+  categories, expected/received values, cause/fix hints, evidence, repair patch
+  slots, and confidence.
+- Diagnostic registry enrichment for machine-readable JSON output and diagnostic
+  code explanations.
 - Canonical AST formatter foundation.
 - Initial source-size comparison utilities in `packages/benchmark`.
 
@@ -59,9 +62,11 @@ remain planned.
   maps, target runtime policy, or ESM-per-module output.
 - The formatter is deterministic for the current AST surface, but comment/trivia
   preservation is still future work.
-- Runtime diagnostics exist, but cause/fix/evidence quality needs improvement.
-- The `diagnose` CLI command is a simple heuristic log classifier, not yet an
-  AI-optimized error compression system.
+- Diagnostic registry entries provide baseline cause/fix templates, but parser,
+  semantic, runtime, and backend phases still need more specific evidence and
+  repair suggestions at each call site.
+- The `diagnose` CLI command enriches simple heuristic log classifications, but
+  it is not yet a full AI-optimized error compression system.
 - Benchmark utilities currently measure source-size style metrics only; they do
   not yet prove model success rate, repair loop reduction, or production build
   reliability.
@@ -71,8 +76,8 @@ remain planned.
 - Package boundaries and external dependency resolution.
 - Deeper module namespace model for type IDs, HIR/MIR, emitted source maps, and
   multi-package projects.
-- Stronger structured diagnostics with cause, fix, evidence, and repair-oriented
-  context across all compiler/runtime phases.
+- Phase-specific repair patches and evidence across parser, semantic, runtime,
+  and backend diagnostics.
 - Real benchmark suite comparing direct human-first target code generation with
   human intent -> ANPL -> compiler flows.
 - Expanded type system and effect model.

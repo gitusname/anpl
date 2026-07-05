@@ -32,15 +32,28 @@ describe("core primitives", () => {
     const diagnostic = createDiagnostic({
       code: "ANPL_TYPE_MISMATCH",
       severity: "error",
+      category: "type",
       message: "Expected int but received text.",
       expected: "int",
       received: "text",
       fix: "Convert the expression to int or update the function return type.",
+      repair: {
+        kind: "replace",
+        span: {
+          start: 0,
+          end: 4
+        },
+        replacement: "42"
+      },
       span,
       confidence: "high"
     });
 
     expect(diagnostic.code).toBe("ANPL_TYPE_MISMATCH");
+    expect(diagnostic.repair).toMatchObject({
+      kind: "replace",
+      replacement: "42"
+    });
     expect(diagnostic.confidence).toBe("high");
     expectTypeOf(diagnostic).toMatchTypeOf<Diagnostic>();
   });

@@ -53,15 +53,21 @@ Next work:
 
 ## 4. Structured Diagnostic Improvements
 
-Diagnostics already have a structured shape, but many phases can provide richer
-repair context.
+Diagnostics now have registry enrichment, category metadata, cause/fix
+templates, repair patch slots, and `anpl explain CODE`.
+
+Implemented foundation:
+
+- Core diagnostic repair schema.
+- Registry-level diagnostic category, cause, fix, and AI-repairable metadata.
+- Enriched JSON output through `diagnosticsToJson`.
+- CLI `anpl explain ANPL_TYPE_MISMATCH`.
 
 Next work:
 
-- Add `cause`, `fix`, and `evidence` consistently to parser, semantic, runtime,
-  and CLI diagnostics.
+- Add phase-specific `cause`, `fix`, `evidence`, and `repair` consistently to
+  parser, semantic, runtime, backend, and project diagnostics.
 - Keep diagnostic codes stable and machine-readable.
-- Add tests that assert diagnostic shape, not only diagnostic code.
 - Improve runtime diagnostics for invalid calls, invalid member access, missing
   entrypoints, and unexpected values.
 

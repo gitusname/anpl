@@ -31,6 +31,39 @@ export type DiagnosticSeverity = "info" | "warning" | "error";
 
 export type DiagnosticConfidence = "low" | "medium" | "high";
 
+export type DiagnosticCategory =
+  | "lex"
+  | "parse"
+  | "semantic"
+  | "type"
+  | "ir"
+  | "runtime"
+  | "backend"
+  | "project"
+  | "tooling";
+
+export type DiagnosticRepair =
+  | {
+      kind: "replace";
+      span: {
+        start: number;
+        end: number;
+      };
+      replacement: string;
+    }
+  | {
+      kind: "insert";
+      offset: number;
+      text: string;
+    }
+  | {
+      kind: "delete";
+      span: {
+        start: number;
+        end: number;
+      };
+    };
+
 export type SourceLocation = {
   file?: string;
   line?: number;
@@ -41,12 +74,14 @@ export type SourceLocation = {
 export type Diagnostic = SourceLocation & {
   code: string;
   severity: DiagnosticSeverity;
+  category?: DiagnosticCategory;
   message: string;
   symbol?: string;
   expected?: string;
   received?: string;
   cause?: string;
   fix?: string;
+  repair?: DiagnosticRepair;
   evidence?: string[];
   confidence: DiagnosticConfidence;
 };

@@ -1,22 +1,17 @@
-import type { Diagnostic } from "@anpl/core";
-
-export type DiagnosticCategory =
-  | "lex"
-  | "parse"
-  | "semantic"
-  | "type"
-  | "ir"
-  | "runtime"
-  | "backend"
-  | "project"
-  | "tooling";
+import type { Diagnostic, DiagnosticCategory } from "@anpl/core";
 
 export type DiagnosticDefinition = {
   code: string;
   category: DiagnosticCategory;
   severity: Diagnostic["severity"];
   messageTemplate: string;
+  causeTemplate?: string;
+  fixTemplate?: string;
   aiRepairable: boolean;
+};
+
+export type DiagnosticExplanation = DiagnosticDefinition & {
+  summary: string;
 };
 
 export const diagnosticRegistry = {
@@ -25,6 +20,8 @@ export const diagnosticRegistry = {
     category: "lex",
     severity: "error",
     messageTemplate: "Unexpected character '{character}'.",
+    causeTemplate: "The lexer found a character that is not part of ANPL v0.1 syntax.",
+    fixTemplate: "Remove the character or replace it with a valid ANPL token.",
     aiRepairable: true
   },
   ANPL_PARSE_UNEXPECTED_TOKEN: {
@@ -32,6 +29,8 @@ export const diagnosticRegistry = {
     category: "parse",
     severity: "error",
     messageTemplate: "Unexpected token '{token}'.",
+    causeTemplate: "The parser could not match the token stream to the ANPL grammar.",
+    fixTemplate: "Use the expected grammar shape near the reported location.",
     aiRepairable: true
   },
   ANPL_SEMANTIC_UNKNOWN_SYMBOL: {
@@ -39,6 +38,8 @@ export const diagnosticRegistry = {
     category: "semantic",
     severity: "error",
     messageTemplate: "Symbol '{symbol}' is not defined.",
+    causeTemplate: "The referenced symbol is not visible in the current module scope.",
+    fixTemplate: "Declare the symbol, import its module, or correct the symbol name.",
     aiRepairable: true
   },
   ANPL_TYPE_MISMATCH: {
@@ -46,6 +47,8 @@ export const diagnosticRegistry = {
     category: "type",
     severity: "error",
     messageTemplate: "Expected {expected} but received {received}.",
+    causeTemplate: "A value was used where a different ANPL type is required.",
+    fixTemplate: "Change the expression type or update the declaration/signature.",
     aiRepairable: true
   },
   ANPL_RETURN_TYPE_MISMATCH: {
@@ -53,6 +56,8 @@ export const diagnosticRegistry = {
     category: "type",
     severity: "error",
     messageTemplate: "Return type mismatch: expected {expected} but received {received}.",
+    causeTemplate: "The returned expression does not match the function return type.",
+    fixTemplate: "Return a value of the declared type or change the function return type.",
     aiRepairable: true
   },
   ANPL_CALL_ARG_COUNT_MISMATCH: {
@@ -60,6 +65,8 @@ export const diagnosticRegistry = {
     category: "semantic",
     severity: "error",
     messageTemplate: "Function expected {expected} arguments but received {received}.",
+    causeTemplate: "A function call uses a different number of arguments than its signature.",
+    fixTemplate: "Add missing arguments, remove extra arguments, or update the function signature.",
     aiRepairable: true
   },
   ANPL_FIELD_NOT_FOUND: {
@@ -67,6 +74,8 @@ export const diagnosticRegistry = {
     category: "semantic",
     severity: "error",
     messageTemplate: "Field '{symbol}' was not found.",
+    causeTemplate: "A record construction or member access references a field that is not declared.",
+    fixTemplate: "Use an existing field name or add the field to the record type.",
     aiRepairable: true
   },
   ANPL_RUNTIME_ERROR: {
@@ -74,6 +83,8 @@ export const diagnosticRegistry = {
     category: "runtime",
     severity: "error",
     messageTemplate: "{message}",
+    causeTemplate: "The program failed during runtime execution.",
+    fixTemplate: "Inspect the runtime symbol, stack, and evidence to repair the failing expression.",
     aiRepairable: true
   },
   ANPL_UNSUPPORTED_TARGET: {
@@ -81,6 +92,44 @@ export const diagnosticRegistry = {
     category: "backend",
     severity: "error",
     messageTemplate: "Unsupported target '{target}'.",
+    causeTemplate: "The selected backend target is not implemented by this ANPL toolchain.",
+    fixTemplate: "Use a supported target such as 'js'.",
+    aiRepairable: false
+  },
+  ANPL_PROJECT_NO_SOURCES: {
+    code: "ANPL_PROJECT_NO_SOURCES",
+    category: "project",
+    severity: "error",
+    messageTemplate: "Project did not resolve any ANPL source files.",
+    causeTemplate: "The manifest entry/source patterns did not point to readable .anpl files.",
+    fixTemplate: "Check anpl.json entry/source patterns or pass a valid file path.",
+    aiRepairable: true
+  },
+  ANPL_PROJECT_UNKNOWN_MODULE: {
+    code: "ANPL_PROJECT_UNKNOWN_MODULE",
+    category: "project",
+    severity: "error",
+    messageTemplate: "Imported module '{symbol}' was not found in the project graph.",
+    causeTemplate: "A module import refers to a module that is not present in resolved project sources.",
+    fixTemplate: "Add the missing module source file or correct the import name.",
+    aiRepairable: true
+  },
+  ANPL_PROJECT_DUPLICATE_MODULE: {
+    code: "ANPL_PROJECT_DUPLICATE_MODULE",
+    category: "project",
+    severity: "error",
+    messageTemplate: "Module '{symbol}' is already defined in the project graph.",
+    causeTemplate: "Two or more resolved source files declare the same module.",
+    fixTemplate: "Rename one module or remove the duplicate source from the project manifest.",
+    aiRepairable: true
+  },
+  ANPL_COMPILER_ERROR: {
+    code: "ANPL_COMPILER_ERROR",
+    category: "tooling",
+    severity: "error",
+    messageTemplate: "{message}",
+    causeTemplate: "The compiler facade encountered an unexpected toolchain error.",
+    fixTemplate: "Inspect the message and reduce the input to a reproducible compiler issue.",
     aiRepairable: false
   }
 } as const satisfies Record<string, DiagnosticDefinition>;
@@ -90,27 +139,73 @@ export function getDiagnosticDefinition(code: string): DiagnosticDefinition | un
 }
 
 export function diagnosticsToJson(diagnostics: Diagnostic[]): string {
-  return JSON.stringify(diagnostics, null, 2);
+  return JSON.stringify(diagnostics.map(enrichDiagnostic), null, 2);
+}
+
+export function enrichDiagnostic(diagnostic: Diagnostic): Diagnostic {
+  const definition = getDiagnosticDefinition(diagnostic.code);
+  if (definition === undefined) {
+    return diagnostic;
+  }
+
+  return {
+    ...diagnostic,
+    category: diagnostic.category ?? definition.category,
+    cause: diagnostic.cause ?? interpolate(definition.causeTemplate, diagnostic),
+    fix: diagnostic.fix ?? interpolate(definition.fixTemplate, diagnostic)
+  };
+}
+
+export function explainDiagnosticCode(code: string): DiagnosticExplanation | undefined {
+  const definition = getDiagnosticDefinition(code);
+  if (definition === undefined) {
+    return undefined;
+  }
+
+  return {
+    ...definition,
+    summary: `${definition.code} is a ${definition.category} diagnostic. ${
+      definition.aiRepairable
+        ? "It is intended to be repairable by AI coding tools."
+        : "It is not normally repairable from source text alone."
+    }`
+  };
 }
 
 export function formatDiagnostic(diagnostic: Diagnostic): string {
+  const enriched = enrichDiagnostic(diagnostic);
   const location =
-    diagnostic.file !== undefined
-      ? `${diagnostic.file}:${diagnostic.line ?? 1}:${diagnostic.column ?? 1}`
+    enriched.file !== undefined
+      ? `${enriched.file}:${enriched.line ?? 1}:${enriched.column ?? 1}`
       : "ANPL";
   const details = [
-    diagnostic.expected ? `expected=${diagnostic.expected}` : undefined,
-    diagnostic.received ? `received=${diagnostic.received}` : undefined,
-    diagnostic.fix ? `fix=${diagnostic.fix}` : undefined
+    enriched.category ? `category=${enriched.category}` : undefined,
+    enriched.expected ? `expected=${enriched.expected}` : undefined,
+    enriched.received ? `received=${enriched.received}` : undefined,
+    enriched.fix ? `fix=${enriched.fix}` : undefined
   ]
     .filter(Boolean)
     .join(" ");
 
-  return `${location} ${diagnostic.severity.toUpperCase()} ${diagnostic.code}: ${
-    diagnostic.message
+  return `${location} ${enriched.severity.toUpperCase()} ${enriched.code}: ${
+    enriched.message
   }${details ? ` (${details})` : ""}`;
 }
 
 export function formatDiagnostics(diagnostics: Diagnostic[]): string {
   return diagnostics.map(formatDiagnostic).join("\n");
+}
+
+function interpolate(
+  template: string | undefined,
+  diagnostic: Diagnostic
+): string | undefined {
+  if (template === undefined) {
+    return undefined;
+  }
+
+  return template.replace(/\{(\w+)\}/g, (_, key: keyof Diagnostic) => {
+    const value = diagnostic[key];
+    return value === undefined || typeof value === "object" ? `{${String(key)}}` : String(value);
+  });
 }

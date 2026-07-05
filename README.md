@@ -236,7 +236,7 @@ Current implemented foundation:
 * interpreter that runs `main()`
 * module-aware interpreter calls and JavaScript compiler namespace output
 * runtime built-ins: `uuid()`, `now()`, `print(value)`, `len(value)`
-* CLI commands: `check`, `run`, `build`, `emit-ast`, `emit-hir`, `emit-mir`, `emit-ir`, `format`, `diagnose`
+* CLI commands: `check`, `run`, `build`, `emit-ast`, `emit-hir`, `emit-mir`, `emit-ir`, `format`, `diagnose`, `explain`
 * initial source-size comparison utilities for ANPL-vs-target source comparison
 
 ## Roadmap

@@ -10,7 +10,11 @@ import {
   type CompilerResult
 } from "@anpl/compiler";
 import type { Diagnostic } from "@anpl/core";
-import { diagnosticsToJson, formatDiagnostics } from "@anpl/diagnostics";
+import {
+  diagnosticsToJson,
+  explainDiagnosticCode,
+  formatDiagnostics
+} from "@anpl/diagnostics";
 
 const program = new Command()
   .name("anpl")
@@ -143,6 +147,37 @@ program
       confidence: "medium"
     };
     console.log(diagnosticsToJson([diagnostic]));
+  });
+
+program
+  .command("explain")
+  .argument("<code>")
+  .option("--json", "print explanation as JSON")
+  .description("explain an ANPL diagnostic code")
+  .action((code: string, options: { json?: boolean }) => {
+    const explanation = explainDiagnosticCode(code);
+    if (explanation === undefined) {
+      console.error(`Unknown diagnostic code: ${code}`);
+      process.exitCode = 1;
+      return;
+    }
+
+    if (options.json) {
+      console.log(JSON.stringify(explanation, null, 2));
+      return;
+    }
+
+    console.log(`${explanation.code}`);
+    console.log(`category: ${explanation.category}`);
+    console.log(`severity: ${explanation.severity}`);
+    console.log(`aiRepairable: ${String(explanation.aiRepairable)}`);
+    console.log(`message: ${explanation.messageTemplate}`);
+    if (explanation.causeTemplate !== undefined) {
+      console.log(`cause: ${explanation.causeTemplate}`);
+    }
+    if (explanation.fixTemplate !== undefined) {
+      console.log(`fix: ${explanation.fixTemplate}`);
+    }
   });
 
 program.parseAsync();
