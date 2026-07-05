@@ -234,7 +234,7 @@ Current implemented foundation:
 * compiler facade with host abstraction, timings, artifacts, and CLI delegation
 * HIR/MIR foundations with import-aware HIR metadata, real MIR function-body lowering, and MIR optimizer pass architecture
 * MIR interpreter that runs `main()` with tagged runtime values and runtime stack diagnostics
-* module-aware interpreter calls and JavaScript compiler namespace output
+* module-aware MIR interpreter calls and MIR JavaScript compiler namespace output
 * runtime built-ins and sandbox effect policy for `uuid()`, `now()`, `print(value)`, `len(value)`
 * CLI commands: `check`, `run`, `build`, `emit-ast`, `emit-hir`, `emit-mir`, `emit-ir`, `format`, `diagnose`, `explain`
 * initial source-size comparison utilities for ANPL-vs-target source comparison

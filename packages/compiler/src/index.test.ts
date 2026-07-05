@@ -137,4 +137,35 @@ fn main() -> int {
       }
     });
   });
+
+  it("builds JavaScript through the MIR backend", async () => {
+    const files: Record<string, string> = {
+      "/project/main.anpl": `module math
+
+fn add(a: int, b: int) -> int {
+  return a + b
+}
+
+fn main() -> int {
+  return add(2, 3)
+}`
+    };
+    const result = await compileProject(
+      {
+        mode: "build",
+        projectRoot: "/project",
+        entry: "main.anpl",
+        outDir: "dist"
+      },
+      memoryHost(files)
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.artifacts[0]).toMatchObject({
+      kind: "js",
+      path: "dist/anpl.js"
+    });
+    expect(files["/project/dist/anpl.js"]).toContain("switch (__block)");
+    expect(files["/project/dist/anpl.js"]).toContain("__anpl_modules[\"math\"].add");
+  });
 });

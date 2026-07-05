@@ -295,10 +295,9 @@ compiler-oriented.
 HIR preserves semantically checked modules, imports, functions, types, and
 function bodies. MIR lowers function bodies into compiler-friendly blocks,
 temporaries, local stores, calls, records, members, returns, jumps, and
-branches. The current executable v0.1 IR is still a structured expression IR; it
-preserves function, record, statement, and expression boundaries so the
-JavaScript compiler can build meaningful programs while MIR continues hardening
-as the future backend input. The interpreter path now executes MIR directly.
+branches. The interpreter path and JavaScript backend now execute/emit from MIR.
+The current structured ANPL IR v0.1 is kept as a compatibility artifact while
+MIR becomes the main backend input.
 
 Example IR shape:
 
@@ -332,9 +331,13 @@ fn add(a: int, b: int) -> int {
 Generated JavaScript:
 
 ```js
-function add(a, b) {
-  return a + b;
-}
+const __anpl_modules = {};
+
+__anpl_modules["math"] = {
+  add(a, b) {
+    // MIR block dispatch emitted here.
+  }
+};
 ```
 
 Future targets:
@@ -445,7 +448,7 @@ run:
   compiler facade -> lexer -> parser -> semantic analyzer -> HIR -> MIR -> interpreter
 
 build:
-  compiler facade -> lexer -> parser -> semantic analyzer -> IR -> backend compiler
+  compiler facade -> lexer -> parser -> semantic analyzer -> HIR -> MIR -> backend compiler
 ```
 
 ## Milestones

@@ -2,7 +2,7 @@ import { existsSync, statSync } from "node:fs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, extname, join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
-import { compileProgramToJavaScriptFile } from "@anpl/compiler-js";
+import { compileMirProgramToJavaScriptFile } from "@anpl/compiler-js";
 import type { Diagnostic } from "@anpl/core";
 import { createDiagnostic } from "@anpl/core";
 import { formatProgram } from "@anpl/formatter";
@@ -299,7 +299,7 @@ async function runMode(
       }
 
       const outDir = options.outDir ?? "generated";
-      const generated = compileProgramToJavaScriptFile(state.ir, join(outDir, "anpl.js"));
+      const generated = compileMirProgramToJavaScriptFile(state.mir, join(outDir, "anpl.js"));
       artifacts.push({
         kind: "js",
         path: generated.path,

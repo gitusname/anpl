@@ -38,8 +38,7 @@ remain planned.
   member access, calls, basic operators, tagged runtime values, runtime stack
   evidence, sandbox effect checks, runtime built-ins, and module-qualified
   function lookup.
-- JavaScript compiler target for the current structured IR with module namespace
-  output.
+- JavaScript compiler target for MIR with module namespace output.
 - Runtime built-ins: `uuid()`, `now()`, `print(value)`, and `len(value)`, all
   using tagged runtime values.
 - CLI commands: `check`, `run`, `build`, `emit-ast`, `emit-hir`, `emit-mir`,
@@ -57,15 +56,17 @@ remain planned.
 ## Experimental
 
 - The language syntax is intentionally small and may evolve.
-- HIR and MIR now model real function bodies, and `run` executes through MIR.
-  JavaScript backend input still uses the current structured expression IR.
+- HIR and MIR now model real function bodies, and `run` plus JavaScript `build`
+  execute through MIR.
 - MIR optimization passes operate on the MIR shape and MIR lowering is
-  deterministic, but JavaScript code generation has not moved to MIR yet.
+  deterministic, but deeper MIR-to-source mapping and source maps are still
+  future work.
 - Module imports work across files discovered from `anpl.json` source patterns,
   but ANPL does not yet have package boundaries or external dependency
   resolution.
-- JavaScript output has module namespacing, but it does not yet implement source
-  maps, target runtime policy, or ESM-per-module output.
+- JavaScript output has module namespacing and MIR block lowering, but it does
+  not yet implement source maps, target runtime policy, or ESM-per-module
+  output.
 - Runtime has tagged values and effect checks, but execution timeout and memory
   limits are not enforced yet.
 - The formatter is deterministic for the current AST surface, but comment/trivia

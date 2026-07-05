@@ -86,9 +86,8 @@ Next work:
 
 ## 6. IR Evolution
 
-The interpreter executable path now runs on MIR, while the JavaScript backend
-still uses the structured expression IR. MIR has a production-style lowering
-shape and optimizer pass contract.
+The interpreter executable path and JavaScript backend now run on MIR. MIR has
+a production-style lowering shape and optimizer pass contract.
 
 Implemented foundation:
 
@@ -98,13 +97,15 @@ Implemented foundation:
 - MIR function-body lowering for statements, expressions, locals, calls,
   records, members, returns, jumps, and branches.
 - MIR interpreter execution for `anpl run` and conformance fixture runs.
+- MIR JavaScript backend execution for `anpl build` and conformance fixture
+  runs.
 - Starter MIR passes for constant folding, copy propagation, dead branch
   removal, and unused local elimination.
 
 Next work:
 
 - Document the current structured ANPL IR v0.1 contract.
-- Move JavaScript backend input from structured IR to HIR/MIR.
+- Add MIR-to-JavaScript source maps and target runtime policy.
 - Keep AST-to-IR/HIR/MIR lowering deterministic and easy for AI tools to
   inspect.
 
@@ -118,6 +119,7 @@ Implemented foundation:
 - Invalid fixtures for return type mismatch, missing return, and unknown
   symbol diagnostics.
 - MIR interpreter execution checks for runnable valid fixtures.
+- MIR JavaScript execution checks for runnable valid fixtures.
 - A deterministic MIR golden snapshot for the math fixture.
 
 Next work:

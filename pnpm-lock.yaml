@@ -103,6 +103,9 @@ importers:
       '@anpl/ir':
         specifier: workspace:*
         version: link:../ir
+      '@anpl/mir':
+        specifier: workspace:*
+        version: link:../mir
 
   packages/core: {}
 
