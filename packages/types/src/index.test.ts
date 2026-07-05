@@ -13,4 +13,30 @@ describe("type registry", () => {
     expect(types.display(enumId)).toBe("enum[active, archived]");
     expect(types.isAssignable(primitiveTypeId("int"), primitiveTypeId("int"))).toBe(true);
   });
+
+  it("updates an existing canonical type when re-interned with resolved fields", () => {
+    const types = createTypeRegistry();
+    const first = types.intern({
+      kind: "RecordType",
+      name: "crm.Customer",
+      fields: new Map([["status", primitiveTypeId("unknown")]])
+    });
+    const enumId = types.intern({
+      kind: "EnumType",
+      variants: ["active", "archived"]
+    });
+    const second = types.intern({
+      kind: "RecordType",
+      name: "crm.Customer",
+      fields: new Map([["status", enumId]])
+    });
+    const record = types.get(first);
+
+    expect(second).toBe(first);
+    expect(record.kind).toBe("RecordType");
+    if (record.kind !== "RecordType") {
+      throw new Error("Expected record type");
+    }
+    expect(record.fields.get("status")).toBe(enumId);
+  });
 });

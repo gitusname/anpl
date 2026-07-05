@@ -122,6 +122,10 @@ export function createTypeRegistry(): TypeRegistry {
     const key = keyForType(input);
     const existing = canonical.get(key);
     if (existing !== undefined) {
+      types.set(existing, {
+        ...input,
+        id: existing
+      } as Type);
       return existing;
     }
 

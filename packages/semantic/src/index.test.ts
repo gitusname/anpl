@@ -89,6 +89,21 @@ fn createCustomer() -> Customer {
 }`);
 
     expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+    const customerSymbol = result.symbols.symbols.get(
+      result.symbols.byQualifiedName.get("crm.Customer")!
+    );
+    const customerType = result.types.get(customerSymbol!.type!);
+    if (customerType.kind !== "RecordType") {
+      throw new Error("Expected Customer to resolve to a record type");
+    }
+    const statusType = result.types.get(customerType.fields.get("status")!);
+    expect(statusType).toMatchObject({
+      kind: "EnumType",
+      variants: ["active", "archived"]
+    });
   });
 
   it("accepts enum variants in typed lets, returns, and calls", () => {
@@ -104,6 +119,10 @@ fn main() -> enum[active, archived] {
 }`);
 
     expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+    expect([...result.typedProgram.expressionTypes.values()].map((type) => result.types.display(type))).toContain("enum[active, archived]");
   });
 
   it("reports return type mismatches", () => {

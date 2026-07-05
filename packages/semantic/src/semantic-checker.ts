@@ -4,31 +4,30 @@ import type {
   FunctionDecl,
   RecordExpr,
   Stmt,
-  TypeDecl,
-  TypeRef
+  TypeDecl
 } from "@anpl/ast";
 import type { Span } from "@anpl/core";
+import type { TypeId } from "@anpl/types";
+import { primitiveTypeId } from "@anpl/types";
 import { createScope, type Scope } from "./scopes/scope.js";
 import {
   addSemanticDiagnostic,
   type ModuleSymbols,
   type SemanticContext
 } from "./semantic-context.js";
+import {
+  displayType,
+  internFunctionType,
+  internRecordType,
+  resolveTypeRef,
+  spanKey,
+  typeIdForRecordDecl
+} from "./type-resolver.js";
 
 type BuiltinFunction = {
   params: string[];
   returnType: string;
 };
-
-const builtinTypes = new Set([
-  "int",
-  "decimal",
-  "text",
-  "string",
-  "bool",
-  "uuid",
-  "enum"
-]);
 
 const builtinFunctions: ReadonlyMap<string, BuiltinFunction> = new Map([
   ["uuid", { params: [], returnType: "uuid" }],
@@ -41,16 +40,11 @@ export class SemanticChecker {
   constructor(private readonly context: SemanticContext) {}
 
   resolveTypeDecl(typeDecl: TypeDecl, symbols: ModuleSymbols): void {
-    for (const field of typeDecl.fields) {
-      this.checkTypeRef(field.type, symbols);
-    }
+    internRecordType(this.context, typeDecl, symbols);
   }
 
   resolveFunctionTypes(fn: FunctionDecl, symbols: ModuleSymbols): void {
-    this.checkTypeRef(fn.returnType, symbols);
-    for (const param of fn.params) {
-      this.checkTypeRef(param.type, symbols);
-    }
+    internFunctionType(this.context, fn, symbols);
   }
 
   checkRecordDecl(typeDecl: TypeDecl): void {
@@ -81,10 +75,10 @@ export class SemanticChecker {
           symbol: param.name
         });
       }
-      scope.set(param.name, param.type);
+      scope.set(param.name, resolveTypeRef(this.context, param.type, symbols));
     }
 
-    this.checkBlock(fn.body, fn.returnType, scope, symbols);
+    this.checkBlock(fn.body, resolveTypeRef(this.context, fn.returnType, symbols), scope, symbols);
   }
 
   checkFunctionReturns(fn: FunctionDecl): void {
@@ -102,7 +96,7 @@ export class SemanticChecker {
 
   private checkBlock(
     block: BlockStmt,
-    returnType: TypeRef,
+    returnType: TypeId,
     scope: Scope,
     symbols: ModuleSymbols
   ): void {
@@ -113,7 +107,7 @@ export class SemanticChecker {
 
   private checkStatement(
     statement: Stmt,
-    returnType: TypeRef,
+    returnType: TypeId,
     scope: Scope,
     symbols: ModuleSymbols
   ): void {
@@ -127,18 +121,20 @@ export class SemanticChecker {
             symbol: statement.name
           });
         }
-        if (statement.type !== undefined && this.isEnumType(statement.type)) {
-          this.checkTypeRef(statement.type, symbols);
-          this.checkEnumValue(statement.type, statement.value, scope, symbols, statement.span);
-          scope.set(statement.name, statement.type);
+        const explicitType =
+          statement.type === undefined
+            ? undefined
+            : resolveTypeRef(this.context, statement.type, symbols);
+        if (explicitType !== undefined && this.isEnumType(explicitType)) {
+          this.checkEnumValue(explicitType, statement.value, scope, symbols, statement.span);
+          scope.set(statement.name, explicitType);
           break;
         }
         const valueType = this.inferExpr(statement.value, scope, symbols);
-        if (statement.type !== undefined) {
-          this.checkTypeRef(statement.type, symbols);
-          this.expectType(statement.type, valueType, statement.span);
+        if (explicitType !== undefined) {
+          this.expectType(explicitType, valueType, statement.span);
         }
-        scope.set(statement.name, statement.type ?? valueType);
+        scope.set(statement.name, explicitType ?? valueType);
         break;
       }
       case "ReturnStmt": {
@@ -148,17 +144,13 @@ export class SemanticChecker {
         }
         const valueType = statement.value
           ? this.inferExpr(statement.value, scope, symbols)
-          : this.typeRef("void", statement.span);
+          : primitiveTypeId("void");
         this.expectType(returnType, valueType, statement.span, "ANPL_RETURN_TYPE_MISMATCH");
         break;
       }
       case "IfStmt": {
         const conditionType = this.inferExpr(statement.condition, scope, symbols);
-        this.expectType(
-          this.typeRef("bool", statement.condition.span),
-          conditionType,
-          statement.condition.span
-        );
+        this.expectType(primitiveTypeId("bool"), conditionType, statement.condition.span);
         this.checkBlock(statement.thenBranch, returnType, createScope(scope), symbols);
         if (statement.elseBranch !== undefined) {
           if (statement.elseBranch.kind === "BlockStmt") {
@@ -175,19 +167,25 @@ export class SemanticChecker {
     }
   }
 
-  private inferExpr(expr: Expr, scope: Scope, symbols: ModuleSymbols): TypeRef {
+  private inferExpr(expr: Expr, scope: Scope, symbols: ModuleSymbols): TypeId {
+    const type = this.inferExprInner(expr, scope, symbols);
+    this.context.expressionTypes.set(spanKey(expr.span), type);
+    return type;
+  }
+
+  private inferExprInner(expr: Expr, scope: Scope, symbols: ModuleSymbols): TypeId {
     switch (expr.kind) {
       case "LiteralExpr":
         if (typeof expr.value === "number") {
-          return this.typeRef(Number.isInteger(expr.value) ? "int" : "decimal", expr.span);
+          return primitiveTypeId(Number.isInteger(expr.value) ? "int" : "decimal");
         }
         if (typeof expr.value === "boolean") {
-          return this.typeRef("bool", expr.span);
+          return primitiveTypeId("bool");
         }
         if (typeof expr.value === "string") {
-          return this.typeRef("text", expr.span);
+          return primitiveTypeId("text");
         }
-        return this.typeRef("null", expr.span);
+        return primitiveTypeId("null");
 
       case "IdentifierExpr": {
         const local = scope.get(expr.name);
@@ -195,7 +193,7 @@ export class SemanticChecker {
           return local;
         }
         if (symbols.functions.has(expr.name)) {
-          return this.typeRef("function", expr.span);
+          return primitiveTypeId("unknown");
         }
         this.addDiagnostic({
           code: "ANPL_SEMANTIC_UNKNOWN_SYMBOL",
@@ -203,7 +201,7 @@ export class SemanticChecker {
           span: expr.span,
           symbol: expr.name
         });
-        return this.typeRef("unknown", expr.span);
+        return primitiveTypeId("unknown");
       }
 
       case "BinaryExpr": {
@@ -214,39 +212,39 @@ export class SemanticChecker {
           if (!this.isNumeric(left) || !this.isNumeric(right)) {
             this.addDiagnostic({
               code: "ANPL_TYPE_MISMATCH",
-              message: `Cannot apply '${expr.operator}' to ${left.name} and ${right.name}.`,
+              message: `Cannot apply '${expr.operator}' to ${displayType(this.context, left)} and ${displayType(this.context, right)}.`,
               span: expr.span,
               expected: "number",
-              received: `${left.name}, ${right.name}`
+              received: `${displayType(this.context, left)}, ${displayType(this.context, right)}`
             });
           }
-          return left.name === "decimal" || right.name === "decimal"
-            ? this.typeRef("decimal", expr.span)
-            : this.typeRef("int", expr.span);
+          return left === primitiveTypeId("decimal") || right === primitiveTypeId("decimal")
+            ? primitiveTypeId("decimal")
+            : primitiveTypeId("int");
         }
 
         if (["==", "!=", "<", "<=", ">", ">="].includes(expr.operator)) {
-          return this.typeRef("bool", expr.span);
+          return primitiveTypeId("bool");
         }
 
         if (expr.operator === "and" || expr.operator === "or") {
-          this.expectType(this.typeRef("bool", expr.left.span), left, expr.left.span);
-          this.expectType(this.typeRef("bool", expr.right.span), right, expr.right.span);
-          return this.typeRef("bool", expr.span);
+          this.expectType(primitiveTypeId("bool"), left, expr.left.span);
+          this.expectType(primitiveTypeId("bool"), right, expr.right.span);
+          return primitiveTypeId("bool");
         }
 
-        return this.typeRef("unknown", expr.span);
+        return primitiveTypeId("unknown");
       }
 
       case "CallExpr": {
         if (expr.callee.kind !== "IdentifierExpr") {
-          return this.typeRef("unknown", expr.span);
+          return primitiveTypeId("unknown");
         }
 
         const builtin = builtinFunctions.get(expr.callee.name);
         if (builtin !== undefined) {
           this.checkCallArgs(expr.callee.name, builtin, expr.args, scope, symbols, expr.span);
-          return this.typeRef(builtin.returnType, expr.span);
+          return primitiveTypeId(builtin.returnType as Parameters<typeof primitiveTypeId>[0]);
         }
 
         const fn = symbols.functions.get(expr.callee.name);
@@ -257,7 +255,7 @@ export class SemanticChecker {
             span: expr.callee.span,
             symbol: expr.callee.name
           });
-          return this.typeRef("unknown", expr.span);
+          return primitiveTypeId("unknown");
         }
 
         if (fn.params.length !== expr.args.length) {
@@ -274,16 +272,17 @@ export class SemanticChecker {
         for (const [index, arg] of expr.args.entries()) {
           const expected = fn.params[index];
           if (expected !== undefined) {
-            if (this.isEnumType(expected)) {
-              this.checkEnumValue(expected, arg, scope, symbols, arg.span);
+            const expectedType = resolveTypeRef(this.context, expected, symbols);
+            if (this.isEnumType(expectedType)) {
+              this.checkEnumValue(expectedType, arg, scope, symbols, arg.span);
             } else {
               const received = this.inferExpr(arg, scope, symbols);
-              this.expectType(expected, received, arg.span);
+              this.expectType(expectedType, received, arg.span);
             }
           }
         }
 
-        return fn.returnType;
+        return resolveTypeRef(this.context, fn.returnType, symbols);
       }
 
       case "RecordExpr":
@@ -291,26 +290,29 @@ export class SemanticChecker {
 
       case "MemberExpr": {
         const objectType = this.inferExpr(expr.object, scope, symbols);
-        if (objectType.name === "unknown") {
+        if (this.context.types.get(objectType).kind === "UnknownType") {
           return objectType;
         }
-        const typeDecl = symbols.types.get(objectType.name);
-        const field = typeDecl?.fields.find((candidate) => candidate.name === expr.property);
-        if (field === undefined) {
+        const objectTypeRecord = this.context.types.get(objectType);
+        const fieldType =
+          objectTypeRecord.kind === "RecordType"
+            ? objectTypeRecord.fields.get(expr.property)
+            : undefined;
+        if (fieldType === undefined) {
           this.addDiagnostic({
             code: "ANPL_FIELD_NOT_FOUND",
-            message: `Field '${expr.property}' does not exist on '${objectType.name}'.`,
+            message: `Field '${expr.property}' does not exist on '${displayType(this.context, objectType)}'.`,
             span: expr.span,
             symbol: expr.property
           });
-          return this.typeRef("unknown", expr.span);
+          return primitiveTypeId("unknown");
         }
-        return field.type;
+        return fieldType;
       }
     }
   }
 
-  private checkRecordExpr(expr: RecordExpr, scope: Scope, symbols: ModuleSymbols): TypeRef {
+  private checkRecordExpr(expr: RecordExpr, scope: Scope, symbols: ModuleSymbols): TypeId {
     const typeDecl = symbols.types.get(expr.typeName);
     if (typeDecl === undefined) {
       this.addDiagnostic({
@@ -319,7 +321,7 @@ export class SemanticChecker {
         span: expr.span,
         symbol: expr.typeName
       });
-      return this.typeRef("unknown", expr.span);
+      return primitiveTypeId("unknown");
     }
 
     const seenFields = new Set<string>();
@@ -342,11 +344,14 @@ export class SemanticChecker {
           span: field.span,
           symbol: field.name
         });
-      } else if (this.isEnumType(expected.type)) {
-        this.checkEnumValue(expected.type, field.value, scope, symbols, field.span);
       } else {
-        const received = this.inferExpr(field.value, scope, symbols);
-        this.expectType(expected.type, received, field.span);
+        const expectedType = resolveTypeRef(this.context, expected.type, symbols);
+        if (this.isEnumType(expectedType)) {
+          this.checkEnumValue(expectedType, field.value, scope, symbols, field.span);
+        } else {
+          const received = this.inferExpr(field.value, scope, symbols);
+          this.expectType(expectedType, received, field.span);
+        }
       }
     }
 
@@ -361,42 +366,7 @@ export class SemanticChecker {
       }
     }
 
-    return this.typeRef(expr.typeName, expr.span);
-  }
-
-  private checkTypeRef(typeRef: TypeRef, symbols: ModuleSymbols): void {
-    if (typeRef.name === "enum") {
-      const variants = this.enumVariants(typeRef);
-      if (variants.length === 0) {
-        this.addDiagnostic({
-          code: "ANPL_ENUM_EMPTY",
-          message: "Enum type must declare at least one variant.",
-          span: typeRef.span,
-          symbol: "enum"
-        });
-      }
-      return;
-    }
-
-    if (
-      !builtinTypes.has(typeRef.name) &&
-      typeRef.name !== "void" &&
-      typeRef.name !== "null" &&
-      typeRef.name !== "unknown" &&
-      typeRef.name !== "function" &&
-      !symbols.types.has(typeRef.name)
-    ) {
-      this.addDiagnostic({
-        code: "ANPL_SEMANTIC_UNKNOWN_SYMBOL",
-        message: `Type '${typeRef.name}' is not defined.`,
-        span: typeRef.span,
-        symbol: typeRef.name
-      });
-    }
-
-    for (const typeArg of typeRef.typeArgs ?? []) {
-      this.checkTypeRef(typeArg, symbols);
-    }
+    return typeIdForRecordDecl(this.context, typeDecl);
   }
 
   private checkCallArgs(
@@ -422,13 +392,17 @@ export class SemanticChecker {
       const received = this.inferExpr(arg, scope, symbols);
       const expected = fn.params[index];
       if (expected !== undefined && expected !== "any") {
-        this.expectType(this.typeRef(expected, arg.span), received, arg.span);
+        this.expectType(
+          primitiveTypeId(expected as Parameters<typeof primitiveTypeId>[0]),
+          received,
+          arg.span
+        );
       }
     }
   }
 
   private checkEnumValue(
-    expected: TypeRef,
+    expected: TypeId,
     expr: Expr,
     scope: Scope,
     symbols: ModuleSymbols,
@@ -461,10 +435,10 @@ export class SemanticChecker {
 
     if (expr.kind !== "IdentifierExpr") {
       const received = this.inferExpr(expr, scope, symbols);
-      if (this.sameType(expected, received) || received.name === "unknown") {
+      if (this.context.types.isAssignable(received, expected)) {
         return;
       }
-      receivedName = received.name;
+      receivedName = displayType(this.context, received);
     }
 
     this.addDiagnostic({
@@ -476,42 +450,40 @@ export class SemanticChecker {
     });
   }
 
-  private enumVariants(typeRef: TypeRef): string[] {
-    return (typeRef.typeArgs ?? []).map((variant) => variant.name);
-  }
-
-  private isEnumType(typeRef: TypeRef): boolean {
-    return typeRef.name === "enum";
+  private enumVariants(type: TypeId): string[] {
+    const resolved = this.context.types.get(type);
+    return resolved.kind === "EnumType" ? resolved.variants : [];
   }
 
   private expectType(
-    expected: TypeRef,
-    received: TypeRef,
+    expected: TypeId,
+    received: TypeId,
     span: Span,
     code = "ANPL_TYPE_MISMATCH"
   ): void {
-    if (this.sameType(expected, received) || received.name === "unknown") {
+    if (this.context.types.isAssignable(received, expected)) {
       return;
     }
 
     this.addDiagnostic({
       code,
-      message: `Expected ${expected.name} but received ${received.name}.`,
+      message: `Expected ${displayType(this.context, expected)} but received ${displayType(this.context, received)}.`,
       span,
-      expected: expected.name,
-      received: received.name
+      expected: displayType(this.context, expected),
+      received: displayType(this.context, received)
     });
   }
 
-  private sameType(expected: TypeRef, received: TypeRef): boolean {
-    if (expected.name === received.name) {
-      return true;
-    }
-    return expected.name === "text" && received.name === "string";
+  private isEnumType(type: TypeId): boolean {
+    return this.context.types.get(type).kind === "EnumType";
   }
 
-  private isNumeric(type: TypeRef): boolean {
-    return type.name === "int" || type.name === "decimal";
+  private isNumeric(type: TypeId): boolean {
+    const resolved = this.context.types.get(type);
+    return (
+      resolved.kind === "PrimitiveType" &&
+      (resolved.name === "int" || resolved.name === "decimal")
+    );
   }
 
   private blockAlwaysReturns(block: BlockStmt): boolean {
@@ -539,14 +511,6 @@ export class SemanticChecker {
         : this.statementAlwaysReturns(statement.elseBranch);
 
     return thenReturns && elseReturns;
-  }
-
-  private typeRef(name: string, span: Span): TypeRef {
-    return {
-      kind: "TypeRef",
-      name,
-      span
-    };
   }
 
   private addDiagnostic(input: {

@@ -9,7 +9,7 @@ import type { Diagnostic } from "@anpl/core";
 import { createDiagnostic } from "@anpl/core";
 import type { SymbolTable } from "@anpl/symbols";
 import { createSymbolTable } from "@anpl/symbols";
-import type { TypeRegistry } from "@anpl/types";
+import type { TypeId, TypeRegistry } from "@anpl/types";
 import { createTypeRegistry } from "@anpl/types";
 import {
   semanticDiagnosticDetail,
@@ -51,6 +51,8 @@ export type TypedProgram = {
   symbols: SymbolTable;
   types: TypeRegistry;
   visibleSymbolsByModule: Map<string, ModuleSymbols>;
+  resolvedTypeRefs: Map<string, TypeId>;
+  expressionTypes: Map<string, TypeId>;
 };
 
 export type SemanticContext = {
@@ -60,6 +62,8 @@ export type SemanticContext = {
   visibleSymbolsByModule: Map<string, ModuleSymbols>;
   symbols: SymbolTable;
   types: TypeRegistry;
+  resolvedTypeRefs: Map<string, TypeId>;
+  expressionTypes: Map<string, TypeId>;
   passes: SemanticPassTrace[];
 };
 
@@ -71,6 +75,8 @@ export function createSemanticContext(program: Program): SemanticContext {
     visibleSymbolsByModule: new Map(),
     symbols: createSymbolTable(),
     types: createTypeRegistry(),
+    resolvedTypeRefs: new Map(),
+    expressionTypes: new Map(),
     passes: []
   };
 }
@@ -121,6 +127,8 @@ export function typedProgramFromContext(context: SemanticContext): TypedProgram 
     program: context.program,
     symbols: context.symbols,
     types: context.types,
-    visibleSymbolsByModule: context.visibleSymbolsByModule
+    visibleSymbolsByModule: context.visibleSymbolsByModule,
+    resolvedTypeRefs: context.resolvedTypeRefs,
+    expressionTypes: context.expressionTypes
   };
 }
