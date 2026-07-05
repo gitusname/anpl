@@ -6,6 +6,19 @@ import {
   type SemanticContext
 } from "../semantic-context.js";
 
+export function resolveImports(context: SemanticContext): void {
+  for (const moduleDecl of context.program.modules) {
+    const localSymbols = context.moduleSymbols.get(moduleDecl.name);
+    if (localSymbols === undefined) {
+      continue;
+    }
+    context.visibleSymbolsByModule.set(
+      moduleDecl.name,
+      resolveVisibleSymbols(context, localSymbols)
+    );
+  }
+}
+
 export function importsFor(moduleSymbols: ModuleSymbols): ImportDecl[] {
   return moduleSymbols.module.body.filter((decl): decl is ImportDecl => decl.kind === "ImportDecl");
 }

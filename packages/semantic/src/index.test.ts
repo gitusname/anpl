@@ -38,12 +38,16 @@ fn add(a: int, b: int) -> int {
     expect(result.symbols.byQualifiedName.get("math.add")).toBe("math.add");
     expect(result.types.display(primitiveTypeId("int"))).toBe("int");
     expect(result.typedProgram.symbols).toBe(result.symbols);
+    expect(result.typedProgram.visibleSymbolsByModule.get("math")?.functions.has("add")).toBe(true);
     expect(result.passes.map((pass) => pass.name)).toEqual([
       "collect-modules",
       "collect-declarations",
       "resolve-imports",
+      "resolve-symbols",
       "resolve-types",
-      "check-expressions"
+      "check-records",
+      "check-expressions",
+      "check-returns"
     ]);
   });
 
@@ -63,6 +67,10 @@ fn main() -> int {
 }`);
 
     expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+    expect(result.typedProgram.visibleSymbolsByModule.get("app")?.functions.has("add")).toBe(true);
   });
 
   it("accepts enum variants in record fields", () => {

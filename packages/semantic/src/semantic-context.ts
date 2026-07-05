@@ -44,12 +44,14 @@ export type TypedProgram = {
   program: Program;
   symbols: SymbolTable;
   types: TypeRegistry;
+  visibleSymbolsByModule: Map<string, ModuleSymbols>;
 };
 
 export type SemanticContext = {
   program: Program;
   diagnostics: Diagnostic[];
   moduleSymbols: Map<string, ModuleSymbols>;
+  visibleSymbolsByModule: Map<string, ModuleSymbols>;
   symbols: SymbolTable;
   types: TypeRegistry;
   passes: SemanticPassTrace[];
@@ -73,6 +75,7 @@ export function createSemanticContext(program: Program): SemanticContext {
     program,
     diagnostics: [],
     moduleSymbols: new Map(),
+    visibleSymbolsByModule: new Map(),
     symbols: createSymbolTable(),
     types: createTypeRegistry(),
     passes: []
@@ -223,6 +226,7 @@ export function typedProgramFromContext(context: SemanticContext): TypedProgram 
   return {
     program: context.program,
     symbols: context.symbols,
-    types: context.types
+    types: context.types,
+    visibleSymbolsByModule: context.visibleSymbolsByModule
   };
 }
