@@ -436,6 +436,7 @@ anpl emit-mir file.anpl
 anpl emit-ir file.anpl # compatibility alias for MIR
 anpl format file.anpl
 anpl diagnose logs.txt
+anpl benchmark
 anpl explain ANPL_TYPE_MISMATCH
 ```
 

@@ -42,8 +42,8 @@ remain planned.
 - Runtime built-ins: `uuid()`, `now()`, `print(value)`, and `len(value)`, all
   using tagged runtime values.
 - CLI commands: `init`, `check`, `run`, `build`, `emit-ast`, `emit-hir`,
-  `emit-mir`, `emit-ir` compatibility alias, `format`, `diagnose`, and
-  `explain`.
+  `emit-mir`, `emit-ir` compatibility alias, `format`, `diagnose`,
+  `benchmark`, and `explain`.
 - Structured diagnostic primitives with codes, severity, location data,
   categories, expected/received values, cause/fix hints, evidence, repair patch
   slots, and confidence.
@@ -52,7 +52,10 @@ remain planned.
 - Canonical AST formatter foundation.
 - Initial conformance fixture suite with valid programs, invalid diagnostic
   expectations, MIR execution checks, and a MIR golden snapshot.
-- Initial source-size comparison utilities in `packages/benchmark`.
+- Offline benchmark fixture suite in `packages/benchmark` with 11 tasks, direct
+  TypeScript fixture comparison, ANPL-first parse/semantic/build/run metrics,
+  diagnostic token counts, generated-target token counts, and CLI
+  `anpl benchmark`.
 
 ## Experimental
 
@@ -77,9 +80,9 @@ remain planned.
   repair suggestions at each call site.
 - The `diagnose` CLI command enriches simple heuristic log classifications, but
   it is not yet a full AI-optimized error compression system.
-- Benchmark utilities currently measure source-size style metrics only; they do
-  not yet prove model success rate, repair loop reduction, or production build
-  reliability.
+- Benchmark utilities are offline fixtures; they do not yet prove real model
+  success rate, provider-specific repair loop reduction, or production build
+  reliability on large projects.
 - Conformance coverage is still small; it is a starting suite, not yet a full
   language compatibility matrix or fuzzing system.
 

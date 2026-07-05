@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { compareAnplToTarget, measureSource } from "./index.js";
+import {
+  benchmarkSuiteToJson,
+  benchmarkSuiteToText,
+  compareAnplToTarget,
+  defaultBenchmarkTasks,
+  measureSource,
+  runOfflineBenchmarkSuite
+} from "./index.js";
 
 describe("ANPL benchmark metrics", () => {
   it("measures compact source metrics", () => {
@@ -22,5 +29,32 @@ fn add(a: int, b: int) -> int {
 
     expect(result.name).toBe("math.add");
     expect(result.tokenReductionRatio).toBeGreaterThanOrEqual(0);
+  });
+
+  it("runs the default offline benchmark suite", async () => {
+    const result = await runOfflineBenchmarkSuite();
+
+    expect(result.summary.taskCount).toBe(defaultBenchmarkTasks.length);
+    expect(result.summary.anplFirstSuccessRate).toBe(1);
+    expect(result.summary.anplParseSuccessRate).toBe(1);
+    expect(result.summary.anplSemanticSuccessRate).toBe(1);
+    expect(result.summary.anplBuildSuccessRate).toBe(1);
+    expect(result.summary.anplRunSuccessRate).toBe(1);
+    expect(result.runs).toHaveLength(defaultBenchmarkTasks.length * 2);
+  });
+
+  it("serializes benchmark results for CLI output", async () => {
+    const result = await runOfflineBenchmarkSuite([defaultBenchmarkTasks[0]!]);
+    const json = benchmarkSuiteToJson(result);
+    const text = benchmarkSuiteToText(result);
+
+    expect(JSON.parse(json)).toMatchObject({
+      summary: {
+        taskCount: 1,
+        anplFirstSuccessRate: 1
+      }
+    });
+    expect(text).toContain("ANPL offline benchmark");
+    expect(text).toContain("math-add");
   });
 });

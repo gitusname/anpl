@@ -30,10 +30,35 @@ importers:
         specifier: workspace:*
         version: link:../core
 
-  packages/benchmark: {}
+  packages/benchmark:
+    dependencies:
+      '@anpl/compiler-js':
+        specifier: workspace:*
+        version: link:../compiler-js
+      '@anpl/core':
+        specifier: workspace:*
+        version: link:../core
+      '@anpl/hir':
+        specifier: workspace:*
+        version: link:../hir
+      '@anpl/ir':
+        specifier: workspace:*
+        version: link:../ir
+      '@anpl/mir':
+        specifier: workspace:*
+        version: link:../mir
+      '@anpl/parser':
+        specifier: workspace:*
+        version: link:../parser
+      '@anpl/semantic':
+        specifier: workspace:*
+        version: link:../semantic
 
   packages/cli:
     dependencies:
+      '@anpl/benchmark':
+        specifier: workspace:*
+        version: link:../benchmark
       '@anpl/compiler':
         specifier: workspace:*
         version: link:../compiler

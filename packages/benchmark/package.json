@@ -16,5 +16,14 @@
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean --tsconfig ../../tsconfig.base.json",
     "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@anpl/compiler-js": "workspace:*",
+    "@anpl/core": "workspace:*",
+    "@anpl/hir": "workspace:*",
+    "@anpl/ir": "workspace:*",
+    "@anpl/mir": "workspace:*",
+    "@anpl/parser": "workspace:*",
+    "@anpl/semantic": "workspace:*"
   }
 }

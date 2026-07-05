@@ -236,8 +236,8 @@ Current implemented foundation:
 * MIR interpreter that runs `main()` with tagged runtime values and runtime stack diagnostics
 * module-aware MIR interpreter calls and MIR JavaScript compiler namespace output
 * runtime built-ins and sandbox effect policy for `uuid()`, `now()`, `print(value)`, `len(value)`
-* CLI commands: `init`, `check`, `run`, `build`, `emit-ast`, `emit-hir`, `emit-mir`, `emit-ir`, `format`, `diagnose`, `explain`
-* initial source-size comparison utilities for ANPL-vs-target source comparison
+* CLI commands: `init`, `check`, `run`, `build`, `emit-ast`, `emit-hir`, `emit-mir`, `emit-ir`, `format`, `diagnose`, `benchmark`, `explain`
+* offline benchmark fixture suite with source-size, parse, semantic, build, run, diagnostic, and generated-output metrics
 
 ## Roadmap
 

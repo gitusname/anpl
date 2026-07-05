@@ -9,6 +9,7 @@
   "include": [
     "src/**/*.ts",
     "../ast/src/**/*.ts",
+    "../benchmark/src/**/*.ts",
     "../compiler/src/**/*.ts",
     "../compiler-js/src/**/*.ts",
     "../core/src/**/*.ts",

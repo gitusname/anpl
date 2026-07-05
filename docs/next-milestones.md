@@ -74,16 +74,25 @@ Next work:
 
 ## 5. Real Benchmark Suite
 
-The current benchmark package provides source-size comparison utilities only.
+The benchmark package now has an offline fixture harness.
+
+Implemented foundation:
+
+- 11 small software intent tasks.
+- Direct TypeScript fixture comparison against
+  human intent -> ANPL -> compiler flows.
+- Metrics for source tokens, parse success, semantic success, build success,
+  run success, repair loop count, diagnostic token count, and generated target
+  token count.
+- CLI `anpl benchmark` with human and JSON output.
 
 Next work:
 
-- Create 10-20 small software intent tasks.
-- Compare direct TypeScript/Python generation against
-  human intent -> ANPL -> compiler flows.
-- Measure parse success, semantic success, build success, repair loop count,
-  output token usage, diagnostic compactness, and final runnable output.
-- Keep benchmark claims separate from README positioning until data exists.
+- Add Python/direct-language fixture variants.
+- Add real model/provider runs and persist benchmark result artifacts.
+- Add larger multi-file tasks and package-level benchmark projects.
+- Keep benchmark claims separate from README positioning until provider data
+  exists.
 
 ## 6. IR Evolution
 

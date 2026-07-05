@@ -2,8 +2,23 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "composite": true,
-    "rootDir": "src",
-    "outDir": "dist"
+    "rootDir": "../..",
+    "outDir": "dist",
+    "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo"
   },
-  "include": ["src/**/*.ts"]
+  "include": [
+    "src/**/*.ts",
+    "../ast/src/**/*.ts",
+    "../compiler-js/src/**/*.ts",
+    "../core/src/**/*.ts",
+    "../hir/src/**/*.ts",
+    "../ir/src/**/*.ts",
+    "../lexer/src/**/*.ts",
+    "../mir/src/**/*.ts",
+    "../parser/src/**/*.ts",
+    "../semantic/src/**/*.ts",
+    "../symbols/src/**/*.ts",
+    "../types/src/**/*.ts"
+  ],
+  "exclude": ["**/*.test.ts", "../**/*.test.ts"]
 }

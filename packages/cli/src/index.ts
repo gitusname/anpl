@@ -3,6 +3,11 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { Command } from "commander";
 import {
+  benchmarkSuiteToJson,
+  benchmarkSuiteToText,
+  runOfflineBenchmarkSuite
+} from "@anpl/benchmark";
+import {
   compileProject,
   nodeCompilerHost,
   type CompileMode,
@@ -185,6 +190,18 @@ program
       confidence: "medium"
     };
     console.log(diagnosticsToJson([diagnostic]));
+  });
+
+program
+  .command("benchmark")
+  .option("--json", "print benchmark results as JSON")
+  .option("--no-execute", "skip generated JavaScript execution")
+  .description("run the offline ANPL benchmark fixture suite")
+  .action(async (options: { json?: boolean; execute?: boolean }) => {
+    const result = await runOfflineBenchmarkSuite(undefined, {
+      executeGeneratedJavaScript: options.execute
+    });
+    console.log(options.json ? benchmarkSuiteToJson(result) : benchmarkSuiteToText(result));
   });
 
 program
