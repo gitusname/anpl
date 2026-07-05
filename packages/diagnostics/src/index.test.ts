@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   diagnosticsToJson,
+  diagnosticsToYaml,
   enrichDiagnostic,
   explainDiagnosticCode,
   formatDiagnostic,
@@ -46,6 +47,23 @@ describe("diagnostics formatting", () => {
       fix: "Change the expression type or update the declaration/signature."
     });
     expect(diagnosticsToJson([diagnostic])).toContain('"category": "type"');
+  });
+
+  it("serializes enriched diagnostics as YAML", () => {
+    const yaml = diagnosticsToYaml([
+      {
+        code: "ANPL_TYPE_MISMATCH",
+        severity: "error",
+        message: "Expected int but received text.",
+        expected: "int",
+        received: "text",
+        confidence: "high"
+      }
+    ]);
+
+    expect(yaml).toContain("- code: ANPL_TYPE_MISMATCH");
+    expect(yaml).toContain("category: type");
+    expect(yaml).toContain("fix:");
   });
 
   it("explains diagnostic codes", () => {

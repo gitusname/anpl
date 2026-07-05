@@ -17,6 +17,7 @@ import {
 import type { Diagnostic } from "@anpl/core";
 import {
   diagnosticsToJson,
+  diagnosticsToYaml,
   explainDiagnosticCode,
   formatDiagnostics
 } from "@anpl/diagnostics";
@@ -69,13 +70,14 @@ program
   .argument("[file]")
   .option("--project-root <dir>", "project root when no file is provided")
   .option("--json", "print diagnostics as JSON")
+  .option("--yaml", "print diagnostics as YAML")
   .description("parse and semantically check an ANPL file or project")
-  .action(async (file: string | undefined, options: { json?: boolean; projectRoot?: string }) => {
+  .action(async (file: string | undefined, options: { json?: boolean; yaml?: boolean; projectRoot?: string }) => {
     const result = await compileInput("check", file, {
       projectRoot: options.projectRoot
     });
     if (!result.ok) {
-      printDiagnostics(result.diagnostics, options.json);
+      printDiagnostics(result.diagnostics, diagnosticOutputFormat(options));
       process.exitCode = 1;
       return;
     }
@@ -178,8 +180,9 @@ program
 program
   .command("diagnose")
   .argument("<file>")
+  .option("--yaml", "print diagnostic as YAML")
   .description("compress a log file into a simple ANPL diagnostic")
-  .action((file: string) => {
+  .action((file: string, options: { yaml?: boolean }) => {
     const content = readFileSync(file, "utf8");
     const diagnostic: Diagnostic = {
       code: inferDiagnosticCode(content),
@@ -189,7 +192,7 @@ program
       evidence: content.split(/\r?\n/).filter(Boolean).slice(0, 5),
       confidence: "medium"
     };
-    console.log(diagnosticsToJson([diagnostic]));
+    console.log(options.yaml ? diagnosticsToYaml([diagnostic]) : diagnosticsToJson([diagnostic]));
   });
 
 program
@@ -302,8 +305,31 @@ async function compileInput(
   );
 }
 
-function printDiagnostics(diagnostics: Diagnostic[], asJson = false): void {
-  console.error(asJson ? diagnosticsToJson(diagnostics) : formatDiagnostics(diagnostics));
+type DiagnosticOutputFormat = "human" | "json" | "yaml";
+
+function diagnosticOutputFormat(options: { json?: boolean; yaml?: boolean }): DiagnosticOutputFormat {
+  if (options.yaml === true) {
+    return "yaml";
+  }
+  if (options.json === true) {
+    return "json";
+  }
+  return "human";
+}
+
+function printDiagnostics(
+  diagnostics: Diagnostic[],
+  format: DiagnosticOutputFormat = "human"
+): void {
+  if (format === "json") {
+    console.error(diagnosticsToJson(diagnostics));
+    return;
+  }
+  if (format === "yaml") {
+    console.error(diagnosticsToYaml(diagnostics));
+    return;
+  }
+  console.error(formatDiagnostics(diagnostics));
 }
 
 function firstUsefulLine(content: string): string | undefined {

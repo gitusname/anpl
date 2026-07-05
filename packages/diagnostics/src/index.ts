@@ -259,6 +259,10 @@ export function diagnosticsToJson(diagnostics: Diagnostic[]): string {
   return JSON.stringify(diagnostics.map(enrichDiagnostic), null, 2);
 }
 
+export function diagnosticsToYaml(diagnostics: Diagnostic[]): string {
+  return `${yamlLines(diagnostics.map(enrichDiagnostic), 0).join("\n")}\n`;
+}
+
 export function enrichDiagnostic(diagnostic: Diagnostic): Diagnostic {
   const definition = getDiagnosticDefinition(diagnostic.code);
   if (definition === undefined) {
@@ -325,4 +329,76 @@ function interpolate(
     const value = diagnostic[key];
     return value === undefined || typeof value === "object" ? `{${String(key)}}` : String(value);
   });
+}
+
+function yamlLines(value: unknown, indent: number): string[] {
+  const prefix = " ".repeat(indent);
+
+  if (Array.isArray(value)) {
+    if (value.length === 0) {
+      return [`${prefix}[]`];
+    }
+
+    return value.flatMap((item) => {
+      if (isRecord(item)) {
+        const lines = yamlObjectLines(item, indent + 2);
+        if (lines.length === 0) {
+          return [`${prefix}- {}`];
+        }
+        const [first, ...rest] = lines;
+        return [`${prefix}- ${first.trimStart()}`, ...rest];
+      }
+      if (isScalar(item)) {
+        return [`${prefix}- ${formatYamlScalar(item)}`];
+      }
+      return [`${prefix}-`, ...yamlLines(item, indent + 2)];
+    });
+  }
+
+  if (isRecord(value)) {
+    return yamlObjectLines(value, indent);
+  }
+
+  return [`${prefix}${formatYamlScalar(value)}`];
+}
+
+function yamlObjectLines(value: Record<string, unknown>, indent: number): string[] {
+  const prefix = " ".repeat(indent);
+  const entries = Object.entries(value).filter(([, item]) => item !== undefined);
+
+  return entries.flatMap(([key, item]) => {
+    if (isScalar(item)) {
+      return [`${prefix}${key}: ${formatYamlScalar(item)}`];
+    }
+    return [`${prefix}${key}:`, ...yamlLines(item, indent + 2)];
+  });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isScalar(value: unknown): boolean {
+  return (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  );
+}
+
+function formatYamlScalar(value: unknown): string {
+  if (value === null) {
+    return "null";
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  if (typeof value !== "string") {
+    return JSON.stringify(value);
+  }
+  if (/^[A-Za-z0-9_.:/-]+$/.test(value)) {
+    return value;
+  }
+  return JSON.stringify(value);
 }
