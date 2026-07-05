@@ -1,0 +1,5 @@
+module app
+
+fn main() -> int {
+  return "wrong"
+}

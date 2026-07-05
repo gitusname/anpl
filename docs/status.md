@@ -27,7 +27,9 @@ remain planned.
 - Semantic analyzer split into early production passes for module collection,
   declaration collection, import resolution, type checks, expression checks,
   module-aware symbol tables, type registry output, and structured diagnostics.
-- HIR and MIR package foundations, plus the current structured ANPL IR v0.1
+- HIR lowering with module import metadata, MIR lowering for function bodies,
+  statements, expressions, locals, calls, records, members, returns, and
+  conditional control-flow blocks, plus the current structured ANPL IR v0.1
   lowering from AST.
 - Optimizer support for the current structured IR plus a MIR optimization pass
   architecture with constant folding, copy propagation, dead branch removal, and
@@ -48,15 +50,17 @@ remain planned.
 - Diagnostic registry enrichment for machine-readable JSON output and diagnostic
   code explanations.
 - Canonical AST formatter foundation.
+- Initial conformance fixture suite with valid programs, invalid diagnostic
+  expectations, and a MIR golden snapshot.
 - Initial source-size comparison utilities in `packages/benchmark`.
 
 ## Experimental
 
 - The language syntax is intentionally small and may evolve.
-- HIR and MIR are early structural foundations; executable lowering still uses
-  the current structured expression IR.
-- MIR optimization passes operate on the MIR shape, but MIR lowering is still
-  skeletal and not yet the executable backend input.
+- HIR and MIR now model real function bodies, but executable interpreter and
+  JavaScript backend input still uses the current structured expression IR.
+- MIR optimization passes operate on the MIR shape and MIR lowering is
+  deterministic, but MIR is not yet the executable backend input.
 - Module imports work across files discovered from `anpl.json` source patterns,
   but ANPL does not yet have package boundaries or external dependency
   resolution.
@@ -74,6 +78,8 @@ remain planned.
 - Benchmark utilities currently measure source-size style metrics only; they do
   not yet prove model success rate, repair loop reduction, or production build
   reliability.
+- Conformance coverage is still small; it is a starting suite, not yet a full
+  language compatibility matrix or fuzzing system.
 
 ## Planned
 

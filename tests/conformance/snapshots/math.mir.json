@@ -1,0 +1,98 @@
+{
+  "functions": [
+    {
+      "id": "math.add",
+      "params": [
+        {
+          "name": "a",
+          "type": "int"
+        },
+        {
+          "name": "b",
+          "type": "int"
+        }
+      ],
+      "returnType": "int",
+      "blocks": [
+        {
+          "id": "math.add.entry",
+          "instructions": [
+            {
+              "op": "load",
+              "target": "%1",
+              "symbol": "math.add.a",
+              "type": "int"
+            },
+            {
+              "op": "load",
+              "target": "%2",
+              "symbol": "math.add.b",
+              "type": "int"
+            },
+            {
+              "op": "binary",
+              "target": "%3",
+              "operator": "+",
+              "left": "%1",
+              "right": "%2",
+              "type": "int"
+            }
+          ],
+          "terminator": {
+            "kind": "return",
+            "value": "%3"
+          }
+        }
+      ]
+    },
+    {
+      "id": "math.main",
+      "params": [],
+      "returnType": "int",
+      "blocks": [
+        {
+          "id": "math.main.entry",
+          "instructions": [
+            {
+              "op": "const",
+              "target": "%1",
+              "value": 2,
+              "type": "int"
+            },
+            {
+              "op": "const",
+              "target": "%2",
+              "value": 3,
+              "type": "int"
+            },
+            {
+              "op": "call",
+              "target": "%3",
+              "callee": "math.add",
+              "args": [
+                "%1",
+                "%2"
+              ],
+              "type": "int"
+            },
+            {
+              "op": "store",
+              "symbol": "math.main.result",
+              "value": "%3"
+            },
+            {
+              "op": "load",
+              "target": "%4",
+              "symbol": "math.main.result",
+              "type": "int"
+            }
+          ],
+          "terminator": {
+            "kind": "return",
+            "value": "%4"
+          }
+        }
+      ]
+    }
+  ]
+}

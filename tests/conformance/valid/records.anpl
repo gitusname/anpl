@@ -1,0 +1,14 @@
+module crm
+
+type Customer {
+  id: uuid
+  name: text
+  age?: int
+}
+
+fn createCustomer(id: uuid, name: text) -> Customer {
+  return Customer {
+    id: id
+    name: name
+  }
+}

@@ -1,0 +1,11 @@
+module orders
+
+type Order {
+  status: enum[pending, paid, cancelled]
+}
+
+fn createOrder() -> Order {
+  return Order {
+    status: pending
+  }
+}

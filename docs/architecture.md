@@ -31,7 +31,9 @@ ANPL machine-first program
     -> Parser
     -> AST
     -> Semantic analyzer
-    -> ANPL IR
+    -> HIR
+    -> MIR
+    -> current ANPL IR v0.1
     -> Optimizer
     -> Backend
        -> Interpreter
@@ -92,7 +94,7 @@ core
   <- hir <- ast + symbols + types
   <- mir <- hir + symbols + types
   <- ir <- ast
-  <- optimizer <- ir
+  <- optimizer <- ir + mir
   <- compiler-js <- ir + core
   <- interpreter <- ir + runtime + core
   <- compiler <- parser + semantic + project + source + formatter + hir + mir + ir + optimizer + interpreter + compiler-js
@@ -109,7 +111,7 @@ Rules:
 - `semantic` may depend on `ast`, `core`, `symbols`, and `types`.
 - `compiler` owns the production pipeline orchestration.
 - `ir` may depend on `ast`.
-- `optimizer` may depend on `ir`.
+- `optimizer` may depend on `ir` and `mir`.
 - `compiler-js` and `interpreter` may depend on `ir`, `runtime`, and `core`.
 - `cli` may orchestrate the full pipeline.
 - `benchmark` stays independent unless a benchmark needs to call a specific
@@ -284,14 +286,18 @@ Example diagnostic:
 }
 ```
 
-## ANPL IR
+## HIR, MIR, and ANPL IR
 
-AST is syntax-oriented. IR is compiler-oriented.
+AST is syntax-oriented. HIR, MIR, and the current ANPL IR are
+compiler-oriented.
 
-The current v0.1 IR is a structured expression IR. It preserves function,
-record, statement, and expression boundaries so the interpreter and JavaScript
-compiler can run meaningful programs. A lower-level SSA-like instruction IR can
-be introduced later without changing the AST contract.
+HIR preserves semantically checked modules, imports, functions, types, and
+function bodies. MIR lowers function bodies into compiler-friendly blocks,
+temporaries, local stores, calls, records, members, returns, jumps, and
+branches. The current executable v0.1 IR is still a structured expression IR; it
+preserves function, record, statement, and expression boundaries so the
+interpreter and JavaScript compiler can run meaningful programs while MIR
+continues hardening as the future backend input.
 
 Example IR shape:
 

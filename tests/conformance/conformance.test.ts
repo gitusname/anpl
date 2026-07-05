@@ -1,0 +1,72 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+import { lowerProgramToHir } from "@anpl/hir";
+import { lowerHirToMir } from "@anpl/mir";
+import { parseAnpl } from "@anpl/parser";
+import { analyzeProgram } from "@anpl/semantic";
+
+const fixtureRoot = "tests/conformance";
+
+const validFixtures = ["math.anpl", "records.anpl", "imports.anpl", "enums.anpl"];
+
+const invalidFixtures: Record<string, string> = {
+  "type-mismatch.anpl": "ANPL_RETURN_TYPE_MISMATCH",
+  "missing-return.anpl": "ANPL_RETURN_MISSING",
+  "unknown-symbol.anpl": "ANPL_SEMANTIC_UNKNOWN_SYMBOL"
+};
+
+describe("ANPL conformance fixtures", () => {
+  for (const fixture of validFixtures) {
+    it(`accepts valid fixture ${fixture}`, () => {
+      const file = join(fixtureRoot, "valid", fixture);
+      const parsed = parseAnpl(readFileSync(file, "utf8"), file);
+
+      expect(parsed.diagnostics).toEqual([]);
+      expect(parsed.ok).toBe(true);
+
+      if (!parsed.ok) {
+        return;
+      }
+
+      const semantic = analyzeProgram(parsed.program);
+      expect(semantic.diagnostics).toEqual([]);
+      expect(semantic.ok).toBe(true);
+
+      const mir = lowerHirToMir(lowerProgramToHir(parsed.program));
+      expect(mir.functions.length).toBeGreaterThan(0);
+    });
+  }
+
+  for (const [fixture, expectedCode] of Object.entries(invalidFixtures)) {
+    it(`rejects invalid fixture ${fixture}`, () => {
+      const file = join(fixtureRoot, "invalid", fixture);
+      const parsed = parseAnpl(readFileSync(file, "utf8"), file);
+
+      expect(parsed.ok).toBe(true);
+      if (!parsed.ok) {
+        return;
+      }
+
+      const semantic = analyzeProgram(parsed.program);
+      expect(semantic.ok).toBe(false);
+      expect(semantic.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+        expectedCode
+      );
+    });
+  }
+
+  it("keeps math MIR golden output stable", () => {
+    const file = join(fixtureRoot, "valid", "math.anpl");
+    const snapshot = join(fixtureRoot, "snapshots", "math.mir.json");
+    const parsed = parseAnpl(readFileSync(file, "utf8"), file);
+
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) {
+      return;
+    }
+
+    const mir = lowerHirToMir(lowerProgramToHir(parsed.program));
+    expect(`${JSON.stringify(mir, null, 2)}\n`).toBe(readFileSync(snapshot, "utf8"));
+  });
+});

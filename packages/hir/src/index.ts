@@ -2,6 +2,7 @@ import type {
   BlockStmt,
   Expr,
   FunctionDecl,
+  ImportDecl,
   Program,
   Stmt,
   TypeDecl
@@ -19,8 +20,15 @@ export type HirProgram = {
 export type HirModule = {
   id: ModuleId;
   name: string;
+  imports: HirImport[];
   functions: HirFunction[];
   types: HirTypeDecl[];
+};
+
+export type HirImport = {
+  module: string;
+  names?: string[];
+  span: Span;
 };
 
 export type HirTypeDecl = {
@@ -64,6 +72,13 @@ export function lowerProgramToHir(program: Program): HirProgram {
       return {
         id: moduleId,
         name: moduleDecl.name,
+        imports: moduleDecl.body
+          .filter((decl): decl is ImportDecl => decl.kind === "ImportDecl")
+          .map((importDecl) => ({
+            module: importDecl.module,
+            names: importDecl.names,
+            span: importDecl.span
+          })),
         types: moduleDecl.body
           .filter((decl): decl is TypeDecl => decl.kind === "TypeDecl")
           .map((typeDecl) => lowerType(moduleDecl.name, typeDecl)),

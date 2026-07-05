@@ -87,19 +87,40 @@ Next work:
 ## 6. IR Evolution
 
 The current executable IR is a structured expression IR, while MIR now has a
-production-style optimizer pass contract.
+production-style lowering shape and optimizer pass contract.
 
 Implemented foundation:
 
 - `optimizeMir(program, passes)` with diagnostics, changed metadata, and pass
   results.
+- Import-aware HIR metadata for downstream lowering.
+- MIR function-body lowering for statements, expressions, locals, calls,
+  records, members, returns, jumps, and branches.
 - Starter MIR passes for constant folding, copy propagation, dead branch
   removal, and unused local elimination.
 
 Next work:
 
 - Document the current structured ANPL IR v0.1 contract.
-- Lower real function bodies into MIR instructions instead of MIR shells.
 - Move interpreter and JavaScript backend input from structured IR to HIR/MIR.
 - Keep AST-to-IR/HIR/MIR lowering deterministic and easy for AI tools to
   inspect.
+
+## 7. Conformance Tests
+
+The first conformance fixture suite is in place.
+
+Implemented foundation:
+
+- Valid fixtures for math, records, imports, and enum field usage.
+- Invalid fixtures for return type mismatch, missing return, and unknown
+  symbol diagnostics.
+- A deterministic MIR golden snapshot for the math fixture.
+
+Next work:
+
+- Add parser, AST, HIR, MIR, JavaScript, and diagnostic snapshots for every
+  valid/invalid fixture.
+- Add interpreter and CLI integration conformance tests.
+- Add formatter idempotency coverage over all valid fixtures.
+- Add parser robustness and recovery tests.
