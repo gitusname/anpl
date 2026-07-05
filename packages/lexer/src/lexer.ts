@@ -1,15 +1,18 @@
 import type { Diagnostic, SourceFile, Span } from "@anpl/core";
 import { createDiagnostic } from "@anpl/core";
+import { createSourceFile, type ProductionSourceFile } from "@anpl/source";
 import { keywordSet, type Token, type TokenType, type Trivia } from "./tokens.js";
 
 export type LexResult =
   | {
       ok: true;
+      source: ProductionSourceFile;
       tokens: Token[];
       diagnostics: [];
     }
   | {
       ok: false;
+      source: ProductionSourceFile;
       tokens: Token[];
       diagnostics: Diagnostic[];
     };
@@ -49,6 +52,7 @@ export const lex = lexAnpl;
 class Lexer {
   private readonly tokens: Token[] = [];
   private readonly diagnostics: Diagnostic[] = [];
+  private readonly sourceFile: ProductionSourceFile;
   private pendingLeadingTrivia: Trivia[] = [];
   private offset = 0;
   private line = 1;
@@ -57,7 +61,9 @@ class Lexer {
   constructor(
     private readonly source: string,
     private readonly file?: string
-  ) {}
+  ) {
+    this.sourceFile = createSourceFile(file ?? "<memory>", source);
+  }
 
   lex(): LexResult {
     while (!this.isAtEnd()) {
@@ -157,6 +163,7 @@ class Lexer {
     if (this.diagnostics.length > 0) {
       return {
         ok: false,
+        source: this.sourceFile,
         tokens: this.tokens,
         diagnostics: this.diagnostics
       };
@@ -164,6 +171,7 @@ class Lexer {
 
     return {
       ok: true,
+      source: this.sourceFile,
       tokens: this.tokens,
       diagnostics: []
     };
@@ -208,9 +216,13 @@ class Lexer {
     width: number
   ): Token {
     const leadingTrivia = this.consumeLeadingTrivia();
+    const lexeme = this.source.slice(offset, offset + width);
     return {
+      kind: type,
       type,
+      lexeme,
       value,
+      literal: literalForToken(type, value),
       line,
       column,
       offset,
@@ -466,4 +478,31 @@ function isIdentifierStart(char: string): boolean {
 
 function isIdentifierPart(char: string): boolean {
   return isIdentifierStart(char) || isDigit(char);
+}
+
+function literalForToken(
+  type: TokenType,
+  value: string
+): string | number | boolean | null | undefined {
+  if (type === "number") {
+    return Number(value);
+  }
+
+  if (type === "string") {
+    return value;
+  }
+
+  if (type === "keyword") {
+    if (value === "true") {
+      return true;
+    }
+    if (value === "false") {
+      return false;
+    }
+    if (value === "null") {
+      return null;
+    }
+  }
+
+  return undefined;
 }

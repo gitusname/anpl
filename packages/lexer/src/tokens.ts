@@ -37,8 +37,11 @@ export type TokenType =
   | "eof";
 
 export type Token = {
+  kind: TokenType;
   type: TokenType;
+  lexeme: string;
   value: string;
+  literal?: string | number | boolean | null;
   line: number;
   column: number;
   offset: number;

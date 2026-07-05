@@ -18,6 +18,7 @@
     "../syntax/src/**/*.ts",
     "../semantic/src/**/*.ts",
     "../runtime/src/**/*.ts",
+    "../source/src/**/*.ts",
     "../symbols/src/**/*.ts",
     "../types/src/**/*.ts"
   ],

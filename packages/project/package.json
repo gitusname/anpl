@@ -20,6 +20,7 @@
   "dependencies": {
     "@anpl/ast": "workspace:*",
     "@anpl/core": "workspace:*",
+    "@anpl/lexer": "workspace:*",
     "@anpl/source": "workspace:*",
     "@anpl/symbols": "workspace:*"
   }

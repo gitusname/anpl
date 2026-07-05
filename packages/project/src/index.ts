@@ -1,6 +1,7 @@
 import type { ImportDecl, ModuleDecl, Program } from "@anpl/ast";
 import type { Diagnostic, Span } from "@anpl/core";
 import { createDiagnostic } from "@anpl/core";
+import { lexAnpl, type Token } from "@anpl/lexer";
 import type { ProductionSourceFile } from "@anpl/source";
 import { createSourceFile, hashSource } from "@anpl/source";
 import type { ModuleId } from "@anpl/symbols";
@@ -158,12 +159,14 @@ export async function loadProject(
       );
     }
   }
+  const moduleGraph = buildModuleGraphFromSources(files);
+  diagnostics.push(...moduleGraph.diagnostics);
 
   return {
     root,
     manifest,
     files,
-    moduleGraph: emptyModuleGraph(),
+    moduleGraph,
     diagnostics,
     cache: createProjectCache(manifest, files)
   };
@@ -636,6 +639,7 @@ function projectDiagnostic(input: {
   code: string;
   message: string;
   file?: string;
+  span?: Span;
   symbol?: string;
   expected?: string;
   received?: string;
@@ -649,6 +653,9 @@ function projectDiagnostic(input: {
     category: "project",
     message: input.message,
     file: input.file,
+    line: input.span?.start.line,
+    column: input.span?.start.column,
+    span: input.span,
     symbol: input.symbol,
     expected: input.expected,
     received: input.received,
@@ -674,26 +681,54 @@ function describeValue(value: unknown): string {
 }
 
 export function buildModuleGraph(program: Program, file = "<memory>"): ModuleGraph {
+  return moduleGraphFromRecords(
+    program.modules.map((moduleDecl) => moduleRecord(moduleDecl, moduleDecl.span.file || file))
+  );
+}
+
+export function buildModuleGraphFromSources(files: ProductionSourceFile[]): ModuleGraph {
+  const records: ModuleRecord[] = [];
+  const diagnostics: Diagnostic[] = [];
+
+  for (const file of files) {
+    const lexResult = lexAnpl({
+      content: file.content,
+      path: file.path
+    });
+    diagnostics.push(...lexResult.diagnostics);
+    records.push(...scanSourceModules(file, lexResult.tokens));
+  }
+
+  const graph = moduleGraphFromRecords(records);
+
+  return {
+    modules: graph.modules,
+    edges: graph.edges,
+    diagnostics: [...diagnostics, ...graph.diagnostics]
+  };
+}
+
+function moduleGraphFromRecords(records: ModuleRecord[]): ModuleGraph {
   const modules = new Map<ModuleId, ModuleRecord>();
   const edges: ModuleEdge[] = [];
   const diagnostics: Diagnostic[] = [];
 
-  for (const moduleDecl of program.modules) {
-    const record = moduleRecord(moduleDecl, moduleDecl.span.file || file);
+  for (const record of records) {
     if (modules.has(record.id)) {
       diagnostics.push(
-        createDiagnostic({
-            code: "ANPL_PROJECT_DUPLICATE_MODULE",
-            severity: "error",
-            message: `Module '${moduleDecl.name}' is already defined in the project graph.`,
+        projectDiagnostic({
+          code: "ANPL_PROJECT_DUPLICATE_MODULE",
+          message: `Module '${record.name}' is already defined in the project graph.`,
           file: record.file,
-          line: moduleDecl.span.start.line,
-          column: moduleDecl.span.start.column,
-          span: moduleDecl.span,
-          symbol: moduleDecl.name,
-          confidence: "high"
+          span: record.span,
+          symbol: record.name,
+          expected: "unique module name",
+          received: "duplicate module name",
+          cause: "Two or more resolved source files declare the same module.",
+          fix: "Rename one module or remove the duplicate source from the project manifest."
         })
       );
+      continue;
     }
     modules.set(record.id, record);
   }
@@ -709,16 +744,16 @@ export function buildModuleGraph(program: Program, file = "<memory>"): ModuleGra
         });
       } else {
         diagnostics.push(
-          createDiagnostic({
+          projectDiagnostic({
             code: "ANPL_PROJECT_UNKNOWN_MODULE",
-            severity: "error",
             message: `Imported module '${importDecl.module}' was not found in the project graph.`,
             file: importDecl.span.file || record.file,
-            line: importDecl.span.start.line,
-            column: importDecl.span.start.column,
             span: importDecl.span,
             symbol: importDecl.module,
-            confidence: "high"
+            expected: "module declared in resolved project sources",
+            received: "missing module",
+            cause: "A module import refers to a module that is not present in resolved project sources.",
+            fix: "Add the missing module source file or correct the import name."
           })
         );
       }
@@ -729,6 +764,84 @@ export function buildModuleGraph(program: Program, file = "<memory>"): ModuleGra
     modules,
     edges,
     diagnostics
+  };
+}
+
+function scanSourceModules(file: ProductionSourceFile, tokens: Token[]): ModuleRecord[] {
+  const records: ModuleRecord[] = [];
+  let currentModule: ModuleRecord | undefined;
+
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    if (token === undefined || token.type === "eof") {
+      break;
+    }
+
+    if (isKeywordToken(token, "module")) {
+      const name = nextSignificantToken(tokens, index + 1);
+      if (name?.token.type !== "identifier") {
+        currentModule = undefined;
+        continue;
+      }
+
+      currentModule = {
+        id: createModuleId(name.token.value),
+        name: name.token.value,
+        file: file.path,
+        imports: [],
+        span: spanBetweenTokens(token, name.token, file.path)
+      };
+      records.push(currentModule);
+      index = name.index;
+      continue;
+    }
+
+    if (currentModule !== undefined && isKeywordToken(token, "import")) {
+      const name = nextSignificantToken(tokens, index + 1);
+      if (name?.token.type !== "identifier") {
+        continue;
+      }
+
+      currentModule.imports.push({
+        module: name.token.value,
+        span: spanBetweenTokens(token, name.token, file.path)
+      });
+      index = name.index;
+    }
+  }
+
+  return records;
+}
+
+function nextSignificantToken(
+  tokens: Token[],
+  start: number
+): { token: Token; index: number } | undefined {
+  for (let index = start; index < tokens.length; index += 1) {
+    const token = tokens[index];
+    if (token === undefined || token.type === "eof") {
+      return undefined;
+    }
+    if (token.type !== "newline") {
+      return {
+        token,
+        index
+      };
+    }
+  }
+
+  return undefined;
+}
+
+function isKeywordToken(token: Token, value: string): boolean {
+  return token.type === "keyword" && token.value === value;
+}
+
+function spanBetweenTokens(start: Token, end: Token, file: string): Span {
+  return {
+    file: start.span.file ?? end.span.file ?? file,
+    start: start.span.start,
+    end: end.span.end
   };
 }
 
@@ -854,14 +967,6 @@ function moduleRecord(moduleDecl: ModuleDecl, file: string): ModuleRecord {
         span: decl.span
       })),
     span: moduleDecl.span
-  };
-}
-
-function emptyModuleGraph(): ModuleGraph {
-  return {
-    modules: new Map(),
-    edges: [],
-    diagnostics: []
   };
 }
 

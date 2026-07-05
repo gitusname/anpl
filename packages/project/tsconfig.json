@@ -10,6 +10,7 @@
     "src/**/*.ts",
     "../ast/src/**/*.ts",
     "../core/src/**/*.ts",
+    "../lexer/src/**/*.ts",
     "../source/src/**/*.ts",
     "../symbols/src/**/*.ts",
     "../types/src/**/*.ts"

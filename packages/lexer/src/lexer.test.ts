@@ -13,6 +13,10 @@ describe("real language lexer", () => {
 }`);
 
     expect(result.ok).toBe(true);
+    expect(result.source).toMatchObject({
+      path: "<memory>",
+      lineStarts: [0, 32, 47]
+    });
     expect(values("fn add(a: int) -> int")).toEqual([
       "fn",
       "add",
@@ -59,5 +63,30 @@ describe("real language lexer", () => {
         text: "  "
       }
     ]);
+  });
+
+  it("exposes production token metadata without dropping legacy fields", () => {
+    const result = lexAnpl("let count = 42\nreturn true", "main.anpl");
+    const count = result.tokens.find((token) => token.value === "count");
+    const number = result.tokens.find((token) => token.value === "42");
+    const bool = result.tokens.find((token) => token.value === "true");
+
+    expect(result.source.path).toBe("main.anpl");
+    expect(count).toMatchObject({
+      kind: "identifier",
+      type: "identifier",
+      lexeme: "count",
+      value: "count"
+    });
+    expect(number).toMatchObject({
+      kind: "number",
+      lexeme: "42",
+      literal: 42
+    });
+    expect(bool).toMatchObject({
+      kind: "keyword",
+      lexeme: "true",
+      literal: true
+    });
   });
 });

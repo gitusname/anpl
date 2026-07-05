@@ -136,6 +136,7 @@ describe("project system", () => {
       "/project/src/nested/crm.anpl"
     ]);
     expect(project.files.map((file) => file.path)).toEqual(sources);
+    expect([...project.moduleGraph.modules.keys()]).toEqual(["app", "math", "crm"]);
   });
 
   it("reports missing manifest source patterns and entry files", async () => {
@@ -245,6 +246,71 @@ fn main() -> int {
       }
     ]);
     expect(graph.diagnostics).toEqual([]);
+  });
+
+  it("builds a module graph while loading project sources", async () => {
+    const project = await loadProject(
+      "/project",
+      memoryHost({
+        "/project/anpl.json": JSON.stringify({
+          name: "graph",
+          entry: "src/app.anpl",
+          source: ["src/**/*.anpl"]
+        }),
+        "/project/src/math.anpl": `module math
+
+fn add(a: int, b: int) -> int {
+  return a + b
+}`,
+        "/project/src/app.anpl": `module app
+
+import math
+
+fn main() -> int {
+  return add(2, 3)
+}`
+      })
+    );
+
+    expect(project.diagnostics).toEqual([]);
+    expect(project.moduleGraph.edges).toEqual([
+      {
+        from: "app",
+        to: "math",
+        kind: "import"
+      }
+    ]);
+  });
+
+  it("reports missing project graph imports from loaded sources", async () => {
+    const project = await loadProject(
+      "/project",
+      memoryHost({
+        "/project/anpl.json": JSON.stringify({
+          name: "missing-import",
+          entry: "src/app.anpl",
+          source: ["src/**/*.anpl"]
+        }),
+        "/project/src/app.anpl": `module app
+
+import missing
+
+fn main() -> int {
+  return 1
+}`
+      })
+    );
+
+    expect(project.moduleGraph.diagnostics).toMatchObject([
+      {
+        code: "ANPL_PROJECT_UNKNOWN_MODULE",
+        category: "project",
+        symbol: "missing",
+        expected: "module declared in resolved project sources",
+        received: "missing module"
+      }
+    ]);
+    expect(project.diagnostics).toEqual(project.moduleGraph.diagnostics);
   });
 
   it("creates deterministic project initialization files", async () => {
