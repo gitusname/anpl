@@ -33,11 +33,13 @@ remain planned.
   architecture with constant folding, copy propagation, dead branch removal, and
   unused local elimination foundations.
 - Interpreter support for `main()`, functions, `let`, `return`, `if`, records,
-  member access, calls, basic operators, runtime built-ins, and module-qualified
+  member access, calls, basic operators, tagged runtime values, runtime stack
+  evidence, sandbox effect checks, runtime built-ins, and module-qualified
   function lookup.
 - JavaScript compiler target for the current structured IR with module namespace
   output.
-- Runtime built-ins: `uuid()`, `now()`, `print(value)`, and `len(value)`.
+- Runtime built-ins: `uuid()`, `now()`, `print(value)`, and `len(value)`, all
+  using tagged runtime values.
 - CLI commands: `check`, `run`, `build`, `emit-ast`, `emit-hir`, `emit-mir`,
   `emit-ir` compatibility alias, `format`, `diagnose`, and `explain`.
 - Structured diagnostic primitives with codes, severity, location data,
@@ -60,6 +62,8 @@ remain planned.
   resolution.
 - JavaScript output has module namespacing, but it does not yet implement source
   maps, target runtime policy, or ESM-per-module output.
+- Runtime has tagged values and effect checks, but execution timeout and memory
+  limits are not enforced yet.
 - The formatter is deterministic for the current AST surface, but comment/trivia
   preservation is still future work.
 - Diagnostic registry entries provide baseline cause/fix templates, but parser,
@@ -78,6 +82,7 @@ remain planned.
   multi-package projects.
 - Phase-specific repair patches and evidence across parser, semantic, runtime,
   and backend diagnostics.
+- Runtime execution timeout/memory enforcement and deeper module instance model.
 - Real benchmark suite comparing direct human-first target code generation with
   human intent -> ANPL -> compiler flows.
 - Expanded type system and effect model.

@@ -233,9 +233,9 @@ Current implemented foundation:
 * pass-oriented semantic analyzer with module imports, module-aware symbol tables, type registry output, scope checks, type checks, return checks, record checks, enum field checks, and structured diagnostics
 * compiler facade with host abstraction, timings, artifacts, and CLI delegation
 * HIR/MIR foundations plus current structured ANPL IR lowering and MIR optimizer pass architecture
-* interpreter that runs `main()`
+* interpreter that runs `main()` with tagged runtime values and runtime stack diagnostics
 * module-aware interpreter calls and JavaScript compiler namespace output
-* runtime built-ins: `uuid()`, `now()`, `print(value)`, `len(value)`
+* runtime built-ins and sandbox effect policy for `uuid()`, `now()`, `print(value)`, `len(value)`
 * CLI commands: `check`, `run`, `build`, `emit-ast`, `emit-hir`, `emit-mir`, `emit-ir`, `format`, `diagnose`, `explain`
 * initial source-size comparison utilities for ANPL-vs-target source comparison
 

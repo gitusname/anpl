@@ -131,7 +131,10 @@ fn main() -> int {
     expect(result.ok).toBe(true);
     expect(result.value).toMatchObject({
       ok: true,
-      value: 5
+      value: {
+        kind: "int",
+        value: 5
+      }
     });
   });
 });

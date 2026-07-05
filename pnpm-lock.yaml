@@ -43,6 +43,9 @@ importers:
       '@anpl/diagnostics':
         specifier: workspace:*
         version: link:../diagnostics
+      '@anpl/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       commander:
         specifier: ^12.1.0
         version: 12.1.0
@@ -212,6 +215,12 @@ importers:
       '@anpl/core':
         specifier: workspace:*
         version: link:../core
+      '@anpl/symbols':
+        specifier: workspace:*
+        version: link:../symbols
+      '@anpl/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/semantic:
     dependencies:

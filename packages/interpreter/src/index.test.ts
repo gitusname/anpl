@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseAnpl } from "@anpl/parser";
 import { analyzeProgram } from "@anpl/semantic";
 import { lowerProgram } from "@anpl/ir";
+import { createRuntimeHost } from "@anpl/runtime";
 import { interpretProgram } from "./index.js";
 
 function run(source: string) {
@@ -30,7 +31,10 @@ fn main() -> int {
 
     expect(result).toMatchObject({
       ok: true,
-      value: 5
+      value: {
+        kind: "int",
+        value: 5
+      }
     });
   });
 
@@ -56,7 +60,10 @@ fn main() -> int {
 
     expect(result).toMatchObject({
       ok: true,
-      value: 6
+      value: {
+        kind: "int",
+        value: 6
+      }
     });
   });
 
@@ -73,7 +80,10 @@ fn main() -> int {
 
     expect(result).toMatchObject({
       ok: true,
-      value: 6
+      value: {
+        kind: "int",
+        value: 6
+      }
     });
   });
 
@@ -90,7 +100,10 @@ fn main() -> int {
 
     expect(result).toMatchObject({
       ok: true,
-      value: 6
+      value: {
+        kind: "int",
+        value: 6
+      }
     });
   });
 
@@ -113,7 +126,44 @@ fn main() -> int {
 
     expect(result).toMatchObject({
       ok: true,
-      value: 3
+      value: {
+        kind: "int",
+        value: 3
+      }
     });
+  });
+
+  it("reports blocked builtin effects with runtime stack evidence", () => {
+    const parsed = parseAnpl(`module app
+
+fn main() -> uuid {
+  return uuid()
+}`);
+    if (!parsed.ok) {
+      throw new Error(parsed.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+    const semantic = analyzeProgram(parsed.program);
+    if (!semantic.ok) {
+      throw new Error(semantic.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+
+    const result = interpretProgram(
+      lowerProgram(parsed.program),
+      "main",
+      createRuntimeHost({
+        allowedEffects: []
+      })
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "ANPL_RUNTIME_ERROR",
+          expected: "random.uuid",
+          evidence: ["at app.main"]
+        })
+      ])
+    );
   });
 });

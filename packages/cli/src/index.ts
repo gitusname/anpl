@@ -15,6 +15,8 @@ import {
   explainDiagnosticCode,
   formatDiagnostics
 } from "@anpl/diagnostics";
+import type { RuntimeValue } from "@anpl/runtime";
+import { runtimeValueToDisplay } from "@anpl/runtime";
 
 const program = new Command()
   .name("anpl")
@@ -54,12 +56,12 @@ program
       return;
     }
 
-    const runResult = result.value as { output: string[]; value?: unknown } | undefined;
+    const runResult = result.value as { output: string[]; value?: RuntimeValue } | undefined;
     for (const line of runResult?.output ?? []) {
       console.log(line);
     }
     if (runResult?.value !== undefined) {
-      console.log(runResult.value);
+      console.log(runtimeValueToDisplay(runResult.value));
     }
   });
 

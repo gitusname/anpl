@@ -339,7 +339,25 @@ Future targets:
 
 ## Runtime
 
-The initial runtime should stay small:
+The runtime stays small but uses tagged values so diagnostics can report runtime
+types precisely. Runtime hosts also carry call frames and a sandbox policy for
+effect-capable built-ins.
+
+Implemented runtime value categories:
+
+```text
+int
+decimal
+text
+bool
+uuid
+null
+record
+list
+function
+```
+
+The initial standard library surface should stay small:
 
 ```text
 stdlib/text

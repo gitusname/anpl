@@ -23,6 +23,7 @@
     "@anpl/compiler": "workspace:*",
     "@anpl/core": "workspace:*",
     "@anpl/diagnostics": "workspace:*",
+    "@anpl/runtime": "workspace:*",
     "commander": "^12.1.0"
   }
 }
