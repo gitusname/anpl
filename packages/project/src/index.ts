@@ -160,7 +160,9 @@ export async function loadProject(
     }
   }
   const moduleGraph = buildModuleGraphFromSources(files);
-  diagnostics.push(...moduleGraph.diagnostics);
+  diagnostics.push(
+    ...moduleGraph.diagnostics.filter((diagnostic) => diagnostic.category === "project")
+  );
 
   return {
     root,

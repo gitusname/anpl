@@ -48,18 +48,27 @@ const typeKeywords = new Set(["int", "text", "bool", "uuid", "decimal", "string"
 
 export function parseAnpl(source: string, file?: string): ParseResult {
   const lexResult = lexAnpl(source, file);
-  const parser = new Parser(lexResult.tokens, file, [...lexResult.diagnostics]);
-  const program = parser.parseProgram();
-  const diagnostics = parser.getDiagnostics();
-  const recoveryData = parser.getRecoveryData();
-  const cst = createCstNode("Program", lexResult.tokens, diagnostics, recoveryData);
 
-  if (!lexResult.ok || diagnostics.length > 0) {
+  return parseTokens(lexResult.tokens, file, lexResult.diagnostics);
+}
+
+export function parseTokens(
+  tokens: Token[],
+  file?: string,
+  diagnostics: Diagnostic[] = []
+): ParseResult {
+  const parser = new Parser(tokens, file, [...diagnostics]);
+  const program = parser.parseProgram();
+  const allDiagnostics = parser.getDiagnostics();
+  const recoveryData = parser.getRecoveryData();
+  const cst = createCstNode("Program", tokens, allDiagnostics, recoveryData);
+
+  if (allDiagnostics.length > 0) {
     return {
       ok: false,
       program,
       cst,
-      diagnostics,
+      diagnostics: allDiagnostics,
       recoveryData
     };
   }

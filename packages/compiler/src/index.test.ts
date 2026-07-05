@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { compileProject, type CompilerHost } from "./index.js";
 
 function memoryHost(files: Record<string, string>): CompilerHost {
+  let now = 0;
+
   return {
     readFile: async (path) => {
       const content = files[path];
@@ -45,7 +47,10 @@ function memoryHost(files: Record<string, string>): CompilerHost {
         kind
       }));
     },
-    now: () => 0,
+    now: () => {
+      now += 1;
+      return now;
+    },
     randomUUID: () => "00000000-0000-4000-8000-000000000000"
   };
 }
@@ -90,6 +95,7 @@ fn main() -> int {
     );
 
     expect(result.ok).toBe(true);
+    expect(result.timings.lexMs).toBeGreaterThan(0);
     expect(result.timings).toHaveProperty("parseMs");
     expect(result.cache?.cacheKey).toEqual(expect.any(String));
   });

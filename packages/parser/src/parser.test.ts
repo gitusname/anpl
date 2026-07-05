@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { parseAnpl } from "./parser.js";
+import { lexAnpl } from "@anpl/lexer";
+import { parseAnpl, parseTokens } from "./parser.js";
 
 function parseOk(source: string) {
   const result = parseAnpl(source, "test.anpl");
@@ -185,5 +186,21 @@ fn main() -> int {
       }
     ]);
     expect(result.cst?.recoveryData?.[0]?.skippedTokens.map((token) => token.value)).toContain("oops");
+  });
+
+  it("parses an explicit token stream with upstream diagnostics", () => {
+    const lexed = lexAnpl(`module math
+
+fn main() -> int {
+  return 1
+}`, "tokens.anpl");
+    const result = parseTokens(lexed.tokens, lexed.source.path, lexed.diagnostics);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+    expect(result.program.modules[0]?.name).toBe("math");
+    expect(result.cst?.children.length).toBe(lexed.tokens.length);
   });
 });

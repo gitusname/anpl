@@ -24,6 +24,7 @@
     "@anpl/hir": "workspace:*",
     "@anpl/interpreter": "workspace:*",
     "@anpl/ir": "workspace:*",
+    "@anpl/lexer": "workspace:*",
     "@anpl/mir": "workspace:*",
     "@anpl/optimizer": "workspace:*",
     "@anpl/parser": "workspace:*",

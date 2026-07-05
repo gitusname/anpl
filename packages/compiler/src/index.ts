@@ -9,9 +9,10 @@ import { formatProgram } from "@anpl/formatter";
 import { lowerProgramToHir } from "@anpl/hir";
 import { interpretMirProgram } from "@anpl/interpreter";
 import { lowerProgram } from "@anpl/ir";
+import { lexAnpl } from "@anpl/lexer";
 import { lowerHirToMir } from "@anpl/mir";
 import { optimizeMir, optimizeProgram } from "@anpl/optimizer";
-import { parseAnpl } from "@anpl/parser";
+import { parseTokens } from "@anpl/parser";
 import {
   buildModuleGraph,
   initProject,
@@ -118,8 +119,8 @@ function isDirectoryPath(path: string): boolean {
 type PipelineState = {
   sourcePath: string;
   source: string;
-  parsed: ReturnType<typeof parseAnpl>;
-  entryParsed: ReturnType<typeof parseAnpl>;
+  parsed: ReturnType<typeof parseTokens>;
+  entryParsed: ReturnType<typeof parseTokens>;
   semantic?: SemanticResult;
   hir?: ReturnType<typeof lowerProgramToHir>;
   mir?: ReturnType<typeof lowerHirToMir>;
@@ -183,8 +184,12 @@ export async function compileProject(
     const source = entrySourceFile?.content ?? "";
     timings.loadMs = host.now() - loadStart;
 
+    const lexStart = host.now();
+    const lexedFiles = lexProjectFiles(project.files);
+    timings.lexMs = host.now() - lexStart;
+
     const parseStart = host.now();
-    const parsedFiles = parseProjectFiles(project.files);
+    const parsedFiles = parseProjectFiles(lexedFiles);
     const parsed = mergeParsedFiles(parsedFiles);
     const entryParsed =
       parsedFiles.find((file) => file.source.path === sourcePath)?.parsed ?? parsed;
@@ -387,17 +392,32 @@ function finish(input: {
 
 type ParsedProjectFile = {
   source: ProductionSourceFile;
-  parsed: ReturnType<typeof parseAnpl>;
+  parsed: ReturnType<typeof parseTokens>;
 };
 
-function parseProjectFiles(files: ProductionSourceFile[]): ParsedProjectFile[] {
+type LexedProjectFile = {
+  source: ProductionSourceFile;
+  lexed: ReturnType<typeof lexAnpl>;
+};
+
+function lexProjectFiles(files: ProductionSourceFile[]): LexedProjectFile[] {
   return files.map((source) => ({
     source,
-    parsed: parseAnpl(source.content, source.path)
+    lexed: lexAnpl({
+      content: source.content,
+      path: source.path
+    })
   }));
 }
 
-function mergeParsedFiles(files: ParsedProjectFile[]): ReturnType<typeof parseAnpl> {
+function parseProjectFiles(files: LexedProjectFile[]): ParsedProjectFile[] {
+  return files.map((file) => ({
+    source: file.source,
+    parsed: parseTokens(file.lexed.tokens, file.source.path, file.lexed.diagnostics)
+  }));
+}
+
+function mergeParsedFiles(files: ParsedProjectFile[]): ReturnType<typeof parseTokens> {
   if (files.length === 0) {
     const diagnostic = createDiagnostic({
       code: "ANPL_PROJECT_NO_SOURCES",
