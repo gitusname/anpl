@@ -228,7 +228,7 @@ export async function compileProject(
     }
 
     const irStart = host.now();
-    const hir = lowerProgramToHir(parsed.program);
+    const hir = lowerProgramToHir(parsed.program, semantic.typedProgram);
     const mir = lowerHirToMir(hir);
     const ir = lowerProgram(parsed.program);
     timings.irMs = host.now() - irStart;

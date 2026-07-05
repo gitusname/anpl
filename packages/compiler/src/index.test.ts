@@ -150,6 +150,33 @@ fn main() -> int {
     expect(mir.artifacts[0]?.kind).toBe("mir");
   });
 
+  it("emits semantically typed HIR through the compiler facade", async () => {
+    const result = await compileProject(
+      {
+        mode: "emit-hir",
+        projectRoot: "/project",
+        entry: "main.anpl"
+      },
+      memoryHost({
+        "/project/main.anpl": `module crm
+
+type Customer {
+  status: enum[active, archived]
+}
+
+fn createCustomer() -> Customer {
+  return Customer {
+    status: active
+  }
+}`
+      })
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.artifacts[0]?.content).toContain("\"type\": \"record:crm.Customer\"");
+    expect(result.artifacts[0]?.content).toContain("\"type\": \"enum:active|archived\"");
+  });
+
   it("checks a manifest project across multiple source files", async () => {
     const result = await compileProject(
       {

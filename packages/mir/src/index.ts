@@ -7,7 +7,8 @@ import type {
   Stmt,
   TypeRef
 } from "@anpl/ast";
-import type { HirFunction, HirModule, HirProgram } from "@anpl/hir";
+import type { HirFunction, HirModule, HirProgram, HirTypeFacts } from "@anpl/hir";
+import type { Span } from "@anpl/core";
 import type { SymbolId } from "@anpl/symbols";
 import type { TypeId } from "@anpl/types";
 import { primitiveTypeId } from "@anpl/types";
@@ -62,6 +63,7 @@ type TypeBinding = {
 };
 
 type LoweringContext = {
+  typeFacts?: HirTypeFacts;
   functionsByQualifiedName: Map<string, FunctionBinding>;
   functionsByName: Map<string, FunctionBinding[]>;
   functionsByModule: Map<string, Map<string, FunctionBinding>>;
@@ -136,7 +138,7 @@ function buildLoweringContext(program: HirProgram): LoweringContext {
 
     for (const typeDecl of moduleDecl.types) {
       const binding: TypeBinding = {
-        id: typeDecl.id as unknown as TypeId,
+        id: typeDecl.type,
         moduleName: moduleDecl.name,
         name: typeDecl.name
       };
@@ -152,6 +154,7 @@ function buildLoweringContext(program: HirProgram): LoweringContext {
   }
 
   return {
+    typeFacts: program.typeFacts,
     functionsByQualifiedName,
     functionsByName,
     functionsByModule,
@@ -328,13 +331,13 @@ function lowerExpr(expr: Expr, context: FunctionContext): LoweredExpr {
     case "IdentifierExpr":
       return lowerIdentifier(expr.name, context);
     case "BinaryExpr":
-      return lowerBinary(expr.operator, expr.left, expr.right, context);
+      return lowerBinary(expr, context);
     case "CallExpr":
       return lowerCall(expr, context);
     case "RecordExpr":
-      return lowerRecord(expr.typeName, expr.fields, context);
+      return lowerRecord(expr, context);
     case "MemberExpr":
-      return lowerMember(expr.object, expr.property, context);
+      return lowerMember(expr, context);
   }
 }
 
@@ -376,19 +379,18 @@ function lowerIdentifier(name: string, context: FunctionContext): LoweredExpr {
 }
 
 function lowerBinary(
-  operator: BinaryOperator,
-  leftExpr: Expr,
-  rightExpr: Expr,
+  expr: Extract<Expr, { kind: "BinaryExpr" }>,
   context: FunctionContext
 ): LoweredExpr {
-  const left = lowerExpr(leftExpr, context);
-  const right = lowerExpr(rightExpr, context);
-  const type = binaryType(operator, left.type, right.type);
+  const left = lowerExpr(expr.left, context);
+  const right = lowerExpr(expr.right, context);
+  const type =
+    expressionType(expr.span, context) ?? binaryType(expr.operator, left.type, right.type);
   const target = freshTemp(context);
   emit(context, {
     op: "binary",
     target,
-    operator,
+    operator: expr.operator,
     left: left.value,
     right: right.value,
     type
@@ -420,17 +422,16 @@ function lowerCall(
 }
 
 function lowerRecord(
-  typeName: string,
-  fields: Extract<Expr, { kind: "RecordExpr" }>["fields"],
+  expr: Extract<Expr, { kind: "RecordExpr" }>,
   context: FunctionContext
 ): LoweredExpr {
   const loweredFields: Record<string, string> = {};
 
-  for (const field of fields) {
+  for (const field of expr.fields) {
     loweredFields[field.name] = lowerExpr(field.value, context).value;
   }
 
-  const type = resolveTypeId(typeName, context);
+  const type = expressionType(expr.span, context) ?? resolveTypeId(expr.typeName, context);
   const target = freshTemp(context);
   emit(context, {
     op: "record",
@@ -442,18 +443,17 @@ function lowerRecord(
 }
 
 function lowerMember(
-  objectExpr: Expr,
-  field: string,
+  expr: Extract<Expr, { kind: "MemberExpr" }>,
   context: FunctionContext
 ): LoweredExpr {
-  const object = lowerExpr(objectExpr, context);
+  const object = lowerExpr(expr.object, context);
   const target = freshTemp(context);
-  const type = primitiveTypeId("unknown");
+  const type = expressionType(expr.span, context) ?? primitiveTypeId("unknown");
   emit(context, {
     op: "member",
     target,
     object: object.value,
-    field,
+    field: expr.property,
     type
   });
   return { value: target, type };
@@ -511,7 +511,20 @@ function resolveTypeId(typeName: string, context: FunctionContext): TypeId {
 }
 
 function typeRefToTypeId(typeRef: TypeRef, context: FunctionContext): TypeId {
+  const resolved = context.lowering.typeFacts?.resolvedTypeRefs[spanKey(typeRef.span)];
+  if (resolved !== undefined) {
+    return resolved;
+  }
+
   return resolveTypeId(typeRef.name, context);
+}
+
+function expressionType(span: Span, context: FunctionContext): TypeId | undefined {
+  return context.lowering.typeFacts?.expressionTypes[spanKey(span)];
+}
+
+function spanKey(span: Span): string {
+  return `${span.file ?? "<memory>"}:${span.start.offset}-${span.end.offset}`;
 }
 
 function literalType(value: LiteralValue): TypeId {

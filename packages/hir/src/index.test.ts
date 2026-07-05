@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseAnpl } from "@anpl/parser";
+import { analyzeProgram } from "@anpl/semantic";
 import { lowerProgramToHir } from "./index.js";
 
 describe("HIR lowering", () => {
@@ -44,5 +45,45 @@ fn main() -> int {
         module: "math"
       }
     ]);
+  });
+
+  it("uses semantic TypeIds when typed program data is provided", () => {
+    const parsed = parseAnpl(`module crm
+
+type Customer {
+  name: text
+  status: enum[active, archived]
+}
+
+fn createCustomer() -> Customer {
+  return Customer {
+    name: "Ada"
+    status: active
+  }
+}
+
+fn main() -> text {
+  let customer = createCustomer()
+  return customer.name
+}`);
+    if (!parsed.ok) {
+      throw new Error(parsed.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+    const semantic = analyzeProgram(parsed.program);
+    if (!semantic.ok) {
+      throw new Error(semantic.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+
+    const hir = lowerProgramToHir(parsed.program, semantic.typedProgram);
+    const crm = hir.modules[0];
+    const customer = crm?.types[0];
+    const createCustomer = crm?.functions.find((fn) => fn.name === "createCustomer");
+
+    expect(customer?.type).toBe("record:crm.Customer");
+    expect(customer?.fields.find((field) => field.name === "status")?.type).toBe(
+      "enum:active|archived"
+    );
+    expect(createCustomer?.returnType).toBe("record:crm.Customer");
+    expect(Object.values(hir.typeFacts?.expressionTypes ?? {})).toContain("text");
   });
 });

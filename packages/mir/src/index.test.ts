@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parseAnpl } from "@anpl/parser";
+import { analyzeProgram } from "@anpl/semantic";
 import { lowerProgramToHir } from "@anpl/hir";
 import { lowerHirToMir } from "./index.js";
 
@@ -130,5 +131,52 @@ fn main() -> int {
       }
     ]);
     expect(appMain?.blocks[0]?.terminator).toEqual({ kind: "return", value: "%1" });
+  });
+
+  it("carries semantic TypeIds into MIR records and member access", () => {
+    const parsed = parseAnpl(`module crm
+
+type Customer {
+  name: text
+  status: enum[active, archived]
+}
+
+fn createCustomer() -> Customer {
+  return Customer {
+    name: "Ada"
+    status: active
+  }
+}
+
+fn main() -> text {
+  let customer = createCustomer()
+  return customer.name
+}`);
+    if (!parsed.ok) {
+      throw new Error(parsed.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+    const semantic = analyzeProgram(parsed.program);
+    if (!semantic.ok) {
+      throw new Error(semantic.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+
+    const mir = lowerHirToMir(lowerProgramToHir(parsed.program, semantic.typedProgram));
+    const createCustomer = mir.functions.find((fn) => fn.id === "crm.createCustomer");
+    const main = mir.functions.find((fn) => fn.id === "crm.main");
+
+    expect(createCustomer?.returnType).toBe("record:crm.Customer");
+    expect(createCustomer?.blocks[0]?.instructions).toContainEqual(
+      expect.objectContaining({
+        op: "record",
+        type: "record:crm.Customer"
+      })
+    );
+    expect(main?.blocks[0]?.instructions).toContainEqual(
+      expect.objectContaining({
+        op: "member",
+        field: "name",
+        type: "text"
+      })
+    );
   });
 });
