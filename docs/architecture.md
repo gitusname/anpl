@@ -431,9 +431,13 @@ anpl init
 anpl check file.anpl
 anpl run file.anpl
 anpl build file.anpl --target js
-anpl emit-ast file.anpl
-anpl emit-hir file.anpl
-anpl emit-mir file.anpl
+anpl emit ast file.anpl
+anpl emit hir file.anpl
+anpl emit mir file.anpl
+anpl emit ir file.anpl # compatibility alias for MIR
+anpl emit-ast file.anpl # compatibility alias
+anpl emit-hir file.anpl # compatibility alias
+anpl emit-mir file.anpl # compatibility alias
 anpl emit-ir file.anpl # compatibility alias for MIR
 anpl format file.anpl
 anpl diagnose logs.txt

@@ -132,6 +132,23 @@ program
   });
 
 program
+  .command("emit")
+  .argument("<kind>", "artifact kind: ast, hir, mir, or ir")
+  .argument("<file>")
+  .description("print compiler artifacts as JSON")
+  .action(async (kind: string, file: string) => {
+    const selection = emitSelection(kind);
+    if (selection === undefined) {
+      console.error(`Unknown emit kind: ${kind}`);
+      console.error("Expected one of: ast, hir, mir, ir");
+      process.exitCode = 1;
+      return;
+    }
+
+    await emitArtifact(selection.mode, file, selection.kind);
+  });
+
+program
   .command("emit-ast")
   .argument("<file>")
   .description("print parsed ANPL AST as JSON")
@@ -240,10 +257,29 @@ program
 
 program.parseAsync();
 
+type EmitSelection = {
+  mode: Extract<CompileMode, "emit-ast" | "emit-hir" | "emit-mir">;
+  kind: Extract<CompilerArtifact["kind"], "ast" | "hir" | "mir">;
+};
+
+function emitSelection(kind: string): EmitSelection | undefined {
+  switch (kind) {
+    case "ast":
+      return { mode: "emit-ast", kind: "ast" };
+    case "hir":
+      return { mode: "emit-hir", kind: "hir" };
+    case "mir":
+    case "ir":
+      return { mode: "emit-mir", kind: "mir" };
+    default:
+      return undefined;
+  }
+}
+
 async function emitArtifact(
   mode: Extract<CompileMode, "emit-ast" | "emit-hir" | "emit-mir">,
   file: string,
-  kind: CompilerArtifact["kind"]
+  kind: Extract<CompilerArtifact["kind"], "ast" | "hir" | "mir">
 ): Promise<void> {
   const result = await compileFile(mode, file);
   if (!result.ok) {

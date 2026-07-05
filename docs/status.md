@@ -44,9 +44,9 @@ remain planned.
 - JavaScript compiler target for MIR with module namespace output.
 - Runtime built-ins: `uuid()`, `now()`, `print(value)`, and `len(value)`, all
   using tagged runtime values.
-- CLI commands: `init`, `check`, `run`, `build`, `emit-ast`, `emit-hir`,
-  `emit-mir`, `emit-ir` compatibility alias, `format`, `diagnose`,
-  `benchmark`, and `explain`.
+- CLI commands: `init`, `check`, `run`, `build`, `emit ast|hir|mir|ir`,
+  `emit-ast`, `emit-hir`, `emit-mir`, `emit-ir` compatibility aliases,
+  `format`, `diagnose`, `benchmark`, and `explain`.
 - Structured diagnostic primitives with codes, severity, location data,
   categories, expected/received values, cause/fix hints, evidence, repair patch
   slots, and confidence.
