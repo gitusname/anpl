@@ -237,6 +237,7 @@ Current implemented foundation:
 * module-aware MIR interpreter calls and MIR JavaScript compiler namespace output
 * runtime built-ins, sandbox effect policy, timeout checks, and estimated memory checks for `uuid()`, `now()`, `print(value)`, `len(value)`
 * CLI commands: `init`, `check`, `run`, `build`, `emit-ast`, `emit-hir`, `emit-mir`, `emit-ir`, `format`, `diagnose`, `benchmark`, `explain`
+* canonical formatter with stable nested block indentation and fixture-level idempotency conformance
 * offline benchmark fixture suite with source-size, parse, semantic, build, run, diagnostic, and generated-output metrics
 
 ## Roadmap

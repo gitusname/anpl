@@ -30,12 +30,14 @@ Implemented foundation:
 
 - Add `anpl format file.anpl`.
 - Produce one stable formatted representation for any valid ANPL program.
+- Keep nested block indentation stable across parse -> format -> parse ->
+  format loops.
+- Cover current valid conformance fixtures with formatter idempotency tests.
 
 Next work:
 
 - Preserve semantic meaning while normalizing whitespace and separators.
-- Add formatter tests for modules, types, functions, records, and nested
-  expressions.
+- Add broader formatter snapshots for nested expressions and future syntax.
 - Preserve comments/trivia once CST trivia is wired into the parser.
 
 ## 3. Project System Hardening
@@ -137,5 +139,5 @@ Next work:
 - Add parser, AST, HIR, MIR, JavaScript, and diagnostic snapshots for every
   valid/invalid fixture.
 - Add broader CLI integration conformance tests.
-- Add formatter idempotency coverage over all valid fixtures.
+- Broaden formatter idempotency coverage as new valid fixtures are added.
 - Add parser robustness and recovery tests.

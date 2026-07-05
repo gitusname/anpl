@@ -452,6 +452,9 @@ run:
 
 build:
   compiler facade -> lexer -> parser -> semantic analyzer -> HIR -> MIR -> backend compiler
+
+format:
+  compiler facade -> lexer -> parser -> formatter -> canonical source
 ```
 
 ## Milestones

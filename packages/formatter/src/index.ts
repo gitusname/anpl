@@ -66,24 +66,27 @@ function formatTypeDecl(decl: TypeDecl, options: FormatOptions): string {
 
 function formatFunctionDecl(fn: FunctionDecl, options: FormatOptions): string {
   const params = fn.params.map(formatParam).join(", ");
-  return `fn ${fn.name}(${params}) -> ${formatTypeRef(fn.returnType)} ${formatBlock(fn.body, options)}`;
+  return `fn ${fn.name}(${params}) -> ${formatTypeRef(fn.returnType)} ${formatBlock(fn.body, options, 0)}`;
 }
 
 function formatParam(param: Param): string {
   return `${param.name}: ${formatTypeRef(param.type)}`;
 }
 
-function formatBlock(block: BlockStmt, options: FormatOptions): string {
+function formatBlock(block: BlockStmt, options: FormatOptions, level: number): string {
   if (block.statements.length === 0) {
     return "{}";
   }
 
+  const statementIndent = spaces(options.indent * (level + 1));
+  const closingIndent = spaces(options.indent * level);
+
   return `{\n${block.statements
-    .map((stmt) => `${spaces(options.indent)}${formatStmt(stmt, options)}`)
-    .join("\n")}\n}`;
+    .map((stmt) => `${statementIndent}${formatStmt(stmt, options, level + 1)}`)
+    .join("\n")}\n${closingIndent}}`;
 }
 
-function formatStmt(stmt: Stmt, options: FormatOptions): string {
+function formatStmt(stmt: Stmt, options: FormatOptions, level: number): string {
   switch (stmt.kind) {
     case "LetStmt":
       return `let ${stmt.name}${stmt.type ? `: ${formatTypeRef(stmt.type)}` : ""} = ${formatExpr(stmt.value)}`;
@@ -96,9 +99,9 @@ function formatStmt(stmt: Stmt, options: FormatOptions): string {
         stmt.elseBranch === undefined
           ? ""
           : stmt.elseBranch.kind === "BlockStmt"
-            ? ` else ${formatBlock(stmt.elseBranch, options)}`
-            : ` else ${formatStmt(stmt.elseBranch, options)}`;
-      return `if ${formatExpr(stmt.condition)} ${formatBlock(stmt.thenBranch, options)}${elseBranch}`;
+            ? ` else ${formatBlock(stmt.elseBranch, options, level)}`
+            : ` else ${formatStmt(stmt.elseBranch, options, level)}`;
+      return `if ${formatExpr(stmt.condition)} ${formatBlock(stmt.thenBranch, options, level)}${elseBranch}`;
     }
   }
 }

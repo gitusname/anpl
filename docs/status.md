@@ -49,7 +49,8 @@ remain planned.
   slots, and confidence.
 - Diagnostic registry enrichment for machine-readable JSON output and diagnostic
   code explanations.
-- Canonical AST formatter foundation.
+- Canonical AST formatter with stable nested block indentation and fixture-level
+  idempotency conformance over valid programs.
 - Initial conformance fixture suite with valid programs, invalid diagnostic
   expectations, MIR execution checks, and a MIR golden snapshot.
 - Offline benchmark fixture suite in `packages/benchmark` with 11 tasks, direct
@@ -74,7 +75,7 @@ remain planned.
 - Runtime memory enforcement uses estimated runtime value allocation, not exact
   process heap measurement.
 - The formatter is deterministic for the current AST surface, but comment/trivia
-  preservation is still future work.
+  preservation and broader CST-aware formatting are still future work.
 - Diagnostic registry entries provide baseline cause/fix templates, but parser,
   semantic, runtime, and backend phases still need more specific evidence and
   repair suggestions at each call site.
