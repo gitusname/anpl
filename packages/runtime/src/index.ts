@@ -64,16 +64,44 @@ export type RuntimeHost = {
   output: string[];
   sandbox: SandboxPolicy;
   frames: RuntimeFrame[];
+  startedAtMs: number;
+  now(): number;
+  memory: RuntimeMemoryState;
 };
 
-export function createRuntimeHost(policy: Partial<SandboxPolicy> = {}): RuntimeHost {
+export type RuntimeMemoryState = {
+  allocatedBytes: number;
+};
+
+export type RuntimeHostOptions = {
+  now?: () => number;
+  startedAtMs?: number;
+};
+
+export type RuntimeLimitViolation = {
+  kind: "timeout" | "memory";
+  message: string;
+  expected: string;
+  received: string;
+};
+
+export function createRuntimeHost(
+  policy: Partial<SandboxPolicy> = {},
+  options: RuntimeHostOptions = {}
+): RuntimeHost {
   const output: string[] = [];
   const sandbox = mergeSandboxPolicy(policy);
+  const now = options.now ?? (() => Date.now());
 
   return {
     output,
     sandbox,
     frames: [],
+    startedAtMs: options.startedAtMs ?? now(),
+    now,
+    memory: {
+      allocatedBytes: 0
+    },
     builtinEffects: {
       uuid: "random.uuid",
       now: "time.now",
@@ -107,6 +135,38 @@ export function isEffectAllowed(policy: SandboxPolicy, effect: Effect): boolean 
     return policy.allowNetwork && policy.allowedEffects.includes(effect);
   }
   return policy.allowedEffects.includes(effect);
+}
+
+export function checkRuntimeLimits(host: RuntimeHost): RuntimeLimitViolation | undefined {
+  const elapsedMs = Math.max(0, host.now() - host.startedAtMs);
+  if (elapsedMs > host.sandbox.maxExecutionMs) {
+    return {
+      kind: "timeout",
+      message: `Runtime execution exceeded ${host.sandbox.maxExecutionMs}ms.`,
+      expected: `<= ${host.sandbox.maxExecutionMs}ms`,
+      received: `${elapsedMs}ms`
+    };
+  }
+
+  const maxBytes = host.sandbox.maxMemoryMb * 1024 * 1024;
+  if (host.memory.allocatedBytes > maxBytes) {
+    return {
+      kind: "memory",
+      message: `Runtime memory estimate exceeded ${host.sandbox.maxMemoryMb}MB.`,
+      expected: `<= ${host.sandbox.maxMemoryMb}MB`,
+      received: `${host.memory.allocatedBytes} bytes`
+    };
+  }
+
+  return undefined;
+}
+
+export function trackRuntimeValue(
+  host: RuntimeHost,
+  value: RuntimeValue
+): RuntimeLimitViolation | undefined {
+  host.memory.allocatedBytes += estimateRuntimeValueBytes(value);
+  return checkRuntimeLimits(host);
 }
 
 export function runtimeValueFromLiteral(
@@ -269,5 +329,32 @@ function runtimeLength(value: RuntimeValue): number {
       return value.fields.size;
     default:
       return 0;
+  }
+}
+
+function estimateRuntimeValueBytes(value: RuntimeValue): number {
+  switch (value.kind) {
+    case "int":
+    case "decimal":
+      return 16;
+    case "bool":
+    case "null":
+      return 8;
+    case "text":
+    case "uuid":
+      return 24 + value.value.length * 2;
+    case "function":
+      return 24 + value.symbol.length * 2;
+    case "list":
+      return 32 + value.values.reduce((sum, item) => sum + estimateRuntimeValueBytes(item), 0);
+    case "record":
+      return (
+        48 +
+        [...value.fields.entries()].reduce(
+          (sum, [field, fieldValue]) =>
+            sum + field.length * 2 + estimateRuntimeValueBytes(fieldValue),
+          0
+        )
+      );
   }
 }

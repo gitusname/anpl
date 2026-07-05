@@ -31,6 +31,18 @@ function runMir(source: string) {
   return interpretMirProgram(lowerHirToMir(lowerProgramToHir(parsed.program)));
 }
 
+function buildMir(source: string) {
+  const parsed = parseAnpl(source);
+  if (!parsed.ok) {
+    throw new Error(parsed.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+  }
+  const semantic = analyzeProgram(parsed.program);
+  if (!semantic.ok) {
+    throw new Error(semantic.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+  }
+  return lowerHirToMir(lowerProgramToHir(parsed.program));
+}
+
 describe("interpreter", () => {
   it("runs main", () => {
     const result = run(`module math
@@ -223,5 +235,67 @@ fn main() -> int {
         value: 6
       }
     });
+  });
+
+  it("enforces MIR runtime timeout policy", () => {
+    let now = -1;
+    const result = interpretMirProgram(
+      buildMir(`module app
+
+fn main() -> int {
+  return 1
+}`),
+      "main",
+      createRuntimeHost(
+        {
+          maxExecutionMs: 1
+        },
+        {
+          startedAtMs: 0,
+          now: () => {
+            now += 1;
+            return now;
+          }
+        }
+      )
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "ANPL_RUNTIME_ERROR",
+          expected: "<= 1ms",
+          received: "2ms",
+          evidence: ["at app.main"]
+        })
+      ])
+    );
+  });
+
+  it("enforces MIR runtime memory policy", () => {
+    const result = interpretMirProgram(
+      buildMir(`module app
+
+fn main() -> int {
+  let value: int = 1
+  return value
+}`),
+      "main",
+      createRuntimeHost({
+        maxMemoryMb: 0
+      })
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "ANPL_RUNTIME_ERROR",
+          expected: "<= 0MB",
+          evidence: ["at app.main"]
+        })
+      ])
+    );
   });
 });

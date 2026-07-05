@@ -10,6 +10,7 @@ import type {
 } from "@anpl/mir";
 import type { RuntimeHost, RuntimeValue } from "@anpl/runtime";
 import {
+  checkRuntimeLimits,
   createRuntimeHost,
   isEffectAllowed,
   runtimeBool,
@@ -21,7 +22,8 @@ import {
   runtimeToBool,
   runtimeToNumber,
   runtimeTypeName,
-  runtimeValueFromLiteral
+  runtimeValueFromLiteral,
+  trackRuntimeValue
 } from "@anpl/runtime";
 
 export type InterpretResult =
@@ -371,6 +373,10 @@ class MirInterpreter {
   }
 
   run(entry: string): InterpretResult {
+    if (!this.checkLimits("runtime")) {
+      return this.fail();
+    }
+
     const fn = this.resolveEntry(entry);
     if (fn === undefined) {
       if (this.diagnostics.length === 0) {
@@ -393,11 +399,15 @@ class MirInterpreter {
   }
 
   private callFunction(fn: MirFunction, args: RuntimeValue[]): RuntimeValue | undefined {
+    if (!this.checkLimits(fn.id)) {
+      return undefined;
+    }
+
     const env: Environment = new Map();
     const registers: RegisterFile = new Map();
 
     for (const [index, param] of fn.params.entries()) {
-      env.set(mirLocalSymbol(fn, param.name), args[index] ?? runtimeNull());
+      this.setLocal(env, mirLocalSymbol(fn, param.name), args[index] ?? runtimeNull());
     }
 
     this.host.frames.push({
@@ -420,6 +430,10 @@ class MirInterpreter {
     let currentId = fn.blocks[0]?.id;
 
     while (currentId !== undefined) {
+      if (!this.checkLimits(currentId)) {
+        return undefined;
+      }
+
       const block = blocks.get(currentId);
       if (block === undefined) {
         this.runtimeError(`MIR block '${currentId}' was not found.`, fn.id);
@@ -447,6 +461,10 @@ class MirInterpreter {
     registers: RegisterFile
   ): void {
     for (const instruction of block.instructions) {
+      if (!this.checkLimits(instruction.op)) {
+        return;
+      }
+
       this.executeInstruction(instruction, env, registers);
       if (this.diagnostics.length > 0) {
         return;
@@ -461,23 +479,28 @@ class MirInterpreter {
   ): void {
     switch (instruction.op) {
       case "const":
-        registers.set(instruction.target, runtimeValueFromLiteral(normalizeLiteral(instruction.value)));
+        this.setRegister(
+          registers,
+          instruction.target,
+          runtimeValueFromLiteral(normalizeLiteral(instruction.value))
+        );
         return;
       case "load": {
         const value = env.get(instruction.symbol);
         if (value === undefined) {
           this.runtimeError(`Variable '${instruction.symbol}' is not defined.`, instruction.symbol);
-          registers.set(instruction.target, runtimeNull());
+          this.setRegister(registers, instruction.target, runtimeNull());
           return;
         }
-        registers.set(instruction.target, value);
+        this.setRegister(registers, instruction.target, value);
         return;
       }
       case "store":
-        env.set(instruction.symbol, this.readRegister(registers, instruction.value));
+        this.setLocal(env, instruction.symbol, this.readRegister(registers, instruction.value));
         return;
       case "binary":
-        registers.set(
+        this.setRegister(
+          registers,
           instruction.target,
           this.applyBinary(
             instruction.operator,
@@ -490,7 +513,7 @@ class MirInterpreter {
         const args = instruction.args.map((arg) => this.readRegister(registers, arg));
         const value = this.callTarget(instruction.callee, args);
         if (instruction.target !== undefined) {
-          registers.set(instruction.target, value ?? runtimeNull());
+          this.setRegister(registers, instruction.target, value ?? runtimeNull());
         }
         return;
       }
@@ -499,13 +522,17 @@ class MirInterpreter {
         for (const [field, value] of Object.entries(instruction.fields)) {
           fields.set(field, this.readRegister(registers, value));
         }
-        registers.set(instruction.target, runtimeRecord(instruction.type, fields));
+        this.setRegister(registers, instruction.target, runtimeRecord(instruction.type, fields));
         return;
       }
       case "member": {
         const object = this.readRegister(registers, instruction.object);
         if (object.kind === "record") {
-          registers.set(instruction.target, object.fields.get(instruction.field) ?? runtimeNull());
+          this.setRegister(
+            registers,
+            instruction.target,
+            object.fields.get(instruction.field) ?? runtimeNull()
+          );
           return;
         }
         this.runtimeError(
@@ -516,7 +543,7 @@ class MirInterpreter {
             received: runtimeTypeName(object)
           }
         );
-        registers.set(instruction.target, runtimeNull());
+        this.setRegister(registers, instruction.target, runtimeNull());
         return;
       }
     }
@@ -526,6 +553,10 @@ class MirInterpreter {
     terminator: MirTerminator,
     registers: RegisterFile
   ): { kind: "return"; value?: RuntimeValue } | { kind: "next"; target: string } {
+    if (!this.checkLimits("terminator")) {
+      return { kind: "return" };
+    }
+
     switch (terminator.kind) {
       case "return":
         return {
@@ -566,6 +597,10 @@ class MirInterpreter {
   }
 
   private callTarget(callee: string, args: RuntimeValue[]): RuntimeValue | undefined {
+    if (!this.checkLimits(callee)) {
+      return runtimeNull();
+    }
+
     const builtin = this.host.builtins[callee];
     if (builtin !== undefined) {
       const effect = this.host.builtinEffects[callee];
@@ -619,6 +654,63 @@ class MirInterpreter {
       return runtimeNull();
     }
     return value;
+  }
+
+  private setRegister(registers: RegisterFile, name: string, value: RuntimeValue): void {
+    registers.set(name, value);
+    this.trackValue(value, name);
+  }
+
+  private setLocal(env: Environment, name: string, value: RuntimeValue): void {
+    env.set(name, value);
+    this.trackValue(value, name);
+  }
+
+  private trackValue(value: RuntimeValue, symbol: string): void {
+    if (this.diagnostics.length > 0) {
+      return;
+    }
+
+    const violation = trackRuntimeValue(this.host, value);
+    if (violation !== undefined) {
+      this.runtimeError(violation.message, symbol, {
+        expected: violation.expected,
+        received: violation.received,
+        cause:
+          violation.kind === "memory"
+            ? "Runtime memory estimate exceeded the sandbox policy."
+            : "Runtime execution exceeded the sandbox time policy.",
+        fix:
+          violation.kind === "memory"
+            ? "Increase maxMemoryMb or reduce allocated runtime values."
+            : "Increase maxExecutionMs or simplify the executed program."
+      });
+    }
+  }
+
+  private checkLimits(symbol: string): boolean {
+    if (this.diagnostics.length > 0) {
+      return false;
+    }
+
+    const violation = checkRuntimeLimits(this.host);
+    if (violation === undefined) {
+      return true;
+    }
+
+    this.runtimeError(violation.message, symbol, {
+      expected: violation.expected,
+      received: violation.received,
+      cause:
+        violation.kind === "memory"
+          ? "Runtime memory estimate exceeded the sandbox policy."
+          : "Runtime execution exceeded the sandbox time policy.",
+      fix:
+        violation.kind === "memory"
+          ? "Increase maxMemoryMb or reduce allocated runtime values."
+          : "Increase maxExecutionMs or simplify the executed program."
+    });
+    return false;
   }
 
   private applyBinary(operator: string, left: RuntimeValue, right: RuntimeValue): RuntimeValue {
@@ -694,7 +786,7 @@ class MirInterpreter {
   private runtimeError(
     message: string,
     symbol?: string,
-    detail: { expected?: string; received?: string } = {}
+    detail: { expected?: string; received?: string; cause?: string; fix?: string } = {}
   ): void {
     this.diagnostics.push(
       createDiagnostic({
@@ -706,8 +798,8 @@ class MirInterpreter {
         expected: detail.expected,
         received: detail.received,
         evidence: this.host.frames.map((frame) => `at ${frame.function}`),
-        cause: "Runtime evaluation reached an invalid value or blocked capability.",
-        fix: "Inspect the runtime stack and repair the failing expression or sandbox policy.",
+        cause: detail.cause ?? "Runtime evaluation reached an invalid value or blocked capability.",
+        fix: detail.fix ?? "Inspect the runtime stack and repair the failing expression or sandbox policy.",
         confidence: "high"
       })
     );

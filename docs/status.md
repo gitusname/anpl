@@ -36,8 +36,8 @@ remain planned.
   unused local elimination foundations.
 - MIR interpreter support for `main()`, functions, `let`, `return`, `if`, records,
   member access, calls, basic operators, tagged runtime values, runtime stack
-  evidence, sandbox effect checks, runtime built-ins, and module-qualified
-  function lookup.
+  evidence, sandbox effect checks, timeout checks, estimated memory checks,
+  runtime built-ins, and module-qualified function lookup.
 - JavaScript compiler target for MIR with module namespace output.
 - Runtime built-ins: `uuid()`, `now()`, `print(value)`, and `len(value)`, all
   using tagged runtime values.
@@ -71,8 +71,8 @@ remain planned.
 - JavaScript output has module namespacing and MIR block lowering, but it does
   not yet implement source maps, target runtime policy, or ESM-per-module
   output.
-- Runtime has tagged values and effect checks, but execution timeout and memory
-  limits are not enforced yet.
+- Runtime memory enforcement uses estimated runtime value allocation, not exact
+  process heap measurement.
 - The formatter is deterministic for the current AST surface, but comment/trivia
   preservation is still future work.
 - Diagnostic registry entries provide baseline cause/fix templates, but parser,
@@ -93,7 +93,7 @@ remain planned.
   multi-package projects.
 - Phase-specific repair patches and evidence across parser, semantic, runtime,
   and backend diagnostics.
-- Runtime execution timeout/memory enforcement and deeper module instance model.
+- Deeper runtime module instance model and more precise memory accounting.
 - Real benchmark suite comparing direct human-first target code generation with
   human intent -> ANPL -> compiler flows.
 - Expanded type system and effect model.

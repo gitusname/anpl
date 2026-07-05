@@ -350,8 +350,9 @@ Future targets:
 ## Runtime
 
 The runtime stays small but uses tagged values so diagnostics can report runtime
-types precisely. Runtime hosts also carry call frames and a sandbox policy for
-effect-capable built-ins.
+types precisely. Runtime hosts also carry call frames, a sandbox policy for
+effect-capable built-ins, execution timeout checks, and estimated runtime memory
+accounting.
 
 Implemented runtime value categories:
 
