@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { parseAnpl } from "@anpl/parser";
 import { analyzeProgram } from "@anpl/semantic";
+import { lowerProgramToHir } from "@anpl/hir";
 import { lowerProgram } from "@anpl/ir";
+import { lowerHirToMir } from "@anpl/mir";
 import { createRuntimeHost } from "@anpl/runtime";
-import { interpretProgram } from "./index.js";
+import { interpretMirProgram, interpretProgram } from "./index.js";
 
 function run(source: string) {
   const parsed = parseAnpl(source);
@@ -15,6 +17,18 @@ function run(source: string) {
     throw new Error(semantic.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
   }
   return interpretProgram(lowerProgram(parsed.program));
+}
+
+function runMir(source: string) {
+  const parsed = parseAnpl(source);
+  if (!parsed.ok) {
+    throw new Error(parsed.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+  }
+  const semantic = analyzeProgram(parsed.program);
+  if (!semantic.ok) {
+    throw new Error(semantic.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+  }
+  return interpretMirProgram(lowerHirToMir(lowerProgramToHir(parsed.program)));
 }
 
 describe("interpreter", () => {
@@ -165,5 +179,49 @@ fn main() -> uuid {
         })
       ])
     );
+  });
+
+  it("runs programs through MIR execution", () => {
+    const result = runMir(`module math
+
+fn add(a: int, b: int) -> int {
+  return a + b
+}
+
+fn main() -> int {
+  let result: int = add(2, 3)
+  if result > 4 {
+    return result
+  }
+  return 0
+}`);
+
+    expect(result).toMatchObject({
+      ok: true,
+      value: {
+        kind: "int",
+        value: 5
+      }
+    });
+  });
+
+  it("runs enum variants through MIR execution", () => {
+    const result = runMir(`module workflow
+
+fn selectStatus() -> enum[active, archived] {
+  return active
+}
+
+fn main() -> int {
+  return len(selectStatus())
+}`);
+
+    expect(result).toMatchObject({
+      ok: true,
+      value: {
+        kind: "int",
+        value: 6
+      }
+    });
   });
 });

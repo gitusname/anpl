@@ -141,6 +141,9 @@ importers:
       '@anpl/ir':
         specifier: workspace:*
         version: link:../ir
+      '@anpl/mir':
+        specifier: workspace:*
+        version: link:../mir
       '@anpl/runtime':
         specifier: workspace:*
         version: link:../runtime

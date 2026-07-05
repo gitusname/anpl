@@ -351,6 +351,18 @@ function lowerLiteral(value: LiteralValue, context: FunctionContext): LoweredExp
 }
 
 function lowerIdentifier(name: string, context: FunctionContext): LoweredExpr {
+  if (!context.localSymbols.has(name)) {
+    const target = freshTemp(context);
+    const type = primitiveTypeId("text");
+    emit(context, {
+      op: "const",
+      target,
+      value: name,
+      type
+    });
+    return { value: target, type };
+  }
+
   const symbol = context.localSymbols.get(name) ?? scopedSymbol(context.functionId, name);
   const type = context.localTypes.get(name) ?? primitiveTypeId("unknown");
   const target = freshTemp(context);

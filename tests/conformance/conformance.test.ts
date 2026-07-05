@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { lowerProgramToHir } from "@anpl/hir";
+import { interpretMirProgram } from "@anpl/interpreter";
 import { lowerHirToMir } from "@anpl/mir";
 import { parseAnpl } from "@anpl/parser";
 import { analyzeProgram } from "@anpl/semantic";
@@ -69,4 +70,28 @@ describe("ANPL conformance fixtures", () => {
     const mir = lowerHirToMir(lowerProgramToHir(parsed.program));
     expect(`${JSON.stringify(mir, null, 2)}\n`).toBe(readFileSync(snapshot, "utf8"));
   });
+
+  for (const fixture of ["math.anpl", "imports.anpl"]) {
+    it(`executes ${fixture} through MIR`, () => {
+      const file = join(fixtureRoot, "valid", fixture);
+      const parsed = parseAnpl(readFileSync(file, "utf8"), file);
+
+      expect(parsed.ok).toBe(true);
+      if (!parsed.ok) {
+        return;
+      }
+
+      const semantic = analyzeProgram(parsed.program);
+      expect(semantic.ok).toBe(true);
+
+      const result = interpretMirProgram(lowerHirToMir(lowerProgramToHir(parsed.program)));
+      expect(result).toMatchObject({
+        ok: true,
+        value: {
+          kind: "int",
+          value: 5
+        }
+      });
+    });
+  }
 });

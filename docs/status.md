@@ -34,7 +34,7 @@ remain planned.
 - Optimizer support for the current structured IR plus a MIR optimization pass
   architecture with constant folding, copy propagation, dead branch removal, and
   unused local elimination foundations.
-- Interpreter support for `main()`, functions, `let`, `return`, `if`, records,
+- MIR interpreter support for `main()`, functions, `let`, `return`, `if`, records,
   member access, calls, basic operators, tagged runtime values, runtime stack
   evidence, sandbox effect checks, runtime built-ins, and module-qualified
   function lookup.
@@ -51,16 +51,16 @@ remain planned.
   code explanations.
 - Canonical AST formatter foundation.
 - Initial conformance fixture suite with valid programs, invalid diagnostic
-  expectations, and a MIR golden snapshot.
+  expectations, MIR execution checks, and a MIR golden snapshot.
 - Initial source-size comparison utilities in `packages/benchmark`.
 
 ## Experimental
 
 - The language syntax is intentionally small and may evolve.
-- HIR and MIR now model real function bodies, but executable interpreter and
+- HIR and MIR now model real function bodies, and `run` executes through MIR.
   JavaScript backend input still uses the current structured expression IR.
 - MIR optimization passes operate on the MIR shape and MIR lowering is
-  deterministic, but MIR is not yet the executable backend input.
+  deterministic, but JavaScript code generation has not moved to MIR yet.
 - Module imports work across files discovered from `anpl.json` source patterns,
   but ANPL does not yet have package boundaries or external dependency
   resolution.

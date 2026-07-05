@@ -96,7 +96,7 @@ core
   <- ir <- ast
   <- optimizer <- ir + mir
   <- compiler-js <- ir + core
-  <- interpreter <- ir + runtime + core
+  <- interpreter <- ir + mir + runtime + core
   <- compiler <- parser + semantic + project + source + formatter + hir + mir + ir + optimizer + interpreter + compiler-js
   <- cli <- compiler + diagnostics
 benchmark
@@ -112,7 +112,8 @@ Rules:
 - `compiler` owns the production pipeline orchestration.
 - `ir` may depend on `ast`.
 - `optimizer` may depend on `ir` and `mir`.
-- `compiler-js` and `interpreter` may depend on `ir`, `runtime`, and `core`.
+- `compiler-js` may depend on `ir` and `core`.
+- `interpreter` may depend on `ir`, `mir`, `runtime`, and `core`.
 - `cli` may orchestrate the full pipeline.
 - `benchmark` stays independent unless a benchmark needs to call a specific
   pipeline stage.
@@ -296,8 +297,8 @@ function bodies. MIR lowers function bodies into compiler-friendly blocks,
 temporaries, local stores, calls, records, members, returns, jumps, and
 branches. The current executable v0.1 IR is still a structured expression IR; it
 preserves function, record, statement, and expression boundaries so the
-interpreter and JavaScript compiler can run meaningful programs while MIR
-continues hardening as the future backend input.
+JavaScript compiler can build meaningful programs while MIR continues hardening
+as the future backend input. The interpreter path now executes MIR directly.
 
 Example IR shape:
 
@@ -441,7 +442,7 @@ check:
   compiler facade -> lexer -> parser -> semantic analyzer -> diagnostics
 
 run:
-  compiler facade -> lexer -> parser -> semantic analyzer -> IR -> interpreter
+  compiler facade -> lexer -> parser -> semantic analyzer -> HIR -> MIR -> interpreter
 
 build:
   compiler facade -> lexer -> parser -> semantic analyzer -> IR -> backend compiler

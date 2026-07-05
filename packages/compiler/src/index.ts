@@ -7,7 +7,7 @@ import type { Diagnostic } from "@anpl/core";
 import { createDiagnostic } from "@anpl/core";
 import { formatProgram } from "@anpl/formatter";
 import { lowerProgramToHir } from "@anpl/hir";
-import { interpretProgram } from "@anpl/interpreter";
+import { interpretMirProgram } from "@anpl/interpreter";
 import { lowerProgram } from "@anpl/ir";
 import { lowerHirToMir } from "@anpl/mir";
 import { optimizeMir, optimizeProgram } from "@anpl/optimizer";
@@ -276,7 +276,7 @@ async function runMode(
       return { ok: true, value: formatted, diagnostics: [] };
     }
     case "run": {
-      const result = interpretProgram(state.ir);
+      const result = interpretMirProgram(state.mir);
       return {
         ok: result.ok,
         value: result,
