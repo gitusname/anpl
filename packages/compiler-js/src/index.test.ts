@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
+import * as ts from "typescript";
 import { parseAnpl } from "@anpl/parser";
 import { lowerProgramToHir } from "@anpl/hir";
 import { lowerProgram } from "@anpl/ir";
 import { lowerHirToMir } from "@anpl/mir";
 import {
   compileMirProgramToJavaScript,
+  compileMirProgramToTypeScript,
   compileProgramToJavaScript,
-  javascriptBackend
+  javascriptBackend,
+  typescriptBackend
 } from "./index.js";
 
 describe("JavaScript compiler", () => {
@@ -160,6 +163,62 @@ fn main() -> int {
       {
         kind: "js",
         path: "dist/app.js"
+      }
+    ]);
+    expect(result.artifacts[0]?.content).toContain("__anpl_modules[\"math\"]");
+  });
+
+  it("emits TypeScript from MIR with typed runtime scaffolding", () => {
+    const parsed = parseAnpl(`module math
+
+fn add(a: int, b: int) -> int {
+  return a + b
+}
+
+fn main() -> int {
+  return add(2, 3)
+}`);
+    if (!parsed.ok) {
+      throw new Error(parsed.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+
+    const source = compileMirProgramToTypeScript(
+      lowerHirToMir(lowerProgramToHir(parsed.program))
+    );
+    const transpiled = ts.transpileModule(source, {
+      compilerOptions: {
+        module: ts.ModuleKind.ESNext,
+        target: ts.ScriptTarget.ES2022,
+        strict: true
+      },
+      reportDiagnostics: true
+    });
+
+    expect(source).toContain("type __AnplFunction");
+    expect(source).toContain("const __anpl_modules: Record<string, Record<string, __AnplFunction>>");
+    expect(source).toContain("add(a: any, b: any): any");
+    expect(transpiled.diagnostics ?? []).toEqual([]);
+  });
+
+  it("exposes a backend interface for MIR TypeScript emission", () => {
+    const parsed = parseAnpl(`module math
+
+fn main() -> int {
+  return 1
+}`);
+    if (!parsed.ok) {
+      throw new Error(parsed.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+
+    const result = typescriptBackend.emit(lowerHirToMir(lowerProgramToHir(parsed.program)), {
+      outFile: "dist/app.ts"
+    });
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.artifacts).toMatchObject([
+      {
+        kind: "ts",
+        path: "dist/app.ts"
       }
     ]);
     expect(result.artifacts[0]?.content).toContain("__anpl_modules[\"math\"]");

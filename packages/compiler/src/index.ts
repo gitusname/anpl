@@ -2,7 +2,7 @@ import { existsSync, statSync } from "node:fs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, extname, join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
-import { javascriptBackend } from "@anpl/compiler-js";
+import { javascriptBackend, typescriptBackend } from "@anpl/compiler-js";
 import type { Diagnostic } from "@anpl/core";
 import { createDiagnostic } from "@anpl/core";
 import { formatProgram } from "@anpl/formatter";
@@ -56,7 +56,7 @@ export type CompilerResult<T = unknown> = {
 };
 
 export type CompilerArtifact = {
-  kind: "project" | "ast" | "hir" | "mir" | "js" | "map" | "diagnostic" | "formatted";
+  kind: "project" | "ast" | "hir" | "mir" | "js" | "ts" | "map" | "diagnostic" | "formatted";
   path?: string;
   content: string;
 };
@@ -341,11 +341,12 @@ async function runMode(
       };
     }
     case "build": {
-      if (options.target !== undefined && options.target !== "js") {
+      const target = options.target ?? "js";
+      if (target !== "js" && target !== "ts") {
         const diagnostic = createDiagnostic({
           code: "ANPL_UNSUPPORTED_TARGET",
           severity: "error",
-          message: `Unsupported target '${options.target}'.`,
+          message: `Unsupported target '${target}'.`,
           confidence: "high"
         });
         artifacts.push({
@@ -356,9 +357,14 @@ async function runMode(
       }
 
       const outDir = options.outDir ?? "generated";
-      const backend = javascriptBackend.emit(state.mir, {
-        outFile: join(outDir, "anpl.js")
-      });
+      const backend =
+        target === "ts"
+          ? typescriptBackend.emit(state.mir, {
+              outFile: join(outDir, "anpl.ts")
+            })
+          : javascriptBackend.emit(state.mir, {
+              outFile: join(outDir, "anpl.js")
+            });
       artifacts.push(...backend.artifacts);
       for (const artifact of backend.artifacts) {
         if (artifact.path !== undefined) {
@@ -370,7 +376,7 @@ async function runMode(
       }
       return {
         ok: backend.diagnostics.length === 0,
-        value: backend.artifacts.find((artifact) => artifact.kind === "js"),
+        value: backend.artifacts.find((artifact) => artifact.kind === target),
         diagnostics: backend.diagnostics
       };
     }

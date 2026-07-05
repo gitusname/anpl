@@ -9,7 +9,7 @@ import type {
 } from "@anpl/mir";
 
 export type BackendArtifact = {
-  kind: "js" | "map";
+  kind: "js" | "ts" | "map";
   path?: string;
   content: string;
 };
@@ -51,6 +51,28 @@ export const javascriptBackend: Backend = {
   }
 };
 
+export const typescriptBackend: Backend = {
+  name: "typescript",
+  target: "ts",
+  emit(program, context = {}) {
+    const generated = compileMirProgramToTypeScriptFile(
+      program,
+      context.outFile ?? "generated/anpl.ts"
+    );
+
+    return {
+      artifacts: [
+        {
+          kind: "ts",
+          path: generated.path,
+          content: generated.content
+        }
+      ],
+      diagnostics: []
+    };
+  }
+};
+
 export function compileProgramToJavaScript(program: IRProgram): string {
   const modules = program.modules.map(compileModule).join("\n\n");
 
@@ -69,7 +91,7 @@ export function compileProgramToJavaScriptFile(
 
 export function compileMirProgramToJavaScript(program: MirProgram): string {
   const modules = groupMirFunctionsByModule(program)
-    .map(([moduleName, functions]) => compileMirModule(moduleName, functions))
+    .map(([moduleName, functions]) => compileMirModule(moduleName, functions, "js"))
     .join("\n\n");
 
   return `${runtimePrelude()}\n\nconst __anpl_modules = {};\n\n${modules}\n\nexport { __anpl_modules };\n`;
@@ -82,6 +104,24 @@ export function compileMirProgramToJavaScriptFile(
   return {
     path,
     content: compileMirProgramToJavaScript(program)
+  };
+}
+
+export function compileMirProgramToTypeScript(program: MirProgram): string {
+  const modules = groupMirFunctionsByModule(program)
+    .map(([moduleName, functions]) => compileMirModule(moduleName, functions, "ts"))
+    .join("\n\n");
+
+  return `${runtimePrelude("ts")}\n\ntype __AnplFunction = (...args: any[]) => any;\nconst __anpl_modules: Record<string, Record<string, __AnplFunction>> = {};\n\n${modules}\n\nexport { __anpl_modules };\n`;
+}
+
+export function compileMirProgramToTypeScriptFile(
+  program: MirProgram,
+  path = "generated/anpl.ts"
+): GeneratedFile {
+  return {
+    path,
+    content: compileMirProgramToTypeScript(program)
   };
 }
 
@@ -165,20 +205,34 @@ function groupMirFunctionsByModule(program: MirProgram): Array<[string, MirFunct
   return [...modules.entries()];
 }
 
-function compileMirModule(moduleName: string, functions: MirFunction[]): string {
-  const members = functions.map(compileMirFunctionMember).join(",\n\n");
+type BackendLanguage = "js" | "ts";
+
+function compileMirModule(
+  moduleName: string,
+  functions: MirFunction[],
+  language: BackendLanguage
+): string {
+  const members = functions.map((fn) => compileMirFunctionMember(fn, language)).join(",\n\n");
   return `__anpl_modules[${JSON.stringify(moduleName)}] = {\n${indent(members)}\n};`;
 }
 
-function compileMirFunctionMember(fn: MirFunction): string {
-  const params = fn.params.map((param) => param.name).join(", ");
+function compileMirFunctionMember(fn: MirFunction, language: BackendLanguage): string {
+  const params = fn.params
+    .map((param) => (language === "ts" ? `${param.name}: any` : param.name))
+    .join(", ");
   const body = [
-    "const __locals = Object.create(null);",
-    "const __values = Object.create(null);",
+    language === "ts"
+      ? "const __locals: Record<string, any> = Object.create(null);"
+      : "const __locals = Object.create(null);",
+    language === "ts"
+      ? "const __values: Record<string, any> = Object.create(null);"
+      : "const __values = Object.create(null);",
     ...fn.params.map(
       (param) => `__locals[${JSON.stringify(`${fn.id}.${param.name}`)}] = ${param.name};`
     ),
-    `let __block = ${JSON.stringify(fn.blocks[0]?.id ?? `${fn.id}.entry`)};`,
+    language === "ts"
+      ? `let __block: string = ${JSON.stringify(fn.blocks[0]?.id ?? `${fn.id}.entry`)};`
+      : `let __block = ${JSON.stringify(fn.blocks[0]?.id ?? `${fn.id}.entry`)};`,
     "while (true) {",
     indent("switch (__block) {"),
     indent(fn.blocks.map(compileMirBlock).join("\n"), 2),
@@ -188,7 +242,8 @@ function compileMirFunctionMember(fn: MirFunction): string {
     "}"
   ].join("\n");
 
-  return `${functionNameForSymbol(fn.id)}(${params}) {\n${indent(body)}\n}`;
+  const returnType = language === "ts" ? ": any" : "";
+  return `${functionNameForSymbol(fn.id)}(${params})${returnType} {\n${indent(body)}\n}`;
 }
 
 function compileMirBlock(block: MirBlock): string {
@@ -257,7 +312,28 @@ function indent(source: string, levels = 1): string {
     .join("\n");
 }
 
-function runtimePrelude(): string {
+function runtimePrelude(language: BackendLanguage = "js"): string {
+  if (language === "ts") {
+    return `function uuid(): string {
+  return crypto.randomUUID();
+}
+
+function now(): string {
+  return new Date().toISOString();
+}
+
+function print(value: any): null {
+  console.log(value);
+  return null;
+}
+
+function len(value: any): number {
+  if (typeof value === "string" || Array.isArray(value)) return value.length;
+  if (value && typeof value === "object") return Object.keys(value).length;
+  return 0;
+}`;
+  }
+
   return `function uuid() {
   return crypto.randomUUID();
 }

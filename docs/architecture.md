@@ -318,7 +318,7 @@ type IRInstruction =
 
 ## Backends
 
-The first backend target is JavaScript.
+The first backend targets are JavaScript and TypeScript.
 
 ANPL:
 
@@ -328,7 +328,7 @@ fn add(a: int, b: int) -> int {
 }
 ```
 
-Generated JavaScript:
+Generated JavaScript/TypeScript:
 
 ```js
 const __anpl_modules = {};
@@ -342,7 +342,6 @@ __anpl_modules["math"] = {
 
 Future targets:
 
-- v0.2: TypeScript
 - v0.3: Python
 - v0.4: WASM
 - v1.0: self-hosted runtime and advanced compiler
@@ -431,6 +430,7 @@ anpl init
 anpl check file.anpl
 anpl run file.anpl
 anpl build file.anpl --target js
+anpl build file.anpl --target ts
 anpl emit ast file.anpl
 anpl emit hir file.anpl
 anpl emit mir file.anpl

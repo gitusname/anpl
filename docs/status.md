@@ -41,7 +41,7 @@ remain planned.
   member access, calls, basic operators, tagged runtime values, runtime stack
   evidence, sandbox effect checks, timeout checks, estimated memory checks,
   runtime built-ins, and module-qualified function lookup.
-- JavaScript compiler target for MIR with module namespace output.
+- JavaScript and TypeScript compiler targets for MIR with module namespace output.
 - Runtime built-ins: `uuid()`, `now()`, `print(value)`, and `len(value)`, all
   using tagged runtime values.
 - CLI commands: `init`, `check`, `run`, `build`, `emit ast|hir|mir|ir`,
@@ -70,8 +70,8 @@ remain planned.
 - CST output now includes a nested AST-shaped skeleton with interleaved tokens
   and parser synchronization recovery metadata; punctuation-complete CST
   shaping and comment-preserving formatter integration are still future work.
-- HIR and MIR now model real function bodies, and `run` plus JavaScript `build`
-  execute through MIR.
+- HIR and MIR now model real function bodies, and `run` plus JavaScript and
+  TypeScript `build` execute through MIR.
 - MIR optimization passes operate on the MIR shape and MIR lowering is
   deterministic, but deeper MIR-to-source mapping and source maps are still
   future work.
@@ -79,9 +79,9 @@ remain planned.
   and project cache keys are derived from the effective manifest plus resolved
   source hashes. ANPL does not yet have package boundaries or external
   dependency resolution.
-- JavaScript output has module namespacing and MIR block lowering, but it does
-  not yet implement source maps, target runtime policy, or ESM-per-module
-  output.
+- JavaScript and TypeScript output have module namespacing and MIR block
+  lowering, but they do not yet implement source maps, target runtime policy,
+  or ESM-per-module output.
 - Runtime memory enforcement uses estimated runtime value allocation, not exact
   process heap measurement.
 - The formatter is deterministic for the current AST surface, but comment/trivia
@@ -108,7 +108,7 @@ remain planned.
 - Real benchmark suite comparing direct human-first target code generation with
   human intent -> ANPL -> compiler flows.
 - Expanded type system and effect model.
-- Additional compiler targets such as TypeScript, Python, WASM, or LLVM.
+- Additional compiler targets such as Python, WASM, or LLVM.
 - More complete runtime and standard library primitives.
 
 ## Removed Legacy Scaffolding

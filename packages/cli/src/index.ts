@@ -127,8 +127,10 @@ program
       return;
     }
 
-    const generated = result.artifacts.find((artifact) => artifact.kind === "js");
-    console.log(`Generated ${generated?.path ?? `${options.out}/anpl.js`}`);
+    const generated = result.artifacts.find(
+      (artifact) => artifact.kind === options.target
+    );
+    console.log(`Generated ${generated?.path ?? `${options.out}/anpl.${options.target}`}`);
   });
 
 program

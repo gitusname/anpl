@@ -244,4 +244,36 @@ fn main() -> int {
     expect(files["/project/dist/anpl.js"]).toContain("switch (__block)");
     expect(files["/project/dist/anpl.js"]).toContain("__anpl_modules[\"math\"].add");
   });
+
+  it("builds TypeScript through the MIR backend", async () => {
+    const files: Record<string, string> = {
+      "/project/main.anpl": `module math
+
+fn add(a: int, b: int) -> int {
+  return a + b
+}
+
+fn main() -> int {
+  return add(2, 3)
+}`
+    };
+    const result = await compileProject(
+      {
+        mode: "build",
+        target: "ts",
+        projectRoot: "/project",
+        entry: "main.anpl",
+        outDir: "dist"
+      },
+      memoryHost(files)
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.artifacts[0]).toMatchObject({
+      kind: "ts",
+      path: "dist/anpl.ts"
+    });
+    expect(files["/project/dist/anpl.ts"]).toContain("type __AnplFunction");
+    expect(files["/project/dist/anpl.ts"]).toContain("add(a: any, b: any): any");
+  });
 });
