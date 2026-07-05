@@ -19,25 +19,31 @@ const program = new Command()
 
 program
   .command("check")
-  .argument("<file>")
+  .argument("[file]")
+  .option("--project-root <dir>", "project root when no file is provided")
   .option("--json", "print diagnostics as JSON")
-  .description("parse and semantically check an ANPL file")
-  .action(async (file: string, options: { json?: boolean }) => {
-    const result = await compileFile("check", file);
+  .description("parse and semantically check an ANPL file or project")
+  .action(async (file: string | undefined, options: { json?: boolean; projectRoot?: string }) => {
+    const result = await compileInput("check", file, {
+      projectRoot: options.projectRoot
+    });
     if (!result.ok) {
       printDiagnostics(result.diagnostics, options.json);
       process.exitCode = 1;
       return;
     }
-    console.log(`OK ${file}`);
+    console.log(`OK ${file ?? options.projectRoot ?? process.cwd()}`);
   });
 
 program
   .command("run")
-  .argument("<file>")
-  .description("run an ANPL file through the interpreter")
-  .action(async (file: string) => {
-    const result = await compileFile("run", file);
+  .argument("[file]")
+  .option("--project-root <dir>", "project root when no file is provided")
+  .description("run an ANPL file or project through the interpreter")
+  .action(async (file: string | undefined, options: { projectRoot?: string }) => {
+    const result = await compileInput("run", file, {
+      projectRoot: options.projectRoot
+    });
     if (!result.ok) {
       printDiagnostics(result.diagnostics);
       process.exitCode = 1;
@@ -55,12 +61,14 @@ program
 
 program
   .command("build")
-  .argument("<file>")
+  .argument("[file]")
+  .option("--project-root <dir>", "project root when no file is provided")
   .option("--target <target>", "compiler target", "js")
   .option("--out <dir>", "output directory", "generated")
-  .description("compile an ANPL file")
-  .action(async (file: string, options: { target: "js" | "ts"; out: string }) => {
-    const result = await compileFile("build", file, {
+  .description("compile an ANPL file or project")
+  .action(async (file: string | undefined, options: { projectRoot?: string; target: "js" | "ts"; out: string }) => {
+    const result = await compileInput("build", file, {
+      projectRoot: options.projectRoot,
       target: options.target,
       outDir: options.out
     });
@@ -168,6 +176,37 @@ async function compileFile(
       projectRoot: dirname(absoluteFile),
       entry: absoluteFile,
       ...overrides
+    },
+    nodeCompilerHost
+  );
+}
+
+async function compileInput(
+  mode: CompileMode,
+  file: string | undefined,
+  options: Partial<Parameters<typeof compileProject>[0]> & { projectRoot?: string } = {}
+): Promise<CompilerResult> {
+  const { projectRoot, ...overrides } = options;
+
+  if (file !== undefined) {
+    const absoluteFile = resolve(file);
+    return compileProject(
+      {
+        mode,
+        projectRoot: resolve(projectRoot ?? dirname(absoluteFile)),
+        entry: absoluteFile,
+        ...overrides
+      },
+      nodeCompilerHost
+    );
+  }
+
+  return compileProject(
+    {
+      mode,
+      projectRoot: resolve(projectRoot ?? process.cwd()),
+      ...overrides,
+      entry: undefined
     },
     nodeCompilerHost
   );

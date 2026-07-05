@@ -61,7 +61,7 @@ module_item     = import_decl | type_decl | function_decl ;
 import_decl     = "import", identifier ;
 ```
 
-The current implementation supports simple same-file module imports:
+The current implementation supports same-project module imports:
 `import math` brings exported functions and types from `module math` into the
 current module's semantic scope.
 

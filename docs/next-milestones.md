@@ -14,7 +14,8 @@ interpreter resolves module-qualified calls, and JavaScript output uses
 Next hardening work:
 
 - Carry module-qualified type IDs through HIR and MIR.
-- Extend namespace handling to cross-file projects.
+- Extend namespace handling from same-project cross-file modules to
+  multi-package projects.
 - Decide whether emitted JavaScript should stay object-namespaced or become
   one ESM file per ANPL module.
 - Add more collision tests for types, imported symbols, and multiple `main`
@@ -37,7 +38,20 @@ Next work:
   expressions.
 - Preserve comments/trivia once CST trivia is wired into the parser.
 
-## 3. Structured Diagnostic Improvements
+## 3. Project System Hardening
+
+The compiler now loads `anpl.json`, expands source globs through the compiler
+host, merges parsed project modules, and validates imports across source files.
+
+Next work:
+
+- Add project-level diagnostics for invalid manifests and unreadable source
+  patterns.
+- Add package boundaries and external dependency resolution.
+- Add cache keys from source hashes and manifest content.
+- Add CLI `anpl init` for a minimal project manifest.
+
+## 4. Structured Diagnostic Improvements
 
 Diagnostics already have a structured shape, but many phases can provide richer
 repair context.
@@ -51,7 +65,7 @@ Next work:
 - Improve runtime diagnostics for invalid calls, invalid member access, missing
   entrypoints, and unexpected values.
 
-## 4. Real Benchmark Suite
+## 5. Real Benchmark Suite
 
 The current benchmark package provides source-size comparison utilities only.
 
@@ -64,7 +78,7 @@ Next work:
   output token usage, diagnostic compactness, and final runnable output.
 - Keep benchmark claims separate from README positioning until data exists.
 
-## 5. IR Evolution
+## 6. IR Evolution
 
 The current IR is a structured expression IR, which is appropriate for v0.1.
 

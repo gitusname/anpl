@@ -29,6 +29,10 @@ export type AnplProject = {
   moduleGraph: ModuleGraph;
 };
 
+export type LoadProjectOptions = {
+  entry?: string;
+};
+
 export type ModuleGraph = {
   modules: Map<ModuleId, ModuleRecord>;
   edges: ModuleEdge[];
@@ -54,10 +58,17 @@ export type ModuleEdge = {
   kind: "import";
 };
 
+export type ProjectDirEntry = {
+  name: string;
+  path: string;
+  kind: "file" | "directory";
+};
+
 export type ProjectHost = {
   readFile(path: string): Promise<string>;
   fileExists(path: string): Promise<boolean>;
   resolvePath(from: string, specifier: string): Promise<string>;
+  readDir?(path: string): Promise<ProjectDirEntry[]>;
 };
 
 export const defaultManifest: AnplManifest = {
@@ -76,14 +87,25 @@ export const defaultManifest: AnplManifest = {
   }
 };
 
-export async function loadProject(root: string, host: ProjectHost): Promise<AnplProject> {
+export async function loadProject(
+  root: string,
+  host: ProjectHost,
+  options: LoadProjectOptions = {}
+): Promise<AnplProject> {
   const manifestPath = await host.resolvePath(root, "anpl.json");
-  const manifest = (await host.fileExists(manifestPath))
+  const loadedManifest = (await host.fileExists(manifestPath))
     ? parseManifest(await host.readFile(manifestPath))
     : defaultManifest;
-  const entryPath = await host.resolvePath(root, manifest.entry);
-  const entryContent = await host.readFile(entryPath);
-  const files = [createSourceFile(entryPath, entryContent)];
+  const manifest = {
+    ...loadedManifest,
+    entry: options.entry ?? loadedManifest.entry
+  };
+  const sourcePaths = await discoverSourcePaths(root, manifest, host);
+  const files = await Promise.all(
+    sourcePaths.map(async (sourcePath) =>
+      createSourceFile(sourcePath, await host.readFile(sourcePath))
+    )
+  );
 
   return {
     root,
@@ -91,6 +113,45 @@ export async function loadProject(root: string, host: ProjectHost): Promise<Anpl
     files,
     moduleGraph: emptyModuleGraph()
   };
+}
+
+export async function discoverSourcePaths(
+  root: string,
+  manifest: AnplManifest,
+  host: ProjectHost
+): Promise<string[]> {
+  const sourcePaths = new Set<string>();
+  const entryPath = await host.resolvePath(root, manifest.entry);
+
+  for (const pattern of manifest.source) {
+    if (isGlobPattern(pattern)) {
+      if (host.readDir === undefined) {
+        continue;
+      }
+      const base = await host.resolvePath(root, staticBaseForGlob(pattern));
+      if (!(await host.fileExists(base))) {
+        continue;
+      }
+      for (const candidate of await walkFiles(base, host)) {
+        const relative = relativePath(root, candidate);
+        if (matchesGlob(relative, pattern)) {
+          sourcePaths.add(candidate);
+        }
+      }
+      continue;
+    }
+
+    const sourcePath = await host.resolvePath(root, pattern);
+    if (await host.fileExists(sourcePath)) {
+      sourcePaths.add(sourcePath);
+    }
+  }
+
+  if (await host.fileExists(entryPath)) {
+    sourcePaths.add(entryPath);
+  }
+
+  return [...sourcePaths].sort((left, right) => relativePath(root, left).localeCompare(relativePath(root, right)));
 }
 
 export function parseManifest(content: string): AnplManifest {
@@ -116,14 +177,14 @@ export function buildModuleGraph(program: Program, file = "<memory>"): ModuleGra
   const diagnostics: Diagnostic[] = [];
 
   for (const moduleDecl of program.modules) {
-    const record = moduleRecord(moduleDecl, file);
+    const record = moduleRecord(moduleDecl, moduleDecl.span.file || file);
     if (modules.has(record.id)) {
       diagnostics.push(
         createDiagnostic({
-          code: "ANPL_PROJECT_DUPLICATE_MODULE",
-          severity: "error",
-          message: `Module '${moduleDecl.name}' is already defined in the project graph.`,
-          file,
+            code: "ANPL_PROJECT_DUPLICATE_MODULE",
+            severity: "error",
+            message: `Module '${moduleDecl.name}' is already defined in the project graph.`,
+          file: record.file,
           line: moduleDecl.span.start.line,
           column: moduleDecl.span.start.column,
           span: moduleDecl.span,
@@ -150,7 +211,7 @@ export function buildModuleGraph(program: Program, file = "<memory>"): ModuleGra
             code: "ANPL_PROJECT_UNKNOWN_MODULE",
             severity: "error",
             message: `Imported module '${importDecl.module}' was not found in the project graph.`,
-            file,
+            file: importDecl.span.file || record.file,
             line: importDecl.span.start.line,
             column: importDecl.span.start.column,
             span: importDecl.span,
@@ -167,6 +228,116 @@ export function buildModuleGraph(program: Program, file = "<memory>"): ModuleGra
     edges,
     diagnostics
   };
+}
+
+async function walkFiles(root: string, host: ProjectHost): Promise<string[]> {
+  const entries = await host.readDir?.(root);
+  if (entries === undefined) {
+    return [];
+  }
+
+  const files: string[] = [];
+  for (const entry of entries) {
+    if (entry.kind === "directory") {
+      if (shouldSkipDirectory(entry.name)) {
+        continue;
+      }
+      files.push(...(await walkFiles(entry.path, host)));
+    } else {
+      files.push(entry.path);
+    }
+  }
+  return files;
+}
+
+function shouldSkipDirectory(name: string): boolean {
+  return [".git", "node_modules", "dist", "generated"].includes(name);
+}
+
+function isGlobPattern(pattern: string): boolean {
+  return /[*?[\]]/.test(pattern);
+}
+
+function staticBaseForGlob(pattern: string): string {
+  const globIndex = pattern.search(/[*?[\]]/);
+  if (globIndex === -1) {
+    return dirnameLike(pattern);
+  }
+
+  const prefix = normalizePath(pattern.slice(0, globIndex));
+  if (prefix.endsWith("/")) {
+    return prefix.replace(/\/+$/, "") || ".";
+  }
+  return dirnameLike(prefix);
+}
+
+function dirnameLike(path: string): string {
+  const normalized = normalizePath(path).replace(/\/+$/, "");
+  const slashIndex = normalized.lastIndexOf("/");
+  if (slashIndex === -1) {
+    return ".";
+  }
+  return normalized.slice(0, slashIndex) || ".";
+}
+
+function matchesGlob(path: string, pattern: string): boolean {
+  return globToRegExp(pattern).test(normalizePath(path));
+}
+
+function globToRegExp(pattern: string): RegExp {
+  const normalized = normalizePath(pattern);
+  let source = "";
+
+  for (let index = 0; index < normalized.length; index += 1) {
+    const char = normalized[index];
+    const next = normalized[index + 1];
+
+    if (char === "*" && next === "*") {
+      const afterNext = normalized[index + 2];
+      if (afterNext === "/") {
+        source += "(?:.*/)?";
+        index += 2;
+      } else {
+        source += ".*";
+        index += 1;
+      }
+      continue;
+    }
+
+    if (char === "*") {
+      source += "[^/]*";
+      continue;
+    }
+
+    if (char === "?") {
+      source += "[^/]";
+      continue;
+    }
+
+    source += escapeRegExp(char ?? "");
+  }
+
+  return new RegExp(`^${source}$`);
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[\\^$+?.()|{}[\]]/g, "\\$&");
+}
+
+function relativePath(root: string, path: string): string {
+  const normalizedRoot = normalizePath(root).replace(/\/+$/, "");
+  const normalizedPath = normalizePath(path);
+  if (normalizedPath === normalizedRoot) {
+    return "";
+  }
+  if (normalizedPath.startsWith(`${normalizedRoot}/`)) {
+    return normalizedPath.slice(normalizedRoot.length + 1);
+  }
+  return normalizedPath;
+}
+
+function normalizePath(path: string): string {
+  return path.replace(/\\/g, "/").replace(/\/+/g, "/");
 }
 
 function moduleRecord(moduleDecl: ModuleDecl, file: string): ModuleRecord {

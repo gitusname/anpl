@@ -22,7 +22,8 @@ remain planned.
 - Compiler facade with host abstraction, timings, artifacts, and CLI delegation
   through `compileProject`.
 - Source file hashing and line map primitives.
-- Project manifest and same-program module graph primitives.
+- Project manifest loading, source glob discovery, cross-file source loading,
+  and same-project module graph primitives.
 - Semantic analyzer split into early production passes for module collection,
   declaration collection, import resolution, type checks, expression checks,
   module-aware symbol tables, type registry output, and structured diagnostics.
@@ -47,8 +48,9 @@ remain planned.
 - The language syntax is intentionally small and may evolve.
 - HIR and MIR are early structural foundations; executable lowering still uses
   the current structured expression IR.
-- Module imports are same-program semantic imports, not yet a cross-file package
-  or module discovery system.
+- Module imports work across files discovered from `anpl.json` source patterns,
+  but ANPL does not yet have package boundaries or external dependency
+  resolution.
 - JavaScript output has module namespacing, but it does not yet implement source
   maps, target runtime policy, or ESM-per-module output.
 - The formatter is deterministic for the current AST surface, but comment/trivia
@@ -62,9 +64,9 @@ remain planned.
 
 ## Planned
 
-- Cross-file modules and package boundaries.
+- Package boundaries and external dependency resolution.
 - Deeper module namespace model for type IDs, HIR/MIR, emitted source maps, and
-  cross-file projects.
+  multi-package projects.
 - Stronger structured diagnostics with cause, fix, evidence, and repair-oriented
   context across all compiler/runtime phases.
 - Real benchmark suite comparing direct human-first target code generation with

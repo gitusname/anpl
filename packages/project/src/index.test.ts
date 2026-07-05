@@ -1,6 +1,62 @@
 import { describe, expect, it } from "vitest";
 import { parseAnpl } from "@anpl/parser";
-import { buildModuleGraph, parseManifest } from "./index.js";
+import {
+  buildModuleGraph,
+  discoverSourcePaths,
+  loadProject,
+  parseManifest,
+  type ProjectHost
+} from "./index.js";
+
+function memoryHost(files: Record<string, string>): ProjectHost {
+  return {
+    readFile: async (path) => {
+      const content = files[normalizePath(path)];
+      if (content === undefined) {
+        throw new Error(`Missing file ${path}`);
+      }
+      return content;
+    },
+    fileExists: async (path) => {
+      const normalizedPath = normalizePath(path).replace(/\/$/, "");
+      return (
+        files[normalizedPath] !== undefined ||
+        Object.keys(files).some((filePath) => filePath.startsWith(`${normalizedPath}/`))
+      );
+    },
+    resolvePath: async (from, specifier) =>
+      specifier.startsWith("/")
+        ? normalizePath(specifier)
+        : normalizePath(`${from.replace(/\/$/, "")}/${specifier}`),
+    readDir: async (path) => {
+      const normalizedPath = normalizePath(path).replace(/\/$/, "");
+      const prefix = `${normalizedPath}/`;
+      const children = new Map<string, "file" | "directory">();
+
+      for (const filePath of Object.keys(files)) {
+        if (!filePath.startsWith(prefix)) {
+          continue;
+        }
+        const parts = filePath.slice(prefix.length).split("/");
+        const name = parts[0];
+        if (name === undefined || name.length === 0) {
+          continue;
+        }
+        children.set(name, parts.length > 1 ? "directory" : "file");
+      }
+
+      return [...children.entries()].map(([name, kind]) => ({
+        name,
+        path: normalizePath(`${normalizedPath}/${name}`),
+        kind
+      }));
+    }
+  };
+}
+
+function normalizePath(path: string): string {
+  return path.replace(/\\/g, "/").replace(/\/+/g, "/").replace(/\/\.$/, "");
+}
 
 describe("project system", () => {
   it("parses manifests with defaults", () => {
@@ -14,6 +70,30 @@ describe("project system", () => {
     expect(manifest.name).toBe("crm");
     expect(manifest.entry).toBe("main.anpl");
     expect(manifest.target.outDir).toBe("dist");
+  });
+
+  it("discovers manifest source globs and always includes the entry file", async () => {
+    const host = memoryHost({
+      "/project/anpl.json": JSON.stringify({
+        name: "crm",
+        entry: "app/main.anpl",
+        source: ["src/**/*.anpl"]
+      }),
+      "/project/app/main.anpl": "module app",
+      "/project/src/math.anpl": "module math",
+      "/project/src/nested/crm.anpl": "module crm"
+    });
+
+    const manifest = parseManifest(await host.readFile("/project/anpl.json"));
+    const sources = await discoverSourcePaths("/project", manifest, host);
+    const project = await loadProject("/project", host);
+
+    expect(sources).toEqual([
+      "/project/app/main.anpl",
+      "/project/src/math.anpl",
+      "/project/src/nested/crm.anpl"
+    ]);
+    expect(project.files.map((file) => file.path)).toEqual(sources);
   });
 
   it("builds a module graph from parsed modules", () => {

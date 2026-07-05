@@ -1,5 +1,5 @@
-import { existsSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { existsSync, statSync } from "node:fs";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, extname, join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { compileProgramToJavaScriptFile } from "@anpl/compiler-js";
@@ -12,9 +12,10 @@ import { lowerProgram } from "@anpl/ir";
 import { lowerHirToMir } from "@anpl/mir";
 import { optimizeProgram } from "@anpl/optimizer";
 import { parseAnpl } from "@anpl/parser";
-import { buildModuleGraph } from "@anpl/project";
+import { buildModuleGraph, loadProject, type ProjectDirEntry } from "@anpl/project";
 import { analyzeProgram, type SemanticResult } from "@anpl/semantic";
-import { createSourceFile } from "@anpl/source";
+import type { Program } from "@anpl/ast";
+import type { ProductionSourceFile } from "@anpl/source";
 
 export type CompileMode =
   | "check"
@@ -65,6 +66,7 @@ export type CompilerHost = {
   writeFile(path: string, content: string): Promise<void>;
   fileExists(path: string): Promise<boolean>;
   resolvePath(from: string, specifier: string): Promise<string>;
+  readDir?(path: string): Promise<ProjectDirEntry[]>;
   now(): number;
   randomUUID(): string;
 };
@@ -81,17 +83,33 @@ export const nodeCompilerHost: CompilerHost = {
       return specifier;
     }
 
-    const base = extname(from).length > 0 ? dirname(from) : from;
+    const base = isDirectoryPath(from) ? from : dirname(from);
     return resolve(base, specifier);
+  },
+  readDir: async (path) => {
+    const entries = await readdir(path, { withFileTypes: true });
+    return entries.map((entry) => ({
+      name: entry.name,
+      path: join(path, entry.name),
+      kind: entry.isDirectory() ? "directory" : "file"
+    }));
   },
   now: () => Date.now(),
   randomUUID: () => randomUUID()
 };
 
+function isDirectoryPath(path: string): boolean {
+  if (existsSync(path)) {
+    return statSync(path).isDirectory();
+  }
+  return extname(path).length === 0;
+}
+
 type PipelineState = {
   sourcePath: string;
   source: string;
   parsed: ReturnType<typeof parseAnpl>;
+  entryParsed: ReturnType<typeof parseAnpl>;
   semantic?: SemanticResult;
   hir?: ReturnType<typeof lowerProgramToHir>;
   mir?: ReturnType<typeof lowerHirToMir>;
@@ -109,14 +127,20 @@ export async function compileProject(
 
   try {
     const loadStart = host.now();
-    const entry = options.entry ?? "src/main.anpl";
+    const project = await loadProject(options.projectRoot, host, {
+      entry: options.entry
+    });
+    const entry = project.manifest.entry;
     const sourcePath = await host.resolvePath(options.projectRoot, entry);
-    const source = await host.readFile(sourcePath);
-    createSourceFile(sourcePath, source);
+    const entrySourceFile = project.files.find((file) => file.path === sourcePath);
+    const source = entrySourceFile?.content ?? "";
     timings.loadMs = host.now() - loadStart;
 
     const parseStart = host.now();
-    const parsed = parseAnpl(source, sourcePath);
+    const parsedFiles = parseProjectFiles(project.files);
+    const parsed = mergeParsedFiles(parsedFiles);
+    const entryParsed =
+      parsedFiles.find((file) => file.source.path === sourcePath)?.parsed ?? parsed;
     timings.parseMs = host.now() - parseStart;
     diagnostics.push(...parsed.diagnostics);
 
@@ -163,6 +187,7 @@ export async function compileProject(
       sourcePath,
       source,
       parsed,
+      entryParsed,
       semantic,
       hir,
       mir,
@@ -236,7 +261,10 @@ async function runMode(
       });
       return { ok: true, value: state.mir, diagnostics: [] };
     case "format": {
-      const formatted = formatProgram(state.parsed.program);
+      if (!state.entryParsed.ok) {
+        return { ok: false, diagnostics: state.entryParsed.diagnostics };
+      }
+      const formatted = formatProgram(state.entryParsed.program);
       artifacts.push({
         kind: "formatted",
         path: state.sourcePath,
@@ -298,6 +326,85 @@ function finish(input: {
     diagnostics: input.diagnostics,
     artifacts: input.artifacts,
     timings: input.timings
+  };
+}
+
+type ParsedProjectFile = {
+  source: ProductionSourceFile;
+  parsed: ReturnType<typeof parseAnpl>;
+};
+
+function parseProjectFiles(files: ProductionSourceFile[]): ParsedProjectFile[] {
+  return files.map((source) => ({
+    source,
+    parsed: parseAnpl(source.content, source.path)
+  }));
+}
+
+function mergeParsedFiles(files: ParsedProjectFile[]): ReturnType<typeof parseAnpl> {
+  if (files.length === 0) {
+    const diagnostic = createDiagnostic({
+      code: "ANPL_PROJECT_NO_SOURCES",
+      severity: "error",
+      message: "Project did not resolve any ANPL source files.",
+      confidence: "high"
+    });
+
+    return {
+      ok: false,
+      diagnostics: [diagnostic]
+    };
+  }
+
+  const diagnostics = files.flatMap((file) => file.parsed.diagnostics);
+  const programs = files
+    .map((file) => file.parsed.program)
+    .filter((program): program is Program => program !== undefined);
+  const program = mergePrograms(programs);
+
+  if (diagnostics.length > 0 || files.some((file) => !file.parsed.ok)) {
+    return {
+      ok: false,
+      program,
+      diagnostics
+    };
+  }
+
+  return {
+    ok: true,
+    program,
+    diagnostics: []
+  };
+}
+
+function mergePrograms(programs: Program[]): Program {
+  const modules = programs.flatMap((program) => program.modules);
+  const firstSpan = programs[0]?.span ?? fallbackSpan();
+  const lastSpan = programs[programs.length - 1]?.span ?? firstSpan;
+
+  return {
+    kind: "Program",
+    modules,
+    span: {
+      file: firstSpan.file,
+      start: firstSpan.start,
+      end: lastSpan.end
+    }
+  };
+}
+
+function fallbackSpan() {
+  return {
+    start: {
+      offset: 0,
+      line: 1,
+      column: 1
+    },
+    end: {
+      offset: 0,
+      line: 1,
+      column: 1
+    }
   };
 }
 

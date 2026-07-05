@@ -145,8 +145,9 @@ Current implementation status:
   member access, enum type references, structured compiler/runtime diagnostics.
 - Implemented execution paths: semantic check, IR emission, optimization,
   interpreter, JavaScript build target.
-- Still intentionally small: no package manager, no cross-file module loader,
-  no advanced generics, no WASM/LLVM/Python backend, and no self-hosted runtime.
+- Still intentionally small: no package manager, no external dependency
+  resolution, no advanced generics, no WASM/LLVM/Python backend, and no
+  self-hosted runtime.
 
 Example:
 
