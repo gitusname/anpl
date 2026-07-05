@@ -51,6 +51,28 @@ function memoryHost(files: Record<string, string>): CompilerHost {
 }
 
 describe("compiler facade", () => {
+  it("initializes a project through the compiler host", async () => {
+    const files: Record<string, string> = {};
+    const result = await compileProject(
+      {
+        mode: "init",
+        projectRoot: "/project",
+        init: {
+          name: "crm-system"
+        }
+      },
+      memoryHost(files)
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.artifacts.map((artifact) => artifact.kind)).toEqual([
+      "project",
+      "project"
+    ]);
+    expect(files["/project/anpl.json"]).toContain("\"name\": \"crm-system\"");
+    expect(files["/project/src/main.anpl"]).toContain("module crm_system");
+  });
+
   it("checks a valid program through one entrypoint", async () => {
     const result = await compileProject(
       {

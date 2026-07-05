@@ -42,6 +42,8 @@ Next work:
 
 The compiler now loads `anpl.json`, expands source globs through the compiler
 host, merges parsed project modules, and validates imports across source files.
+`anpl init` creates a minimal manifest and starter `src/main.anpl` through the
+compiler/project host abstraction.
 
 Next work:
 
@@ -49,7 +51,6 @@ Next work:
   patterns.
 - Add package boundaries and external dependency resolution.
 - Add cache keys from source hashes and manifest content.
-- Add CLI `anpl init` for a minimal project manifest.
 
 ## 4. Structured Diagnostic Improvements
 

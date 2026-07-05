@@ -12,12 +12,19 @@ import { lowerProgram } from "@anpl/ir";
 import { lowerHirToMir } from "@anpl/mir";
 import { optimizeMir, optimizeProgram } from "@anpl/optimizer";
 import { parseAnpl } from "@anpl/parser";
-import { buildModuleGraph, loadProject, type ProjectDirEntry } from "@anpl/project";
+import {
+  buildModuleGraph,
+  initProject,
+  loadProject,
+  type InitProjectOptions,
+  type ProjectDirEntry
+} from "@anpl/project";
 import { analyzeProgram, type SemanticResult } from "@anpl/semantic";
 import type { Program } from "@anpl/ast";
 import type { ProductionSourceFile } from "@anpl/source";
 
 export type CompileMode =
+  | "init"
   | "check"
   | "run"
   | "build"
@@ -34,6 +41,7 @@ export type CompilerOptions = {
   outDir?: string;
   diagnosticsFormat?: "human" | "json" | "yaml";
   strict?: boolean;
+  init?: InitProjectOptions;
 };
 
 export type CompilerResult<T = unknown> = {
@@ -45,7 +53,7 @@ export type CompilerResult<T = unknown> = {
 };
 
 export type CompilerArtifact = {
-  kind: "ast" | "hir" | "mir" | "js" | "map" | "diagnostic" | "formatted";
+  kind: "project" | "ast" | "hir" | "mir" | "js" | "map" | "diagnostic" | "formatted";
   path?: string;
   content: string;
 };
@@ -126,6 +134,30 @@ export async function compileProject(
   const artifacts: CompilerArtifact[] = [];
 
   try {
+    if (options.mode === "init") {
+      const backendStart = host.now();
+      const result = await initProject(options.projectRoot, host, options.init);
+      timings.backendMs = host.now() - backendStart;
+      artifacts.push(
+        ...result.files.map((file) => ({
+          kind: "project" as const,
+          path: file.path,
+          content: file.content
+        }))
+      );
+      diagnostics.push(...result.diagnostics);
+
+      return finish({
+        ok: result.ok,
+        value: result,
+        diagnostics,
+        artifacts,
+        timings,
+        totalStart,
+        host
+      });
+    }
+
     const loadStart = host.now();
     const project = await loadProject(options.projectRoot, host, {
       entry: options.entry
@@ -242,6 +274,8 @@ async function runMode(
   }
 
   switch (options.mode) {
+    case "init":
+      return { ok: false, diagnostics: [] };
     case "check":
       return { ok: true, diagnostics: [] };
     case "emit-ast":

@@ -33,6 +33,23 @@ export type LoadProjectOptions = {
   entry?: string;
 };
 
+export type InitProjectOptions = {
+  name?: string;
+  moduleName?: string;
+  force?: boolean;
+};
+
+export type InitProjectResult = {
+  ok: boolean;
+  files: ProjectFileArtifact[];
+  diagnostics: Diagnostic[];
+};
+
+export type ProjectFileArtifact = {
+  path: string;
+  content: string;
+};
+
 export type ModuleGraph = {
   modules: Map<ModuleId, ModuleRecord>;
   edges: ModuleEdge[];
@@ -66,6 +83,7 @@ export type ProjectDirEntry = {
 
 export type ProjectHost = {
   readFile(path: string): Promise<string>;
+  writeFile?(path: string, content: string): Promise<void>;
   fileExists(path: string): Promise<boolean>;
   resolvePath(from: string, specifier: string): Promise<string>;
   readDir?(path: string): Promise<ProjectDirEntry[]>;
@@ -113,6 +131,88 @@ export async function loadProject(
     files,
     moduleGraph: emptyModuleGraph()
   };
+}
+
+export async function initProject(
+  root: string,
+  host: ProjectHost,
+  options: InitProjectOptions = {}
+): Promise<InitProjectResult> {
+  const files = await createProjectFiles(root, host, options);
+  const diagnostics: Diagnostic[] = [];
+
+  for (const file of files) {
+    if (!options.force && (await host.fileExists(file.path))) {
+      diagnostics.push(
+        createDiagnostic({
+          code: "ANPL_PROJECT_INIT_EXISTS",
+          severity: "error",
+          category: "project",
+          message: `Project file '${file.path}' already exists.`,
+          file: file.path,
+          cause: "Project initialization would overwrite an existing file.",
+          fix: "Choose an empty directory or pass --force to overwrite generated project files.",
+          confidence: "high"
+        })
+      );
+    }
+  }
+
+  if (diagnostics.length > 0 || host.writeFile === undefined) {
+    if (host.writeFile === undefined) {
+      diagnostics.push(
+        createDiagnostic({
+          code: "ANPL_PROJECT_INIT_HOST_READONLY",
+          severity: "error",
+          category: "project",
+          message: "Project host does not support writing files.",
+          cause: "Project initialization requires a writable compiler host.",
+          fix: "Use a compiler host that implements writeFile.",
+          confidence: "high"
+        })
+      );
+    }
+
+    return {
+      ok: false,
+      files,
+      diagnostics
+    };
+  }
+
+  for (const file of files) {
+    await host.writeFile(file.path, file.content);
+  }
+
+  return {
+    ok: true,
+    files,
+    diagnostics: []
+  };
+}
+
+export async function createProjectFiles(
+  root: string,
+  host: ProjectHost,
+  options: InitProjectOptions = {}
+): Promise<ProjectFileArtifact[]> {
+  const projectName = normalizeProjectName(options.name ?? defaultManifest.name);
+  const moduleName = normalizeModuleName(options.moduleName ?? projectName);
+  const manifest: AnplManifest = {
+    ...defaultManifest,
+    name: projectName
+  };
+
+  return [
+    {
+      path: await host.resolvePath(root, "anpl.json"),
+      content: `${JSON.stringify(manifest, null, 2)}\n`
+    },
+    {
+      path: await host.resolvePath(root, manifest.entry),
+      content: initialMainSource(moduleName)
+    }
+  ];
 }
 
 export async function discoverSourcePaths(
@@ -361,4 +461,28 @@ function emptyModuleGraph(): ModuleGraph {
     edges: [],
     diagnostics: []
   };
+}
+
+function normalizeProjectName(name: string): string {
+  const normalized = name.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "");
+  return normalized.length === 0 ? defaultManifest.name : normalized;
+}
+
+function normalizeModuleName(name: string): string {
+  const normalized = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  const withPrefix = /^[a-z_]/.test(normalized) ? normalized : `app_${normalized}`;
+  return withPrefix.length === 0 ? "app" : withPrefix;
+}
+
+function initialMainSource(moduleName: string): string {
+  return `module ${moduleName}
+
+fn main() -> int {
+  return 0
+}
+`;
 }

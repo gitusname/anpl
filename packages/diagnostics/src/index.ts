@@ -123,6 +123,24 @@ export const diagnosticRegistry = {
     fixTemplate: "Rename one module or remove the duplicate source from the project manifest.",
     aiRepairable: true
   },
+  ANPL_PROJECT_INIT_EXISTS: {
+    code: "ANPL_PROJECT_INIT_EXISTS",
+    category: "project",
+    severity: "error",
+    messageTemplate: "Project file '{file}' already exists.",
+    causeTemplate: "Project initialization would overwrite an existing file.",
+    fixTemplate: "Choose an empty directory or pass --force to overwrite generated project files.",
+    aiRepairable: true
+  },
+  ANPL_PROJECT_INIT_HOST_READONLY: {
+    code: "ANPL_PROJECT_INIT_HOST_READONLY",
+    category: "project",
+    severity: "error",
+    messageTemplate: "Project host does not support writing files.",
+    causeTemplate: "The compiler host is read-only for project initialization.",
+    fixTemplate: "Use a compiler host that implements writeFile.",
+    aiRepairable: false
+  },
   ANPL_COMPILER_ERROR: {
     code: "ANPL_COMPILER_ERROR",
     category: "tooling",

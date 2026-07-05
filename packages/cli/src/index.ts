@@ -24,6 +24,42 @@ const program = new Command()
   .version("0.0.0");
 
 program
+  .command("init")
+  .argument("[dir]")
+  .option("--name <name>", "project name")
+  .option("--module <module>", "initial ANPL module name")
+  .option("--force", "overwrite generated project files")
+  .description("initialize a minimal ANPL project")
+  .action(
+    async (
+      dir: string | undefined,
+      options: { name?: string; module?: string; force?: boolean }
+    ) => {
+      const result = await compileProject(
+        {
+          mode: "init",
+          projectRoot: resolve(dir ?? process.cwd()),
+          init: {
+            name: options.name,
+            moduleName: options.module,
+            force: options.force
+          }
+        },
+        nodeCompilerHost
+      );
+      if (!result.ok) {
+        printDiagnostics(result.diagnostics);
+        process.exitCode = 1;
+        return;
+      }
+
+      for (const artifact of result.artifacts.filter((candidate) => candidate.kind === "project")) {
+        console.log(`Created ${artifact.path}`);
+      }
+    }
+  );
+
+program
   .command("check")
   .argument("[file]")
   .option("--project-root <dir>", "project root when no file is provided")

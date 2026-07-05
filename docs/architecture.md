@@ -426,6 +426,7 @@ Diagnostic families:
 Target commands:
 
 ```bash
+anpl init
 anpl check file.anpl
 anpl run file.anpl
 anpl build file.anpl --target js

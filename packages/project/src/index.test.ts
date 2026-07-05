@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { parseAnpl } from "@anpl/parser";
 import {
   buildModuleGraph,
+  createProjectFiles,
   discoverSourcePaths,
+  initProject,
   loadProject,
   parseManifest,
   type ProjectHost
@@ -16,6 +18,9 @@ function memoryHost(files: Record<string, string>): ProjectHost {
         throw new Error(`Missing file ${path}`);
       }
       return content;
+    },
+    writeFile: async (path, content) => {
+      files[normalizePath(path)] = content;
     },
     fileExists: async (path) => {
       const normalizedPath = normalizePath(path).replace(/\/$/, "");
@@ -125,5 +130,43 @@ fn main() -> int {
       }
     ]);
     expect(graph.diagnostics).toEqual([]);
+  });
+
+  it("creates deterministic project initialization files", async () => {
+    const host = memoryHost({});
+    const files = await createProjectFiles("/project", host, {
+      name: "CRM System"
+    });
+
+    expect(files.map((file) => file.path)).toEqual([
+      "/project/anpl.json",
+      "/project/src/main.anpl"
+    ]);
+    expect(JSON.parse(files[0]?.content ?? "{}")).toMatchObject({
+      name: "crm-system",
+      entry: "src/main.anpl",
+      source: ["src/**/*.anpl"]
+    });
+    expect(files[1]?.content).toContain("module crm_system");
+  });
+
+  it("initializes a project and protects existing files", async () => {
+    const files: Record<string, string> = {};
+    const host = memoryHost(files);
+
+    const first = await initProject("/project", host, {
+      name: "demo"
+    });
+    const second = await initProject("/project", host, {
+      name: "demo"
+    });
+
+    expect(first.ok).toBe(true);
+    expect(files["/project/anpl.json"]).toContain("\"name\": \"demo\"");
+    expect(files["/project/src/main.anpl"]).toContain("module demo");
+    expect(second.ok).toBe(false);
+    expect(second.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      "ANPL_PROJECT_INIT_EXISTS"
+    );
   });
 });
