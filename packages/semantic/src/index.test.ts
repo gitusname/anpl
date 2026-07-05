@@ -109,7 +109,13 @@ fn broken() -> int {
     expect(result.diagnostics).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          code: "ANPL_RETURN_TYPE_MISMATCH"
+          code: "ANPL_RETURN_TYPE_MISMATCH",
+          category: "type",
+          expected: "int",
+          received: "text",
+          cause: expect.stringContaining("declared return type"),
+          fix: expect.stringContaining("Return a value"),
+          evidence: expect.arrayContaining([expect.stringContaining("span")])
         })
       ])
     );
@@ -163,7 +169,11 @@ fn main() -> int {
       expect.arrayContaining([
         expect.objectContaining({
           code: "ANPL_SEMANTIC_UNKNOWN_SYMBOL",
-          symbol: "missing"
+          symbol: "missing",
+          category: "semantic",
+          cause: expect.stringContaining("not visible"),
+          fix: expect.stringContaining("Declare the symbol"),
+          evidence: expect.arrayContaining([expect.stringContaining("span")])
         })
       ])
     );

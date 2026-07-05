@@ -54,5 +54,10 @@ describe("diagnostics formatting", () => {
       category: "project",
       summary: expect.stringContaining("project diagnostic")
     });
+    expect(explainDiagnosticCode("ANPL_RETURN_MISSING")).toMatchObject({
+      code: "ANPL_RETURN_MISSING",
+      category: "semantic",
+      aiRepairable: true
+    });
   });
 });

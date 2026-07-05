@@ -71,11 +71,17 @@ Implemented foundation:
 - Registry-level diagnostic category, cause, fix, and AI-repairable metadata.
 - Enriched JSON output through `diagnosticsToJson`.
 - CLI `anpl explain ANPL_TYPE_MISMATCH`.
+- Parser expected-token diagnostics carry insert repair patches for missing
+  punctuation.
+- Semantic diagnostics carry phase-specific category, cause, fix, and evidence
+  through the semantic diagnostic helper.
+- Diagnostic registry covers the current semantic diagnostic family used by
+  `anpl explain`.
 
 Next work:
 
-- Add phase-specific `cause`, `fix`, `evidence`, and `repair` consistently to
-  parser, semantic, runtime, backend, and project diagnostics.
+- Add phase-specific `repair` patches to more semantic, runtime, backend, and
+  project diagnostics where a safe source edit can be inferred.
 - Keep diagnostic codes stable and machine-readable.
 - Improve runtime diagnostics for invalid calls, invalid member access, missing
   entrypoints, and unexpected values.

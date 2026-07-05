@@ -22,7 +22,7 @@ import type {
   TypeDecl,
   TypeRef
 } from "@anpl/ast";
-import type { Diagnostic, Span } from "@anpl/core";
+import type { Diagnostic, DiagnosticRepair, Span } from "@anpl/core";
 import { createDiagnostic } from "@anpl/core";
 import { lexAnpl } from "@anpl/lexer";
 import type { Token, TokenType } from "@anpl/lexer";
@@ -668,15 +668,23 @@ class Parser {
   }
 
   private addDiagnostic(code: string, token: Token, message: string): void {
+    const detail = parseDiagnosticDetail(code, token);
     this.diagnostics.push(
       createDiagnostic({
         code,
         severity: "error",
+        category: "parse",
         message,
         file: this.file,
         line: token.line,
         column: token.column,
         span: token.span,
+        expected: detail.expected,
+        received: detail.received,
+        cause: detail.cause,
+        fix: detail.fix,
+        repair: detail.repair,
+        evidence: detail.evidence,
         confidence: "high"
       })
     );
@@ -696,5 +704,85 @@ class Parser {
       start: start.start,
       end: end.end
     };
+  }
+}
+
+function parseDiagnosticDetail(
+  code: string,
+  token: Token
+): {
+  expected?: string;
+  received: string;
+  cause: string;
+  fix: string;
+  repair?: DiagnosticRepair;
+  evidence: string[];
+} {
+  const received = `${token.type} '${token.value}'`;
+  const insertion = expectedInsertion(code);
+
+  if (insertion !== undefined) {
+    return {
+      expected: insertion.label,
+      received,
+      cause: `The parser expected ${insertion.label} before ${received}.`,
+      fix: `Insert ${insertion.label} at the reported location.`,
+      repair: {
+        kind: "insert",
+        offset: token.span.start.offset,
+        text: insertion.text
+      },
+      evidence: [`received ${received}`]
+    };
+  }
+
+  if (code === "ANPL_PARSE_EXPECTED_IDENTIFIER") {
+    return {
+      expected: "identifier",
+      received,
+      cause: `The parser expected an identifier but received ${received}.`,
+      fix: "Replace the token with a valid ANPL identifier.",
+      evidence: [`received ${received}`]
+    };
+  }
+
+  if (code === "ANPL_PARSE_EXPECTED_TYPE") {
+    return {
+      expected: "type name",
+      received,
+      cause: `The parser expected a type name but received ${received}.`,
+      fix: "Use a primitive type, declared type, or enum type reference.",
+      evidence: [`received ${received}`]
+    };
+  }
+
+  return {
+    received,
+    cause: "The token stream does not match the ANPL grammar at this location.",
+    fix: "Rewrite the surrounding syntax to match the ANPL v0.1 grammar.",
+    evidence: [`received ${received}`]
+  };
+}
+
+function expectedInsertion(code: string): { label: string; text: string } | undefined {
+  switch (code) {
+    case "ANPL_PARSE_EXPECTED_COLON":
+      return { label: "':'", text: ":" };
+    case "ANPL_PARSE_EXPECTED_LBRACE":
+      return { label: "'{'", text: "{" };
+    case "ANPL_PARSE_EXPECTED_RBRACE":
+      return { label: "'}'", text: "}" };
+    case "ANPL_PARSE_EXPECTED_LPAREN":
+      return { label: "'('", text: "(" };
+    case "ANPL_PARSE_EXPECTED_RPAREN":
+      return { label: "')'", text: ")" };
+    case "ANPL_PARSE_EXPECTED_ARROW":
+      return { label: "'->'", text: "->" };
+    case "ANPL_PARSE_EXPECTED_EQUAL":
+      return { label: "'='", text: "=" };
+    case "ANPL_PARSE_EXPECTED_RBRACKET":
+      return { label: "']'", text: "]" };
+    default:
+      return undefined;
   }
 }

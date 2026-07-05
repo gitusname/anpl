@@ -42,6 +42,42 @@ export const diagnosticRegistry = {
     fixTemplate: "Declare the symbol, import its module, or correct the symbol name.",
     aiRepairable: true
   },
+  ANPL_SEMANTIC_UNKNOWN_MODULE: {
+    code: "ANPL_SEMANTIC_UNKNOWN_MODULE",
+    category: "semantic",
+    severity: "error",
+    messageTemplate: "Module '{symbol}' is not defined.",
+    causeTemplate: "The imported module is not present in the semantic module table.",
+    fixTemplate: "Add the missing module source file or correct the import name.",
+    aiRepairable: true
+  },
+  ANPL_SEMANTIC_DUPLICATE_SYMBOL: {
+    code: "ANPL_SEMANTIC_DUPLICATE_SYMBOL",
+    category: "semantic",
+    severity: "error",
+    messageTemplate: "Symbol '{symbol}' is already defined.",
+    causeTemplate: "A scope contains more than one declaration with the same name.",
+    fixTemplate: "Rename one declaration or remove the duplicate declaration.",
+    aiRepairable: true
+  },
+  ANPL_SEMANTIC_IMPORT_SELF: {
+    code: "ANPL_SEMANTIC_IMPORT_SELF",
+    category: "semantic",
+    severity: "error",
+    messageTemplate: "Module '{symbol}' cannot import itself.",
+    causeTemplate: "A module import points back to the declaring module.",
+    fixTemplate: "Remove the self-import from the module.",
+    aiRepairable: true
+  },
+  ANPL_SEMANTIC_IMPORT_CONFLICT: {
+    code: "ANPL_SEMANTIC_IMPORT_CONFLICT",
+    category: "semantic",
+    severity: "error",
+    messageTemplate: "Imported symbol '{symbol}' conflicts with an existing symbol.",
+    causeTemplate: "An imported declaration would shadow or collide with an already visible symbol.",
+    fixTemplate: "Rename one symbol or import a narrower symbol set.",
+    aiRepairable: true
+  },
   ANPL_TYPE_MISMATCH: {
     code: "ANPL_TYPE_MISMATCH",
     category: "type",
@@ -60,6 +96,15 @@ export const diagnosticRegistry = {
     fixTemplate: "Return a value of the declared type or change the function return type.",
     aiRepairable: true
   },
+  ANPL_RETURN_MISSING: {
+    code: "ANPL_RETURN_MISSING",
+    category: "semantic",
+    severity: "error",
+    messageTemplate: "Function '{symbol}' must return {expected}.",
+    causeTemplate: "A non-void function can reach the end without returning a value.",
+    fixTemplate: "Add a return statement on every control-flow path or change the return type to void.",
+    aiRepairable: true
+  },
   ANPL_CALL_ARG_COUNT_MISMATCH: {
     code: "ANPL_CALL_ARG_COUNT_MISMATCH",
     category: "semantic",
@@ -76,6 +121,15 @@ export const diagnosticRegistry = {
     messageTemplate: "Field '{symbol}' was not found.",
     causeTemplate: "A record construction or member access references a field that is not declared.",
     fixTemplate: "Use an existing field name or add the field to the record type.",
+    aiRepairable: true
+  },
+  ANPL_ENUM_EMPTY: {
+    code: "ANPL_ENUM_EMPTY",
+    category: "type",
+    severity: "error",
+    messageTemplate: "Enum type must declare at least one variant.",
+    causeTemplate: "Enum type references require at least one variant.",
+    fixTemplate: "Add one or more enum variants, for example enum[active, archived].",
     aiRepairable: true
   },
   ANPL_RUNTIME_ERROR: {

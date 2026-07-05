@@ -148,7 +148,16 @@ fn add(a int) -> int {
     expect(result.diagnostics).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          code: "ANPL_PARSE_EXPECTED_COLON"
+          code: "ANPL_PARSE_EXPECTED_COLON",
+          category: "parse",
+          expected: "':'",
+          received: "keyword 'int'",
+          repair: {
+            kind: "insert",
+            offset: 22,
+            text: ":"
+          },
+          evidence: ["received keyword 'int'"]
         })
       ])
     );
