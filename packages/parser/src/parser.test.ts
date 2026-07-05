@@ -188,6 +188,37 @@ fn main() -> int {
     expect(result.cst?.recoveryData?.[0]?.skippedTokens.map((token) => token.value)).toContain("oops");
   });
 
+  it("returns a nested CST alongside the AST", () => {
+    const result = parseAnpl(`module math
+
+fn add(a: int, b: int) -> int {
+  return a + b
+}`, "nested.anpl");
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+
+    const moduleNode = result.cst?.children.find(
+      (child) => "children" in child && child.kind === "ModuleDecl"
+    );
+    const functionNode = moduleNode?.children.find(
+      (child) => "children" in child && child.kind === "FunctionDecl"
+    );
+    const blockNode = functionNode?.children.find(
+      (child) => "children" in child && child.kind === "BlockStmt"
+    );
+
+    expect(result.cst?.kind).toBe("Program");
+    expect(moduleNode).toMatchObject({ kind: "ModuleDecl" });
+    expect(functionNode).toMatchObject({ kind: "FunctionDecl" });
+    expect(blockNode).toMatchObject({ kind: "BlockStmt" });
+    expect(
+      moduleNode?.children.some((child) => "type" in child && child.value === "module")
+    ).toBe(true);
+  });
+
   it("parses an explicit token stream with upstream diagnostics", () => {
     const lexed = lexAnpl(`module math
 
@@ -201,6 +232,11 @@ fn main() -> int {
       throw new Error(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
     }
     expect(result.program.modules[0]?.name).toBe("math");
-    expect(result.cst?.children.length).toBe(lexed.tokens.length);
+    expect(
+      result.cst?.children.some((child) => "children" in child && child.kind === "ModuleDecl")
+    ).toBe(true);
+    expect(
+      result.cst?.children.some((child) => "type" in child && child.type === "keyword")
+    ).toBe(false);
   });
 });

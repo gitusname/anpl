@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { lexAnpl } from "@anpl/lexer";
-import { createCstNode } from "./index.js";
+import { createCstNode, createSpannedCstNode } from "./index.js";
 
 describe("CST helpers", () => {
   it("creates a source-spanned CST node", () => {
@@ -29,5 +29,16 @@ describe("CST helpers", () => {
         reason: "test-recovery"
       }
     ]);
+  });
+
+  it("creates an explicitly spanned CST node", () => {
+    const lexed = lexAnpl("module math");
+    const node = createSpannedCstNode("ModuleDecl", lexed.tokens[0]!.span, [
+      lexed.tokens[0]!
+    ]);
+
+    expect(node.kind).toBe("ModuleDecl");
+    expect(node.span).toEqual(lexed.tokens[0]!.span);
+    expect(node.children[0]).toBe(lexed.tokens[0]);
   });
 });

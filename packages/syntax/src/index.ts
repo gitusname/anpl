@@ -44,6 +44,22 @@ export function createCstNode(
   };
 }
 
+export function createSpannedCstNode(
+  kind: string,
+  span: Span,
+  children: Array<CstNode | Token> = [],
+  diagnostics: Diagnostic[] = [],
+  recoveryData: ParseRecoveryData[] = []
+): CstNode {
+  return {
+    kind,
+    span,
+    children,
+    diagnostics: diagnostics.length > 0 ? diagnostics : undefined,
+    recoveryData: recoveryData.length > 0 ? recoveryData : undefined
+  };
+}
+
 function emptySpan(): Span {
   return {
     start: {

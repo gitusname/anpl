@@ -26,7 +26,7 @@ import type { Diagnostic, DiagnosticRepair, Span } from "@anpl/core";
 import { createDiagnostic } from "@anpl/core";
 import { lexAnpl } from "@anpl/lexer";
 import type { Token, TokenType } from "@anpl/lexer";
-import { createCstNode, type CstNode, type ParseRecoveryData } from "@anpl/syntax";
+import { createSpannedCstNode, type CstNode, type ParseRecoveryData } from "@anpl/syntax";
 
 export type ParseResult =
   | {
@@ -61,7 +61,7 @@ export function parseTokens(
   const program = parser.parseProgram();
   const allDiagnostics = parser.getDiagnostics();
   const recoveryData = parser.getRecoveryData();
-  const cst = createCstNode("Program", tokens, allDiagnostics, recoveryData);
+  const cst = buildProgramCst(program, tokens, allDiagnostics, recoveryData);
 
   if (allDiagnostics.length > 0) {
     return {
@@ -742,6 +742,202 @@ class Parser {
       end: end.end
     };
   }
+}
+
+function buildProgramCst(
+  program: Program,
+  tokens: Token[],
+  diagnostics: Diagnostic[],
+  recoveryData: ParseRecoveryData[]
+): CstNode {
+  return cstNode(
+    "Program",
+    program.span,
+    tokens,
+    program.modules.map((moduleDecl) => buildModuleCst(moduleDecl, tokens)),
+    diagnostics,
+    recoveryData
+  );
+}
+
+function buildModuleCst(moduleDecl: ModuleDecl, tokens: Token[]): CstNode {
+  return cstNode(
+    "ModuleDecl",
+    moduleDecl.span,
+    tokens,
+    moduleDecl.body.map((decl) => buildDeclCst(decl, tokens))
+  );
+}
+
+function buildDeclCst(decl: Decl, tokens: Token[]): CstNode {
+  switch (decl.kind) {
+    case "ImportDecl":
+      return cstNode("ImportDecl", decl.span, tokens);
+    case "TypeDecl":
+      return cstNode(
+        "TypeDecl",
+        decl.span,
+        tokens,
+        decl.fields.map((field) => buildFieldCst(field, tokens))
+      );
+    case "FunctionDecl":
+      return cstNode("FunctionDecl", decl.span, tokens, [
+        ...decl.params.map((param) => buildParamCst(param, tokens)),
+        buildTypeRefCst(decl.returnType, tokens),
+        buildBlockCst(decl.body, tokens)
+      ]);
+  }
+}
+
+function buildFieldCst(field: FieldDecl, tokens: Token[]): CstNode {
+  return cstNode("FieldDecl", field.span, tokens, [buildTypeRefCst(field.type, tokens)]);
+}
+
+function buildParamCst(param: Param, tokens: Token[]): CstNode {
+  return cstNode("Param", param.span, tokens, [buildTypeRefCst(param.type, tokens)]);
+}
+
+function buildTypeRefCst(typeRef: TypeRef, tokens: Token[]): CstNode {
+  return cstNode(
+    "TypeRef",
+    typeRef.span,
+    tokens,
+    (typeRef.typeArgs ?? []).map((typeArg) => buildTypeRefCst(typeArg, tokens))
+  );
+}
+
+function buildBlockCst(block: BlockStmt, tokens: Token[]): CstNode {
+  return cstNode(
+    "BlockStmt",
+    block.span,
+    tokens,
+    block.statements.map((statement) => buildStmtCst(statement, tokens))
+  );
+}
+
+function buildStmtCst(stmt: Stmt, tokens: Token[]): CstNode {
+  switch (stmt.kind) {
+    case "LetStmt":
+      return cstNode(
+        "LetStmt",
+        stmt.span,
+        tokens,
+        [
+          stmt.type === undefined ? undefined : buildTypeRefCst(stmt.type, tokens),
+          buildExprCst(stmt.value, tokens)
+        ].filter((node): node is CstNode => node !== undefined)
+      );
+    case "ReturnStmt":
+      return cstNode(
+        "ReturnStmt",
+        stmt.span,
+        tokens,
+        stmt.value === undefined ? [] : [buildExprCst(stmt.value, tokens)]
+      );
+    case "IfStmt":
+      return cstNode(
+        "IfStmt",
+        stmt.span,
+        tokens,
+        [
+          buildExprCst(stmt.condition, tokens),
+          buildBlockCst(stmt.thenBranch, tokens),
+          stmt.elseBranch === undefined
+            ? undefined
+            : stmt.elseBranch.kind === "BlockStmt"
+              ? buildBlockCst(stmt.elseBranch, tokens)
+              : buildStmtCst(stmt.elseBranch, tokens)
+        ].filter((node): node is CstNode => node !== undefined)
+      );
+    case "ExprStmt":
+      return cstNode("ExprStmt", stmt.span, tokens, [buildExprCst(stmt.expression, tokens)]);
+  }
+}
+
+function buildExprCst(expr: Expr, tokens: Token[]): CstNode {
+  switch (expr.kind) {
+    case "LiteralExpr":
+      return cstNode("LiteralExpr", expr.span, tokens);
+    case "IdentifierExpr":
+      return cstNode("IdentifierExpr", expr.span, tokens);
+    case "BinaryExpr":
+      return cstNode("BinaryExpr", expr.span, tokens, [
+        buildExprCst(expr.left, tokens),
+        buildExprCst(expr.right, tokens)
+      ]);
+    case "CallExpr":
+      return cstNode("CallExpr", expr.span, tokens, [
+        buildExprCst(expr.callee, tokens),
+        ...expr.args.map((arg) => buildExprCst(arg, tokens))
+      ]);
+    case "RecordExpr":
+      return cstNode(
+        "RecordExpr",
+        expr.span,
+        tokens,
+        expr.fields.map((field) => buildRecordFieldCst(field, tokens))
+      );
+    case "MemberExpr":
+      return cstNode("MemberExpr", expr.span, tokens, [buildExprCst(expr.object, tokens)]);
+  }
+}
+
+function buildRecordFieldCst(field: RecordFieldExpr, tokens: Token[]): CstNode {
+  return cstNode("RecordFieldExpr", field.span, tokens, [buildExprCst(field.value, tokens)]);
+}
+
+function cstNode(
+  kind: string,
+  span: Span,
+  tokens: Token[],
+  childNodes: CstNode[] = [],
+  diagnostics: Diagnostic[] = [],
+  recoveryData: ParseRecoveryData[] = []
+): CstNode {
+  return createSpannedCstNode(
+    kind,
+    span,
+    interleaveTokensAndNodes(span, tokens, childNodes),
+    diagnostics,
+    recoveryData
+  );
+}
+
+function interleaveTokensAndNodes(
+  span: Span,
+  tokens: Token[],
+  childNodes: CstNode[]
+): Array<CstNode | Token> {
+  const children: Array<CstNode | Token> = [];
+  const orderedNodes = [...childNodes].sort(
+    (left, right) => left.span.start.offset - right.span.start.offset
+  );
+  let cursor = span.start.offset;
+
+  for (const child of orderedNodes) {
+    children.push(...tokensInRange(tokens, span, cursor, child.span.start.offset));
+    children.push(child);
+    cursor = Math.max(cursor, child.span.end.offset);
+  }
+
+  children.push(...tokensInRange(tokens, span, cursor, span.end.offset));
+  return children;
+}
+
+function tokensInRange(
+  tokens: Token[],
+  parentSpan: Span,
+  startOffset: number,
+  endOffset: number
+): Token[] {
+  return tokens.filter(
+    (token) =>
+      token.type !== "eof" &&
+      token.span.start.offset >= startOffset &&
+      token.span.end.offset <= endOffset &&
+      token.span.start.offset >= parentSpan.start.offset &&
+      token.span.end.offset <= parentSpan.end.offset
+  );
 }
 
 function parseDiagnosticDetail(
