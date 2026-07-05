@@ -2,7 +2,7 @@ import type { ImportDecl, ModuleDecl, Program } from "@anpl/ast";
 import type { Diagnostic, Span } from "@anpl/core";
 import { createDiagnostic } from "@anpl/core";
 import type { ProductionSourceFile } from "@anpl/source";
-import { createSourceFile } from "@anpl/source";
+import { createSourceFile, hashSource } from "@anpl/source";
 import type { ModuleId } from "@anpl/symbols";
 import { createModuleId } from "@anpl/symbols";
 
@@ -27,6 +27,8 @@ export type AnplProject = {
   manifest: AnplManifest;
   files: ProductionSourceFile[];
   moduleGraph: ModuleGraph;
+  diagnostics: Diagnostic[];
+  cache: ProjectCacheMetadata;
 };
 
 export type LoadProjectOptions = {
@@ -48,6 +50,17 @@ export type InitProjectResult = {
 export type ProjectFileArtifact = {
   path: string;
   content: string;
+};
+
+export type ParseManifestResult = {
+  manifest: AnplManifest;
+  diagnostics: Diagnostic[];
+};
+
+export type ProjectCacheMetadata = {
+  manifestHash: string;
+  sourceHashes: Record<string, string>;
+  cacheKey: string;
 };
 
 export type ModuleGraph = {
@@ -111,25 +124,48 @@ export async function loadProject(
   options: LoadProjectOptions = {}
 ): Promise<AnplProject> {
   const manifestPath = await host.resolvePath(root, "anpl.json");
-  const loadedManifest = (await host.fileExists(manifestPath))
-    ? parseManifest(await host.readFile(manifestPath))
-    : defaultManifest;
+  const manifestFileExists = await host.fileExists(manifestPath);
+  const loadedManifest = manifestFileExists
+    ? await readManifest(manifestPath, host)
+    : {
+        manifest: defaultManifest,
+        diagnostics: []
+      };
   const manifest = {
-    ...loadedManifest,
-    entry: options.entry ?? loadedManifest.entry
+    ...loadedManifest.manifest,
+    entry: options.entry ?? loadedManifest.manifest.entry
   };
-  const sourcePaths = await discoverSourcePaths(root, manifest, host);
-  const files = await Promise.all(
-    sourcePaths.map(async (sourcePath) =>
-      createSourceFile(sourcePath, await host.readFile(sourcePath))
-    )
-  );
+  const discovery = await discoverSourcePathsDetailed(root, manifest, host, {
+    reportPatternDiagnostics: manifestFileExists
+  });
+  const diagnostics = [...loadedManifest.diagnostics, ...discovery.diagnostics];
+  const files: ProductionSourceFile[] = [];
+
+  for (const sourcePath of discovery.paths) {
+    try {
+      files.push(createSourceFile(sourcePath, await host.readFile(sourcePath)));
+    } catch (error) {
+      diagnostics.push(
+        projectDiagnostic({
+          code: "ANPL_PROJECT_SOURCE_READ_ERROR",
+          message: `Could not read ANPL source file '${sourcePath}'.`,
+          file: sourcePath,
+          symbol: sourcePath,
+          cause: "The project loader resolved a source path, but the compiler host could not read it.",
+          fix: "Make the file readable or remove it from the manifest source patterns.",
+          evidence: [error instanceof Error ? error.message : String(error)]
+        })
+      );
+    }
+  }
 
   return {
     root,
     manifest,
     files,
-    moduleGraph: emptyModuleGraph()
+    moduleGraph: emptyModuleGraph(),
+    diagnostics,
+    cache: createProjectCache(manifest, files)
   };
 }
 
@@ -220,19 +256,51 @@ export async function discoverSourcePaths(
   manifest: AnplManifest,
   host: ProjectHost
 ): Promise<string[]> {
+  return (await discoverSourcePathsDetailed(root, manifest, host)).paths;
+}
+
+type SourceDiscoveryResult = {
+  paths: string[];
+  diagnostics: Diagnostic[];
+};
+
+async function discoverSourcePathsDetailed(
+  root: string,
+  manifest: AnplManifest,
+  host: ProjectHost,
+  options: { reportPatternDiagnostics?: boolean } = {}
+): Promise<SourceDiscoveryResult> {
   const sourcePaths = new Set<string>();
+  const diagnostics: Diagnostic[] = [];
   const entryPath = await host.resolvePath(root, manifest.entry);
 
   for (const pattern of manifest.source) {
     if (isGlobPattern(pattern)) {
       if (host.readDir === undefined) {
+        if (options.reportPatternDiagnostics === true) {
+          diagnostics.push(sourcePatternDiagnostic(pattern, "Compiler host does not support directory reads."));
+        }
         continue;
       }
       const base = await host.resolvePath(root, staticBaseForGlob(pattern));
       if (!(await host.fileExists(base))) {
+        if (options.reportPatternDiagnostics === true) {
+          diagnostics.push(sourcePatternDiagnostic(pattern, `Source pattern base '${base}' does not exist.`));
+        }
         continue;
       }
-      for (const candidate of await walkFiles(base, host)) {
+      let candidates: string[];
+      try {
+        candidates = await walkFiles(base, host);
+      } catch (error) {
+        if (options.reportPatternDiagnostics === true) {
+          diagnostics.push(
+            sourcePatternDiagnostic(pattern, error instanceof Error ? error.message : String(error))
+          );
+        }
+        continue;
+      }
+      for (const candidate of candidates) {
         const relative = relativePath(root, candidate);
         if (matchesGlob(relative, pattern)) {
           sourcePaths.add(candidate);
@@ -244,31 +312,365 @@ export async function discoverSourcePaths(
     const sourcePath = await host.resolvePath(root, pattern);
     if (await host.fileExists(sourcePath)) {
       sourcePaths.add(sourcePath);
+    } else if (options.reportPatternDiagnostics === true) {
+      diagnostics.push(
+        projectDiagnostic({
+          code: "ANPL_PROJECT_SOURCE_NOT_FOUND",
+          message: `Source file '${pattern}' from anpl.json was not found.`,
+          symbol: pattern,
+          expected: "readable ANPL source file",
+          received: "missing file",
+          cause: "The manifest source list references a file that the compiler host cannot find.",
+          fix: "Create the source file or remove the path from anpl.json."
+        })
+      );
     }
   }
 
   if (await host.fileExists(entryPath)) {
     sourcePaths.add(entryPath);
+  } else {
+    diagnostics.push(
+      projectDiagnostic({
+        code: "ANPL_PROJECT_ENTRY_NOT_FOUND",
+        message: `Project entry '${manifest.entry}' was not found.`,
+        symbol: manifest.entry,
+        expected: "readable ANPL entry file",
+        received: "missing file",
+        cause: "The compiler could not resolve the project entry file before parsing.",
+        fix: "Create the entry file, update anpl.json, or pass a valid entry path."
+      })
+    );
   }
 
-  return [...sourcePaths].sort((left, right) => relativePath(root, left).localeCompare(relativePath(root, right)));
+  return {
+    paths: [...sourcePaths].sort((left, right) =>
+      relativePath(root, left).localeCompare(relativePath(root, right))
+    ),
+    diagnostics
+  };
 }
 
 export function parseManifest(content: string): AnplManifest {
-  const parsed = JSON.parse(content) as Partial<AnplManifest>;
+  return parseManifestResult(content).manifest;
+}
+
+export function parseManifestResult(content: string, file = "anpl.json"): ParseManifestResult {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(content);
+  } catch (error) {
+    return {
+      manifest: defaultManifest,
+      diagnostics: [
+        projectDiagnostic({
+          code: "ANPL_PROJECT_INVALID_MANIFEST",
+          message: `Invalid ANPL manifest '${file}'.`,
+          file,
+          expected: "valid JSON object",
+          received: "invalid JSON",
+          cause: "The project manifest could not be parsed as JSON.",
+          fix: "Fix the JSON syntax in anpl.json.",
+          evidence: [error instanceof Error ? error.message : String(error)]
+        })
+      ]
+    };
+  }
+
+  return normalizeManifest(parsed, file);
+}
+
+async function readManifest(
+  manifestPath: string,
+  host: ProjectHost
+): Promise<ParseManifestResult> {
+  try {
+    return parseManifestResult(await host.readFile(manifestPath), manifestPath);
+  } catch (error) {
+    return {
+      manifest: defaultManifest,
+      diagnostics: [
+        projectDiagnostic({
+          code: "ANPL_PROJECT_INVALID_MANIFEST",
+          message: `Could not read ANPL manifest '${manifestPath}'.`,
+          file: manifestPath,
+          expected: "readable anpl.json",
+          received: "unreadable manifest",
+          cause: "The project manifest exists, but the compiler host could not read it.",
+          fix: "Make anpl.json readable or run the compiler from the correct project root.",
+          evidence: [error instanceof Error ? error.message : String(error)]
+        })
+      ]
+    };
+  }
+}
+
+function normalizeManifest(parsed: unknown, file: string): ParseManifestResult {
+  if (!isRecord(parsed)) {
+    return {
+      manifest: defaultManifest,
+      diagnostics: [
+        projectDiagnostic({
+          code: "ANPL_PROJECT_INVALID_MANIFEST",
+          message: `Invalid ANPL manifest '${file}'.`,
+          file,
+          expected: "JSON object",
+          received: describeValue(parsed),
+          cause: "The project manifest root must be an object.",
+          fix: "Replace anpl.json with an object containing name, entry, source, target, and language fields."
+        })
+      ]
+    };
+  }
+
+  const diagnostics: Diagnostic[] = [];
+  const target = isRecord(parsed.target) ? parsed.target : undefined;
+  const language = isRecord(parsed.language) ? parsed.language : undefined;
+
+  if (parsed.target !== undefined && target === undefined) {
+    diagnostics.push(invalidManifestField(file, "target", "object", describeValue(parsed.target)));
+  }
+
+  if (parsed.language !== undefined && language === undefined) {
+    diagnostics.push(invalidManifestField(file, "language", "object", describeValue(parsed.language)));
+  }
 
   return {
-    ...defaultManifest,
-    ...parsed,
-    target: {
-      ...defaultManifest.target,
-      ...parsed.target
+    manifest: {
+      name: optionalString(parsed.name, defaultManifest.name, file, "name", diagnostics),
+      version: optionalString(parsed.version, defaultManifest.version, file, "version", diagnostics),
+      entry: optionalString(parsed.entry, defaultManifest.entry, file, "entry", diagnostics),
+      source: optionalStringArray(parsed.source, defaultManifest.source, file, "source", diagnostics),
+      target: {
+        default: optionalTargetDefault(
+          target?.default,
+          defaultManifest.target.default,
+          file,
+          "target.default",
+          diagnostics
+        ),
+        outDir: optionalString(
+          target?.outDir,
+          defaultManifest.target.outDir,
+          file,
+          "target.outDir",
+          diagnostics
+        )
+      },
+      language: {
+        version: optionalLanguageVersion(
+          language?.version,
+          defaultManifest.language.version,
+          file,
+          "language.version",
+          diagnostics
+        ),
+        strict: optionalBoolean(
+          language?.strict,
+          defaultManifest.language.strict,
+          file,
+          "language.strict",
+          diagnostics
+        ),
+        canonical: optionalBoolean(
+          language?.canonical,
+          defaultManifest.language.canonical,
+          file,
+          "language.canonical",
+          diagnostics
+        )
+      }
     },
-    language: {
-      ...defaultManifest.language,
-      ...parsed.language
-    }
+    diagnostics
   };
+}
+
+function createProjectCache(
+  manifest: AnplManifest,
+  files: ProductionSourceFile[]
+): ProjectCacheMetadata {
+  const manifestHash = hashSource(JSON.stringify(manifest));
+  const sourceHashes = Object.fromEntries(
+    files
+      .map((file) => [file.path, file.hash] as const)
+      .sort(([left], [right]) => left.localeCompare(right))
+  );
+  const cacheKey = hashSource(
+    [manifestHash, ...Object.entries(sourceHashes).map(([path, hash]) => `${path}:${hash}`)].join("\n")
+  );
+
+  return {
+    manifestHash,
+    sourceHashes,
+    cacheKey
+  };
+}
+
+function optionalString(
+  value: unknown,
+  fallback: string,
+  file: string,
+  field: string,
+  diagnostics: Diagnostic[]
+): string {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  if (typeof value === "string" && value.length > 0) {
+    return value;
+  }
+
+  diagnostics.push(invalidManifestField(file, field, "non-empty string", describeValue(value)));
+  return fallback;
+}
+
+function optionalStringArray(
+  value: unknown,
+  fallback: string[],
+  file: string,
+  field: string,
+  diagnostics: Diagnostic[]
+): string[] {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  if (Array.isArray(value) && value.every((item) => typeof item === "string" && item.length > 0)) {
+    return value;
+  }
+
+  diagnostics.push(invalidManifestField(file, field, "array of non-empty strings", describeValue(value)));
+  return fallback;
+}
+
+function optionalBoolean(
+  value: unknown,
+  fallback: boolean,
+  file: string,
+  field: string,
+  diagnostics: Diagnostic[]
+): boolean {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  if (typeof value === "boolean") {
+    return value;
+  }
+
+  diagnostics.push(invalidManifestField(file, field, "boolean", describeValue(value)));
+  return fallback;
+}
+
+function optionalTargetDefault(
+  value: unknown,
+  fallback: AnplManifest["target"]["default"],
+  file: string,
+  field: string,
+  diagnostics: Diagnostic[]
+): AnplManifest["target"]["default"] {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  if (value === "js" || value === "ts" || value === "interpreter") {
+    return value;
+  }
+
+  diagnostics.push(invalidManifestField(file, field, "'js', 'ts', or 'interpreter'", describeValue(value)));
+  return fallback;
+}
+
+function optionalLanguageVersion(
+  value: unknown,
+  fallback: AnplManifest["language"]["version"],
+  file: string,
+  field: string,
+  diagnostics: Diagnostic[]
+): AnplManifest["language"]["version"] {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  if (value === "0.1") {
+    return value;
+  }
+
+  diagnostics.push(invalidManifestField(file, field, "'0.1'", describeValue(value)));
+  return fallback;
+}
+
+function invalidManifestField(
+  file: string,
+  field: string,
+  expected: string,
+  received: string
+): Diagnostic {
+  return projectDiagnostic({
+    code: "ANPL_PROJECT_INVALID_MANIFEST",
+    message: `Invalid anpl.json field '${field}'.`,
+    file,
+    symbol: field,
+    expected,
+    received,
+    cause: "The project manifest field does not match the ANPL manifest schema.",
+    fix: `Update '${field}' to use ${expected}.`
+  });
+}
+
+function sourcePatternDiagnostic(pattern: string, evidence: string): Diagnostic {
+  return projectDiagnostic({
+    code: "ANPL_PROJECT_SOURCE_PATTERN_UNREADABLE",
+    message: `Source pattern '${pattern}' could not be read.`,
+    symbol: pattern,
+    expected: "readable source pattern",
+    received: "unreadable source pattern",
+    cause: "The project loader could not enumerate files for a manifest source pattern.",
+    fix: "Create the pattern base directory, fix the source pattern, or use a host with readDir support.",
+    evidence: [evidence]
+  });
+}
+
+function projectDiagnostic(input: {
+  code: string;
+  message: string;
+  file?: string;
+  symbol?: string;
+  expected?: string;
+  received?: string;
+  cause?: string;
+  fix?: string;
+  evidence?: string[];
+}): Diagnostic {
+  return createDiagnostic({
+    code: input.code,
+    severity: "error",
+    category: "project",
+    message: input.message,
+    file: input.file,
+    symbol: input.symbol,
+    expected: input.expected,
+    received: input.received,
+    cause: input.cause,
+    fix: input.fix,
+    evidence: input.evidence,
+    confidence: "high"
+  });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function describeValue(value: unknown): string {
+  if (Array.isArray(value)) {
+    return "array";
+  }
+  if (value === null) {
+    return "null";
+  }
+  return typeof value;
 }
 
 export function buildModuleGraph(program: Program, file = "<memory>"): ModuleGraph {

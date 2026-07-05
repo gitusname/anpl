@@ -7,6 +7,7 @@ import {
   initProject,
   loadProject,
   parseManifest,
+  parseManifestResult,
   type ProjectHost
 } from "./index.js";
 
@@ -77,6 +78,42 @@ describe("project system", () => {
     expect(manifest.target.outDir).toBe("dist");
   });
 
+  it("reports invalid manifest JSON as structured diagnostics", () => {
+    const result = parseManifestResult("{", "/project/anpl.json");
+
+    expect(result.manifest.entry).toBe("src/main.anpl");
+    expect(result.diagnostics).toMatchObject([
+      {
+        code: "ANPL_PROJECT_INVALID_MANIFEST",
+        category: "project",
+        file: "/project/anpl.json",
+        expected: "valid JSON object",
+        received: "invalid JSON"
+      }
+    ]);
+  });
+
+  it("reports invalid manifest fields without throwing", () => {
+    const result = parseManifestResult(
+      JSON.stringify({
+        name: 42,
+        source: ["src/main.anpl", ""],
+        target: {
+          default: "wasm"
+        }
+      }),
+      "/project/anpl.json"
+    );
+
+    expect(result.manifest.name).toBe("anpl-project");
+    expect(result.manifest.target.default).toBe("js");
+    expect(result.diagnostics.map((diagnostic) => diagnostic.symbol)).toEqual([
+      "name",
+      "source",
+      "target.default"
+    ]);
+  });
+
   it("discovers manifest source globs and always includes the entry file", async () => {
     const host = memoryHost({
       "/project/anpl.json": JSON.stringify({
@@ -99,6 +136,84 @@ describe("project system", () => {
       "/project/src/nested/crm.anpl"
     ]);
     expect(project.files.map((file) => file.path)).toEqual(sources);
+  });
+
+  it("reports missing manifest source patterns and entry files", async () => {
+    const project = await loadProject(
+      "/project",
+      memoryHost({
+        "/project/anpl.json": JSON.stringify({
+          name: "missing-sources",
+          entry: "src/main.anpl",
+          source: ["src/**/*.anpl", "extra.anpl"]
+        })
+      })
+    );
+
+    expect(project.files).toEqual([]);
+    expect(project.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
+      "ANPL_PROJECT_SOURCE_PATTERN_UNREADABLE",
+      "ANPL_PROJECT_SOURCE_NOT_FOUND",
+      "ANPL_PROJECT_ENTRY_NOT_FOUND"
+    ]);
+  });
+
+  it("reports unreadable manifest source patterns when directory walking fails", async () => {
+    const host = memoryHost({
+      "/project/anpl.json": JSON.stringify({
+        name: "unreadable",
+        entry: "src/main.anpl",
+        source: ["src/**/*.anpl"]
+      }),
+      "/project/src/main.anpl": "module app"
+    });
+    host.readDir = async () => {
+      throw new Error("permission denied");
+    };
+
+    const project = await loadProject("/project", host);
+
+    expect(project.files.map((file) => file.path)).toEqual(["/project/src/main.anpl"]);
+    expect(project.diagnostics).toMatchObject([
+      {
+        code: "ANPL_PROJECT_SOURCE_PATTERN_UNREADABLE",
+        evidence: ["permission denied"]
+      }
+    ]);
+  });
+
+  it("computes cache metadata from effective manifest and source hashes", async () => {
+    const host = memoryHost({
+      "/project/anpl.json": JSON.stringify({
+        name: "cache-demo",
+        entry: "src/main.anpl",
+        source: ["src/main.anpl"]
+      }),
+      "/project/src/main.anpl": `module app
+
+fn main() -> int {
+  return 1
+}`
+    });
+
+    const first = await loadProject("/project", host);
+    await host.writeFile?.(
+      "/project/src/main.anpl",
+      `module app
+
+fn main() -> int {
+  return 2
+}`
+    );
+    const second = await loadProject("/project", host);
+    const third = await loadProject("/project", host, {
+      entry: "src/other.anpl"
+    });
+
+    expect(first.cache.sourceHashes["/project/src/main.anpl"]).toBe(first.files[0]?.hash);
+    expect(second.cache.sourceHashes["/project/src/main.anpl"]).toBe(second.files[0]?.hash);
+    expect(second.cache.cacheKey).not.toBe(first.cache.cacheKey);
+    expect(third.cache.manifestHash).not.toBe(second.cache.manifestHash);
   });
 
   it("builds a module graph from parsed modules", () => {

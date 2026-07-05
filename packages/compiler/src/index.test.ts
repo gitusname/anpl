@@ -91,6 +91,27 @@ fn main() -> int {
 
     expect(result.ok).toBe(true);
     expect(result.timings).toHaveProperty("parseMs");
+    expect(result.cache?.cacheKey).toEqual(expect.any(String));
+  });
+
+  it("returns project diagnostics for invalid manifests without throwing", async () => {
+    const result = await compileProject(
+      {
+        mode: "check",
+        projectRoot: "/project"
+      },
+      memoryHost({
+        "/project/anpl.json": "{"
+      })
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      "ANPL_PROJECT_INVALID_MANIFEST"
+    );
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).not.toContain(
+      "ANPL_COMPILER_ERROR"
+    );
   });
 
   it("emits HIR and MIR artifacts", async () => {

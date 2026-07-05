@@ -47,12 +47,18 @@ host, merges parsed project modules, and validates imports across source files.
 `anpl init` creates a minimal manifest and starter `src/main.anpl` through the
 compiler/project host abstraction.
 
+Implemented foundation:
+
+- Return structured project diagnostics for invalid manifests, missing entries,
+  missing source files, unreadable source patterns, and source read failures.
+- Expose project cache metadata from the effective manifest and resolved source
+  hashes through the compiler result.
+
 Next work:
 
-- Add project-level diagnostics for invalid manifests and unreadable source
-  patterns.
 - Add package boundaries and external dependency resolution.
-- Add cache keys from source hashes and manifest content.
+- Add incremental compilation cache storage on top of the current cache key
+  metadata.
 
 ## 4. Structured Diagnostic Improvements
 

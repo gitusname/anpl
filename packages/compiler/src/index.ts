@@ -17,6 +17,7 @@ import {
   initProject,
   loadProject,
   type InitProjectOptions,
+  type ProjectCacheMetadata,
   type ProjectDirEntry
 } from "@anpl/project";
 import { analyzeProgram, type SemanticResult } from "@anpl/semantic";
@@ -50,6 +51,7 @@ export type CompilerResult<T = unknown> = {
   diagnostics: Diagnostic[];
   artifacts: CompilerArtifact[];
   timings: CompilerTimings;
+  cache?: ProjectCacheMetadata;
 };
 
 export type CompilerArtifact = {
@@ -162,6 +164,19 @@ export async function compileProject(
     const project = await loadProject(options.projectRoot, host, {
       entry: options.entry
     });
+    diagnostics.push(...project.diagnostics);
+    if (project.diagnostics.some((diagnostic) => diagnostic.severity === "error")) {
+      timings.loadMs = host.now() - loadStart;
+      return finish({
+        ok: false,
+        diagnostics,
+        artifacts,
+        timings,
+        totalStart,
+        host,
+        cache: project.cache
+      });
+    }
     const entry = project.manifest.entry;
     const sourcePath = await host.resolvePath(options.projectRoot, entry);
     const entrySourceFile = project.files.find((file) => file.path === sourcePath);
@@ -183,7 +198,8 @@ export async function compileProject(
         artifacts,
         timings,
         totalStart,
-        host
+        host,
+        cache: project.cache
       });
     }
 
@@ -201,7 +217,8 @@ export async function compileProject(
         artifacts,
         timings,
         totalStart,
-        host
+        host,
+        cache: project.cache
       });
     }
 
@@ -240,7 +257,8 @@ export async function compileProject(
       artifacts,
       timings,
       totalStart,
-      host
+      host,
+      cache: project.cache
     });
   } catch (error) {
     diagnostics.push(
@@ -353,6 +371,7 @@ function finish(input: {
   timings: CompilerTimings;
   totalStart: number;
   host: CompilerHost;
+  cache?: ProjectCacheMetadata;
 }): CompilerResult {
   input.timings.totalMs = input.host.now() - input.totalStart;
 
@@ -361,7 +380,8 @@ function finish(input: {
     value: input.value,
     diagnostics: input.diagnostics,
     artifacts: input.artifacts,
-    timings: input.timings
+    timings: input.timings,
+    cache: input.cache
   };
 }
 

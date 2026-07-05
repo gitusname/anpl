@@ -105,6 +105,51 @@ export const diagnosticRegistry = {
     fixTemplate: "Check anpl.json entry/source patterns or pass a valid file path.",
     aiRepairable: true
   },
+  ANPL_PROJECT_INVALID_MANIFEST: {
+    code: "ANPL_PROJECT_INVALID_MANIFEST",
+    category: "project",
+    severity: "error",
+    messageTemplate: "Invalid ANPL manifest.",
+    causeTemplate: "The anpl.json manifest is missing required shape or contains invalid JSON/schema values.",
+    fixTemplate: "Fix anpl.json so it matches the ANPL manifest schema.",
+    aiRepairable: true
+  },
+  ANPL_PROJECT_ENTRY_NOT_FOUND: {
+    code: "ANPL_PROJECT_ENTRY_NOT_FOUND",
+    category: "project",
+    severity: "error",
+    messageTemplate: "Project entry '{symbol}' was not found.",
+    causeTemplate: "The project entry path does not resolve to a readable ANPL source file.",
+    fixTemplate: "Create the entry file, update anpl.json, or pass a valid entry path.",
+    aiRepairable: true
+  },
+  ANPL_PROJECT_SOURCE_NOT_FOUND: {
+    code: "ANPL_PROJECT_SOURCE_NOT_FOUND",
+    category: "project",
+    severity: "error",
+    messageTemplate: "Source file '{symbol}' from anpl.json was not found.",
+    causeTemplate: "The manifest source list references a file that is not present in the project.",
+    fixTemplate: "Create the file or remove the stale source path from anpl.json.",
+    aiRepairable: true
+  },
+  ANPL_PROJECT_SOURCE_PATTERN_UNREADABLE: {
+    code: "ANPL_PROJECT_SOURCE_PATTERN_UNREADABLE",
+    category: "project",
+    severity: "error",
+    messageTemplate: "Source pattern '{symbol}' could not be read.",
+    causeTemplate: "The project loader could not enumerate a manifest source pattern.",
+    fixTemplate: "Create the pattern base directory, fix the source glob, or use a host with readDir support.",
+    aiRepairable: true
+  },
+  ANPL_PROJECT_SOURCE_READ_ERROR: {
+    code: "ANPL_PROJECT_SOURCE_READ_ERROR",
+    category: "project",
+    severity: "error",
+    messageTemplate: "Could not read ANPL source file '{symbol}'.",
+    causeTemplate: "A resolved source path could not be read by the compiler host.",
+    fixTemplate: "Make the file readable or remove it from the manifest source patterns.",
+    aiRepairable: true
+  },
   ANPL_PROJECT_UNKNOWN_MODULE: {
     code: "ANPL_PROJECT_UNKNOWN_MODULE",
     category: "project",

@@ -23,7 +23,8 @@ remain planned.
   through `compileProject`.
 - Source file hashing and line map primitives.
 - Project manifest loading, source glob discovery, cross-file source loading,
-  and same-project module graph primitives.
+  invalid manifest/source diagnostics, source-hash cache keys, and same-project
+  module graph primitives.
 - Semantic analyzer split into early production passes for module collection,
   declaration collection, import resolution, type checks, expression checks,
   module-aware symbol tables, type registry output, and structured diagnostics.
@@ -67,8 +68,9 @@ remain planned.
   deterministic, but deeper MIR-to-source mapping and source maps are still
   future work.
 - Module imports work across files discovered from `anpl.json` source patterns,
-  but ANPL does not yet have package boundaries or external dependency
-  resolution.
+  and project cache keys are derived from the effective manifest plus resolved
+  source hashes. ANPL does not yet have package boundaries or external
+  dependency resolution.
 - JavaScript output has module namespacing and MIR block lowering, but it does
   not yet implement source maps, target runtime policy, or ESM-per-module
   output.
