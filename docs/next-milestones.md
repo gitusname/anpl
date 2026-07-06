@@ -163,9 +163,10 @@ Implemented foundation:
   fixture.
 - Parser/CST, AST, and semantic diagnostic snapshots for every current invalid
   fixture.
+- Process-level CLI integration conformance tests for `init`, `check`, `run`,
+  `emit`, `build`, `format`, `diagnose`, and `explain`.
 
 Next work:
 
-- Add broader CLI integration conformance tests.
 - Broaden formatter idempotency coverage as new valid fixtures are added.
 - Broaden parser robustness and recovery fixture coverage.

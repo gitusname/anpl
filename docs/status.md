@@ -54,7 +54,8 @@ remain planned.
   using tagged runtime values.
 - CLI commands: `init`, `check`, `run`, `build`, `emit ast|hir|mir|ir`,
   `emit-ast`, `emit-hir`, `emit-mir`, `emit-ir` compatibility aliases,
-  `format`, `diagnose`, `benchmark`, and `explain`.
+  `format`, `diagnose`, `benchmark`, and `explain`, with process-level
+  conformance coverage for the core CLI workflow commands.
 - Structured diagnostic primitives with codes, severity, location data,
   categories, expected/received values, cause/fix hints, evidence, repair patch
   slots, and confidence.
@@ -68,7 +69,7 @@ remain planned.
 - Initial conformance fixture suite with valid programs, invalid diagnostic
   expectations, MIR execution checks, JavaScript execution checks, valid
   parser/AST/HIR/MIR/JavaScript snapshots, and invalid parser/AST/diagnostic
-  snapshots.
+  snapshots, plus process-level CLI integration tests.
 - Offline benchmark fixture suite in `packages/benchmark` with 11 tasks, direct
   TypeScript fixture comparison, ANPL-first parse/semantic/build/run metrics,
   diagnostic token counts, generated-target token counts, and CLI

@@ -242,6 +242,7 @@ Current implemented foundation:
 * CLI commands: `init`, `check`, `run`, `build`, `emit ast|hir|mir|ir`, `emit-ast`, `emit-hir`, `emit-mir`, `emit-ir`, `format`, `diagnose`, `benchmark`, `explain`
 * canonical formatter with stable nested block indentation and fixture-level idempotency conformance
 * conformance snapshots for parser/CST, AST, HIR, MIR, JavaScript, and semantic diagnostics
+* process-level CLI conformance tests for init, check, run, emit, build, format, diagnose, and explain
 * offline benchmark fixture suite with source-size, parse, semantic, build, run, diagnostic, and generated-output metrics
 
 ## Roadmap

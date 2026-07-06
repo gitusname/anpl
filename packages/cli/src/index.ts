@@ -140,10 +140,14 @@ program
       return;
     }
 
-    const generated = result.artifacts.find(
+    const generated = result.artifacts.filter(
       (artifact) => artifact.kind === options.target
     );
-    console.log(`Generated ${generated?.path ?? `${options.out}/anpl.${options.target}`}`);
+    if (generated.length <= 1) {
+      console.log(`Generated ${generated[0]?.path ?? `${options.out}/anpl.${options.target}`}`);
+      return;
+    }
+    console.log(`Generated ${generated.length} ${options.target} artifacts in ${options.out}`);
   });
 
 program
