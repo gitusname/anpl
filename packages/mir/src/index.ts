@@ -32,23 +32,39 @@ export type MirLocal = {
 
 export type MirBlock = {
   id: string;
+  span?: Span;
   instructions: MirInstruction[];
   terminator: MirTerminator;
 };
 
-export type MirInstruction =
-  | { op: "const"; target: string; value: unknown; type: TypeId }
-  | { op: "load"; target: string; symbol: SymbolId; type: TypeId }
-  | { op: "store"; symbol: SymbolId; value: string }
-  | { op: "binary"; target: string; operator: string; left: string; right: string; type: TypeId }
-  | { op: "call"; target?: string; callee: SymbolId; args: string[]; type: TypeId }
-  | { op: "record"; target: string; type: TypeId; fields: Record<string, string> }
-  | { op: "member"; target: string; object: string; field: string; type: TypeId };
+type MirSourceRef = {
+  span?: Span;
+};
 
-export type MirTerminator =
-  | { kind: "return"; value?: string }
-  | { kind: "jump"; target: string }
-  | { kind: "branch"; condition: string; thenBlock: string; elseBlock: string };
+export type MirInstruction = MirSourceRef &
+  (
+    | { op: "const"; target: string; value: unknown; type: TypeId }
+    | { op: "load"; target: string; symbol: SymbolId; type: TypeId }
+    | { op: "store"; symbol: SymbolId; value: string }
+    | {
+        op: "binary";
+        target: string;
+        operator: string;
+        left: string;
+        right: string;
+        type: TypeId;
+      }
+    | { op: "call"; target?: string; callee: SymbolId; args: string[]; type: TypeId }
+    | { op: "record"; target: string; type: TypeId; fields: Record<string, string> }
+    | { op: "member"; target: string; object: string; field: string; type: TypeId }
+  );
+
+export type MirTerminator = MirSourceRef &
+  (
+    | { kind: "return"; value?: string }
+    | { kind: "jump"; target: string }
+    | { kind: "branch"; condition: string; thenBlock: string; elseBlock: string }
+  );
 
 type FunctionBinding = {
   id: SymbolId;
@@ -202,7 +218,7 @@ function lowerFunction(
   fn: HirFunction,
   lowering: LoweringContext
 ): MirFunction {
-  const entry = createBlock(`${fn.id}.entry`);
+  const entry = createBlock(`${fn.id}.entry`, fn.body.span);
   const context: FunctionContext = {
     moduleName: moduleDecl.name,
     functionId: fn.id,
@@ -258,14 +274,17 @@ function lowerStmt(stmt: Stmt, context: FunctionContext): void {
       emit(context, {
         op: "store",
         symbol,
-        value: value.value
+        value: value.value,
+        span: stmt.span
       });
       return;
     }
     case "ReturnStmt": {
       const value = stmt.value === undefined ? undefined : lowerExpr(stmt.value, context);
       context.current.terminator =
-        value === undefined ? { kind: "return" } : { kind: "return", value: value.value };
+        value === undefined
+          ? { kind: "return", span: stmt.span }
+          : { kind: "return", value: value.value, span: stmt.span };
       markTerminated(context);
       return;
     }
@@ -280,15 +299,16 @@ function lowerStmt(stmt: Stmt, context: FunctionContext): void {
 
 function lowerIf(stmt: IfStmt, context: FunctionContext): void {
   const condition = lowerExpr(stmt.condition, context);
-  const thenBlock = pushBlock(context, "then");
-  const elseBlock = pushBlock(context, "else");
+  const thenBlock = pushBlock(context, "then", stmt.thenBranch.span);
+  const elseBlock = pushBlock(context, "else", stmt.elseBranch?.span);
   const afterBlock = pushBlock(context, "after");
 
   context.current.terminator = {
     kind: "branch",
     condition: condition.value,
     thenBlock: thenBlock.id,
-    elseBlock: elseBlock.id
+    elseBlock: elseBlock.id,
+    span: stmt.span
   };
   markTerminated(context);
 
@@ -297,7 +317,8 @@ function lowerIf(stmt: IfStmt, context: FunctionContext): void {
   if (!isTerminated(context)) {
     context.current.terminator = {
       kind: "jump",
-      target: afterBlock.id
+      target: afterBlock.id,
+      span: stmt.thenBranch.span
     };
     markTerminated(context);
   }
@@ -307,10 +328,14 @@ function lowerIf(stmt: IfStmt, context: FunctionContext): void {
     lowerElseBranch(stmt.elseBranch, context);
   }
   if (!isTerminated(context)) {
-    context.current.terminator = {
+    const terminator: MirTerminator = {
       kind: "jump",
       target: afterBlock.id
     };
+    if (stmt.elseBranch?.span !== undefined) {
+      terminator.span = stmt.elseBranch.span;
+    }
+    context.current.terminator = terminator;
     markTerminated(context);
   }
 
@@ -329,9 +354,9 @@ function lowerElseBranch(branch: BlockStmt | IfStmt, context: FunctionContext): 
 function lowerExpr(expr: Expr, context: FunctionContext): LoweredExpr {
   switch (expr.kind) {
     case "LiteralExpr":
-      return lowerLiteral(expr.value, context);
+      return lowerLiteral(expr, context);
     case "IdentifierExpr":
-      return lowerIdentifier(expr.name, context);
+      return lowerIdentifier(expr, context);
     case "BinaryExpr":
       return lowerBinary(expr, context);
     case "CallExpr":
@@ -343,19 +368,28 @@ function lowerExpr(expr: Expr, context: FunctionContext): LoweredExpr {
   }
 }
 
-function lowerLiteral(value: LiteralValue, context: FunctionContext): LoweredExpr {
-  const type = literalType(value);
+function lowerLiteral(
+  expr: Extract<Expr, { kind: "LiteralExpr" }>,
+  context: FunctionContext
+): LoweredExpr {
+  const type = literalType(expr.value);
   const target = freshTemp(context);
   emit(context, {
     op: "const",
     target,
-    value,
-    type
+    value: expr.value,
+    type,
+    span: expr.span
   });
   return { value: target, type };
 }
 
-function lowerIdentifier(name: string, context: FunctionContext): LoweredExpr {
+function lowerIdentifier(
+  expr: Extract<Expr, { kind: "IdentifierExpr" }>,
+  context: FunctionContext
+): LoweredExpr {
+  const { name } = expr;
+
   if (!context.localSymbols.has(name)) {
     const target = freshTemp(context);
     const type = primitiveTypeId("text");
@@ -363,7 +397,8 @@ function lowerIdentifier(name: string, context: FunctionContext): LoweredExpr {
       op: "const",
       target,
       value: name,
-      type
+      type,
+      span: expr.span
     });
     return { value: target, type };
   }
@@ -375,7 +410,8 @@ function lowerIdentifier(name: string, context: FunctionContext): LoweredExpr {
     op: "load",
     target,
     symbol,
-    type
+    type,
+    span: expr.span
   });
   return { value: target, type };
 }
@@ -395,7 +431,8 @@ function lowerBinary(
     operator: expr.operator,
     left: left.value,
     right: right.value,
-    type
+    type,
+    span: expr.span
   });
   return { value: target, type };
 }
@@ -414,11 +451,12 @@ function lowerCall(
     target,
     callee,
     args: args.map((arg) => arg.value),
-    type
+    type,
+    span: expr.span
   });
 
   return {
-    value: target ?? freshVoidValue(context),
+    value: target ?? freshVoidValue(context, expr.span),
     type
   };
 }
@@ -439,7 +477,8 @@ function lowerRecord(
     op: "record",
     target,
     type,
-    fields: loweredFields
+    fields: loweredFields,
+    span: expr.span
   });
   return { value: target, type };
 }
@@ -456,7 +495,8 @@ function lowerMember(
     target,
     object: object.value,
     field: expr.property,
-    type
+    type,
+    span: expr.span
   });
   return { value: target, type };
 }
@@ -586,27 +626,29 @@ function freshTemp(context: FunctionContext): string {
   return `%${context.tempIndex}`;
 }
 
-function freshVoidValue(context: FunctionContext): string {
+function freshVoidValue(context: FunctionContext, span?: Span): string {
   const target = freshTemp(context);
   emit(context, {
     op: "const",
     target,
     value: null,
-    type: primitiveTypeId("null")
+    type: primitiveTypeId("null"),
+    span
   });
   return target;
 }
 
-function pushBlock(context: FunctionContext, label: string): MirBlock {
+function pushBlock(context: FunctionContext, label: string, span?: Span): MirBlock {
   context.blockIndex += 1;
-  const block = createBlock(`${context.functionId}.${label}${context.blockIndex}`);
+  const block = createBlock(`${context.functionId}.${label}${context.blockIndex}`, span);
   context.blocks.push(block);
   return block;
 }
 
-function createBlock(id: string): MirBlock {
+function createBlock(id: string, span?: Span): MirBlock {
   return {
     id,
+    ...(span === undefined ? {} : { span }),
     instructions: [],
     terminator: {
       kind: "return"

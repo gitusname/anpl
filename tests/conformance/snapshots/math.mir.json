@@ -29,18 +29,57 @@
       "blocks": [
         {
           "id": "math.add.entry",
+          "span": {
+            "file": "tests/conformance/valid/math.anpl",
+            "start": {
+              "offset": 43,
+              "line": 3,
+              "column": 31
+            },
+            "end": {
+              "offset": 61,
+              "line": 5,
+              "column": 2
+            }
+          },
           "instructions": [
             {
               "op": "load",
               "target": "%1",
               "symbol": "math.add.a",
-              "type": "int"
+              "type": "int",
+              "span": {
+                "file": "tests/conformance/valid/math.anpl",
+                "start": {
+                  "offset": 54,
+                  "line": 4,
+                  "column": 10
+                },
+                "end": {
+                  "offset": 55,
+                  "line": 4,
+                  "column": 11
+                }
+              }
             },
             {
               "op": "load",
               "target": "%2",
               "symbol": "math.add.b",
-              "type": "int"
+              "type": "int",
+              "span": {
+                "file": "tests/conformance/valid/math.anpl",
+                "start": {
+                  "offset": 58,
+                  "line": 4,
+                  "column": 14
+                },
+                "end": {
+                  "offset": 59,
+                  "line": 4,
+                  "column": 15
+                }
+              }
             },
             {
               "op": "binary",
@@ -48,12 +87,38 @@
               "operator": "+",
               "left": "%1",
               "right": "%2",
-              "type": "int"
+              "type": "int",
+              "span": {
+                "file": "tests/conformance/valid/math.anpl",
+                "start": {
+                  "offset": 54,
+                  "line": 4,
+                  "column": 10
+                },
+                "end": {
+                  "offset": 59,
+                  "line": 4,
+                  "column": 15
+                }
+              }
             }
           ],
           "terminator": {
             "kind": "return",
-            "value": "%3"
+            "value": "%3",
+            "span": {
+              "file": "tests/conformance/valid/math.anpl",
+              "start": {
+                "offset": 47,
+                "line": 4,
+                "column": 3
+              },
+              "end": {
+                "offset": 59,
+                "line": 4,
+                "column": 15
+              }
+            }
           }
         }
       ]
@@ -78,18 +143,57 @@
       "blocks": [
         {
           "id": "math.main.entry",
+          "span": {
+            "file": "tests/conformance/valid/math.anpl",
+            "start": {
+              "offset": 80,
+              "line": 7,
+              "column": 18
+            },
+            "end": {
+              "offset": 129,
+              "line": 10,
+              "column": 2
+            }
+          },
           "instructions": [
             {
               "op": "const",
               "target": "%1",
               "value": 2,
-              "type": "int"
+              "type": "int",
+              "span": {
+                "file": "tests/conformance/valid/math.anpl",
+                "start": {
+                  "offset": 106,
+                  "line": 8,
+                  "column": 25
+                },
+                "end": {
+                  "offset": 107,
+                  "line": 8,
+                  "column": 26
+                }
+              }
             },
             {
               "op": "const",
               "target": "%2",
               "value": 3,
-              "type": "int"
+              "type": "int",
+              "span": {
+                "file": "tests/conformance/valid/math.anpl",
+                "start": {
+                  "offset": 109,
+                  "line": 8,
+                  "column": 28
+                },
+                "end": {
+                  "offset": 110,
+                  "line": 8,
+                  "column": 29
+                }
+              }
             },
             {
               "op": "call",
@@ -99,23 +203,75 @@
                 "%1",
                 "%2"
               ],
-              "type": "int"
+              "type": "int",
+              "span": {
+                "file": "tests/conformance/valid/math.anpl",
+                "start": {
+                  "offset": 102,
+                  "line": 8,
+                  "column": 21
+                },
+                "end": {
+                  "offset": 111,
+                  "line": 8,
+                  "column": 30
+                }
+              }
             },
             {
               "op": "store",
               "symbol": "math.main.result",
-              "value": "%3"
+              "value": "%3",
+              "span": {
+                "file": "tests/conformance/valid/math.anpl",
+                "start": {
+                  "offset": 84,
+                  "line": 8,
+                  "column": 3
+                },
+                "end": {
+                  "offset": 111,
+                  "line": 8,
+                  "column": 30
+                }
+              }
             },
             {
               "op": "load",
               "target": "%4",
               "symbol": "math.main.result",
-              "type": "int"
+              "type": "int",
+              "span": {
+                "file": "tests/conformance/valid/math.anpl",
+                "start": {
+                  "offset": 121,
+                  "line": 9,
+                  "column": 10
+                },
+                "end": {
+                  "offset": 127,
+                  "line": 9,
+                  "column": 16
+                }
+              }
             }
           ],
           "terminator": {
             "kind": "return",
-            "value": "%4"
+            "value": "%4",
+            "span": {
+              "file": "tests/conformance/valid/math.anpl",
+              "start": {
+                "offset": 114,
+                "line": 9,
+                "column": 3
+              },
+              "end": {
+                "offset": 127,
+                "line": 9,
+                "column": 16
+              }
+            }
           }
         }
       ]

@@ -31,12 +31,14 @@ export type BackendSourceMap = {
 };
 
 export type BackendSourceMapEntry = {
+  kind: "function" | "block" | "instruction" | "terminator";
   generated: {
     line: number;
     column: number;
     module: string;
     function: string;
     symbol: string;
+    block?: string;
   };
   source?: {
     file?: string;
@@ -45,7 +47,11 @@ export type BackendSourceMapEntry = {
   };
   mir: {
     function: string;
-    blocks: string[];
+    blocks?: string[];
+    block?: string;
+    instruction?: number;
+    op?: MirInstruction["op"];
+    terminator?: MirTerminator["kind"];
   };
 };
 
@@ -173,26 +179,112 @@ export function createMirBackendSourceMap(
     version: 1,
     target,
     outFile,
-    mappings: program.functions.map((fn) => {
-      const moduleName = moduleNameForSymbol(fn.id);
-      const functionName = functionNameForSymbol(fn.id);
-      const generated = generatedLocationForFunction(content, moduleName, functionName);
+    mappings: program.functions.flatMap((fn) =>
+      createMirFunctionSourceMapEntries(fn, content)
+    )
+  };
+}
 
-      return {
+function createMirFunctionSourceMapEntries(
+  fn: MirFunction,
+  content: string
+): BackendSourceMapEntry[] {
+  const moduleName = moduleNameForSymbol(fn.id);
+  const functionName = functionNameForSymbol(fn.id);
+  const symbol = `__anpl_modules[${JSON.stringify(moduleName)}].${functionName}`;
+  const generated = generatedLocationForFunction(content, moduleName, functionName);
+  const entries: BackendSourceMapEntry[] = [
+    {
+      kind: "function",
+      generated: {
+        ...generated,
+        module: moduleName,
+        function: functionName,
+        symbol
+      },
+      source: sourceSpan(fn.span),
+      mir: {
+        function: fn.id,
+        blocks: fn.blocks.map((block) => block.id)
+      }
+    }
+  ];
+
+  let cursorLine = generated.line;
+  for (const block of fn.blocks) {
+    const blockGenerated = generatedLocationForSnippet(
+      content,
+      `case ${JSON.stringify(block.id)}: {`,
+      cursorLine
+    );
+    entries.push({
+      kind: "block",
+      generated: {
+        ...blockGenerated,
+        module: moduleName,
+        function: functionName,
+        symbol,
+        block: block.id
+      },
+      source: sourceSpan(block.span),
+      mir: {
+        function: fn.id,
+        block: block.id
+      }
+    });
+
+    cursorLine = blockGenerated.line;
+    block.instructions.forEach((instruction, index) => {
+      const instructionGenerated = generatedLocationForSnippet(
+        content,
+        compileMirInstruction(instruction),
+        cursorLine
+      );
+      entries.push({
+        kind: "instruction",
         generated: {
-          ...generated,
+          ...instructionGenerated,
           module: moduleName,
           function: functionName,
-          symbol: `__anpl_modules[${JSON.stringify(moduleName)}].${functionName}`
+          symbol,
+          block: block.id
         },
-        source: sourceSpan(fn.span),
+        source: sourceSpan(instruction.span),
         mir: {
           function: fn.id,
-          blocks: fn.blocks.map((block) => block.id)
+          block: block.id,
+          instruction: index,
+          op: instruction.op
         }
-      };
-    })
-  };
+      });
+      cursorLine = instructionGenerated.line;
+    });
+
+    const terminatorGenerated = generatedLocationForSnippet(
+      content,
+      compileMirTerminator(block.terminator),
+      cursorLine
+    );
+    entries.push({
+      kind: "terminator",
+      generated: {
+        ...terminatorGenerated,
+        module: moduleName,
+        function: functionName,
+        symbol,
+        block: block.id
+      },
+      source: sourceSpan(block.terminator.span),
+      mir: {
+        function: fn.id,
+        block: block.id,
+        terminator: block.terminator.kind
+      }
+    });
+    cursorLine = terminatorGenerated.line;
+  }
+
+  return entries;
 }
 
 function compileModule(moduleDecl: IRModule): string {
@@ -387,6 +479,30 @@ function generatedLocationForFunction(
   for (let index = searchStart; index < lines.length; index += 1) {
     const line = lines[index] ?? "";
     const column = line.indexOf(`${functionName}(`);
+    if (column !== -1) {
+      return {
+        line: index + 1,
+        column: column + 1
+      };
+    }
+  }
+
+  return {
+    line: 1,
+    column: 1
+  };
+}
+
+function generatedLocationForSnippet(
+  content: string,
+  snippet: string,
+  startLine = 1
+): { line: number; column: number } {
+  const firstLine = snippet.split("\n")[0] ?? "";
+  const lines = content.split("\n");
+
+  for (let index = Math.max(0, startLine - 1); index < lines.length; index += 1) {
+    const column = lines[index]?.indexOf(firstLine) ?? -1;
     if (column !== -1) {
       return {
         line: index + 1,

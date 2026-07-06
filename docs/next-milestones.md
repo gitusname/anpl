@@ -125,14 +125,15 @@ Implemented foundation:
 - MIR interpreter execution for `anpl run` and conformance fixture runs.
 - MIR JavaScript backend execution for `anpl build` and conformance fixture
   runs.
-- Function-level JavaScript and TypeScript backend source-map artifacts.
+- JavaScript and TypeScript backend source-map artifacts for MIR functions,
+  blocks, instructions, and terminators.
 - Starter MIR passes for constant folding, copy propagation, dead branch
   removal, and unused local elimination.
 
 Next work:
 
 - Document the current structured ANPL IR v0.1 contract.
-- Add block/instruction-level MIR-to-source maps and target runtime policy.
+- Add target runtime policy for generated JavaScript and TypeScript output.
 - Keep AST-to-IR/HIR/MIR lowering deterministic and easy for AI tools to
   inspect.
 

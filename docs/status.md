@@ -42,8 +42,9 @@ remain planned.
   evidence, sandbox effect checks, timeout checks, estimated memory checks,
   runtime built-ins, and module-qualified function lookup.
 - JavaScript and TypeScript compiler targets for MIR with module namespace output.
-- Function-level JavaScript and TypeScript backend source-map artifacts mapping
-  generated module functions back to MIR function IDs and ANPL source spans.
+- JavaScript and TypeScript backend source-map artifacts mapping generated module
+  functions, MIR blocks, MIR instructions, and MIR terminators back to ANPL
+  source spans.
 - Runtime built-ins: `uuid()`, `now()`, `print(value)`, and `len(value)`, all
   using tagged runtime values.
 - CLI commands: `init`, `check`, `run`, `build`, `emit ast|hir|mir|ir`,
@@ -75,15 +76,15 @@ remain planned.
 - HIR and MIR now model real function bodies, and `run` plus JavaScript and
   TypeScript `build` execute through MIR.
 - MIR optimization passes operate on the MIR shape and MIR lowering is
-  deterministic, and backend builds now emit function-level source maps. Deeper
-  block/instruction-level MIR-to-source mapping is still future work.
+  deterministic, and backend builds now emit block/instruction-level
+  MIR-to-source maps.
 - Module imports work across files discovered from `anpl.json` source patterns,
   and project cache keys are derived from the effective manifest plus resolved
   source hashes. ANPL does not yet have package boundaries or external
   dependency resolution.
 - JavaScript and TypeScript output have module namespacing, MIR block lowering,
-  and function-level source-map artifacts, but they do not yet implement target
-  runtime policy or ESM-per-module output.
+  and function/block/instruction source-map artifacts, but they do not yet
+  implement target runtime policy or ESM-per-module output.
 - Runtime memory enforcement uses estimated runtime value allocation, not exact
   process heap measurement.
 - The formatter is deterministic for the current AST surface, but comment/trivia
@@ -102,8 +103,8 @@ remain planned.
 ## Planned
 
 - Package boundaries and external dependency resolution.
-- Deeper module namespace model for type IDs, HIR/MIR, block/instruction source
-  maps, and multi-package projects.
+- Deeper module namespace model for type IDs, HIR/MIR, and multi-package
+  projects.
 - Phase-specific repair patches and evidence across parser, semantic, runtime,
   and backend diagnostics.
 - Deeper runtime module instance model and more precise memory accounting.

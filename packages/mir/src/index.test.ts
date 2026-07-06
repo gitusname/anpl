@@ -47,7 +47,7 @@ fn main() -> int {
     const mir = lowerHirToMir(lowerProgramToHir(parsed.program));
     const entry = mir.functions[0]?.blocks[0];
 
-    expect(entry?.instructions).toEqual([
+    expect(stripInstructionSpans(entry?.instructions ?? [])).toEqual([
       { op: "const", target: "%1", value: 1, type: "int" },
       { op: "const", target: "%2", value: 2, type: "int" },
       {
@@ -61,7 +61,11 @@ fn main() -> int {
       { op: "store", symbol: "math.main.x", value: "%3" },
       { op: "load", target: "%4", symbol: "math.main.x", type: "int" }
     ]);
-    expect(entry?.terminator).toEqual({ kind: "return", value: "%4" });
+    expect(stripTerminatorSpan(entry?.terminator)).toEqual({ kind: "return", value: "%4" });
+    expect(entry?.span?.start.line).toBe(3);
+    expect(entry?.instructions[0]?.span?.start.line).toBe(4);
+    expect(entry?.instructions[3]?.span?.start.line).toBe(4);
+    expect(entry?.terminator.span?.start.line).toBe(5);
   });
 
   it("lowers if statements into branch, jump, and return blocks", () => {
@@ -86,18 +90,27 @@ fn main() -> int {
       "math.main.else2",
       "math.main.after3"
     ]);
-    expect(fn?.blocks[0]?.terminator).toEqual({
+    expect(stripTerminatorSpan(fn?.blocks[0]?.terminator)).toEqual({
       kind: "branch",
       condition: "%1",
       thenBlock: "math.main.then1",
       elseBlock: "math.main.else2"
     });
-    expect(fn?.blocks[1]?.terminator).toEqual({ kind: "return", value: "%2" });
-    expect(fn?.blocks[2]?.terminator).toEqual({
+    expect(stripTerminatorSpan(fn?.blocks[1]?.terminator)).toEqual({
+      kind: "return",
+      value: "%2"
+    });
+    expect(stripTerminatorSpan(fn?.blocks[2]?.terminator)).toEqual({
       kind: "jump",
       target: "math.main.after3"
     });
-    expect(fn?.blocks[3]?.terminator).toEqual({ kind: "return", value: "%3" });
+    expect(stripTerminatorSpan(fn?.blocks[3]?.terminator)).toEqual({
+      kind: "return",
+      value: "%3"
+    });
+    expect(fn?.blocks[0]?.terminator.span?.start.line).toBe(4);
+    expect(fn?.blocks[1]?.span?.start.line).toBe(4);
+    expect(fn?.blocks[1]?.terminator.span?.start.line).toBe(5);
   });
 
   it("resolves imported callees to module-qualified symbols", () => {
@@ -127,7 +140,7 @@ fn main() -> int {
     const mir = lowerHirToMir(lowerProgramToHir(parsed.program));
     const appMain = mir.functions.find((fn) => fn.id === "app.main");
 
-    expect(appMain?.blocks[0]?.instructions).toEqual([
+    expect(stripInstructionSpans(appMain?.blocks[0]?.instructions ?? [])).toEqual([
       {
         op: "call",
         target: "%1",
@@ -136,7 +149,10 @@ fn main() -> int {
         type: "int"
       }
     ]);
-    expect(appMain?.blocks[0]?.terminator).toEqual({ kind: "return", value: "%1" });
+    expect(stripTerminatorSpan(appMain?.blocks[0]?.terminator)).toEqual({
+      kind: "return",
+      value: "%1"
+    });
   });
 
   it("carries semantic TypeIds into MIR records and member access", () => {
@@ -186,3 +202,18 @@ fn main() -> text {
     );
   });
 });
+
+function stripInstructionSpans(instructions: Array<{ span?: unknown }>): unknown[] {
+  return instructions.map((instruction) => {
+    const { span: _span, ...rest } = instruction;
+    return rest;
+  });
+}
+
+function stripTerminatorSpan(terminator: ({ span?: unknown } & object) | undefined): unknown {
+  if (terminator === undefined) {
+    return undefined;
+  }
+  const { span: _span, ...rest } = terminator;
+  return rest;
+}

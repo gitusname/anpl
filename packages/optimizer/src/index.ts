@@ -143,7 +143,8 @@ function foldBlockConstants(block: MirBlock): MirBlock {
           op: "const" as const,
           target: instruction.target,
           value: folded,
-          type: instruction.type
+          type: instruction.type,
+          ...(instruction.span === undefined ? {} : { span: instruction.span })
         };
       }
       constants.delete(instruction.target);
@@ -178,7 +179,8 @@ function removeDeadBranch(block: MirBlock): MirBlock {
     ...block,
     terminator: {
       kind: "jump",
-      target: condition ? block.terminator.thenBlock : block.terminator.elseBlock
+      target: condition ? block.terminator.thenBlock : block.terminator.elseBlock,
+      ...(block.terminator.span === undefined ? {} : { span: block.terminator.span })
     }
   };
 }

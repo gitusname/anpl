@@ -175,7 +175,7 @@ fn main() -> int {
     expect(result.artifacts[0]?.content).toContain("__anpl_modules[\"math\"]");
   });
 
-  it("emits a function-level source map for MIR JavaScript", () => {
+  it("emits a block and instruction source map for MIR JavaScript", () => {
     const parsed = parseAnpl(`module math
 
 fn main() -> int {
@@ -192,27 +192,73 @@ fn main() -> int {
     expect(map).toMatchObject({
       version: 1,
       target: "js",
-      outFile: "dist/app.js",
-      mappings: [
-        {
-          generated: {
-            module: "math",
-            function: "main",
-            symbol: "__anpl_modules[\"math\"].main"
-          },
-          source: {
-            file: "src/main.anpl",
-            start: {
-              line: 3
-            }
-          },
-          mir: {
-            function: "math.main",
-            blocks: ["math.main.entry"]
-          }
-        }
-      ]
+      outFile: "dist/app.js"
     });
+    expect(map.mappings[0]).toMatchObject({
+      kind: "function",
+      generated: {
+        module: "math",
+        function: "main",
+        symbol: "__anpl_modules[\"math\"].main"
+      },
+      source: {
+        file: "src/main.anpl",
+        start: {
+          line: 3
+        }
+      },
+      mir: {
+        function: "math.main",
+        blocks: ["math.main.entry"]
+      }
+    });
+    expect(map.mappings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "block",
+          generated: expect.objectContaining({
+            block: "math.main.entry"
+          }),
+          source: expect.objectContaining({
+            file: "src/main.anpl",
+            start: expect.objectContaining({
+              line: 3
+            })
+          }),
+          mir: expect.objectContaining({
+            function: "math.main",
+            block: "math.main.entry"
+          })
+        }),
+        expect.objectContaining({
+          kind: "instruction",
+          mir: expect.objectContaining({
+            function: "math.main",
+            block: "math.main.entry",
+            instruction: 0,
+            op: "const"
+          }),
+          source: expect.objectContaining({
+            start: expect.objectContaining({
+              line: 4
+            })
+          })
+        }),
+        expect.objectContaining({
+          kind: "terminator",
+          mir: expect.objectContaining({
+            function: "math.main",
+            block: "math.main.entry",
+            terminator: "return"
+          }),
+          source: expect.objectContaining({
+            start: expect.objectContaining({
+              line: 4
+            })
+          })
+        })
+      ])
+    );
     expect(map.mappings[0]?.generated.line).toBeGreaterThan(1);
     expect(map.mappings[0]?.generated.column).toBeGreaterThan(0);
   });
