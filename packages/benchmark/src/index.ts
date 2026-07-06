@@ -33,14 +33,23 @@ export type BenchmarkTask = {
   tests?: string[];
   anplSource?: string;
   directTargetSource?: string;
+  directTargetVariants?: BenchmarkDirectTarget[];
   expectedResult?: unknown;
   entryModule?: string;
   entryFunction?: string;
 };
 
+export type BenchmarkTargetLanguage = "ts" | "python";
+
+export type BenchmarkDirectTarget = {
+  language: BenchmarkTargetLanguage;
+  source: string;
+};
+
 export type BenchmarkRun = {
   taskId: string;
-  mode: "direct-ts" | "anpl-first";
+  mode: "direct-ts" | "direct-python" | "anpl-first";
+  targetLanguage?: BenchmarkTargetLanguage;
   model?: string;
   promptTokens: number;
   outputTokens: number;
@@ -72,6 +81,7 @@ export type BenchmarkSummary = {
   anplSemanticSuccessRate: number;
   anplBuildSuccessRate: number;
   anplRunSuccessRate: number;
+  directTargetSuccessRates: Record<string, number>;
   averageSourceTokenReductionRatio: number;
   averageDiagnosticTokens: number;
   averageRepairLoops: number;
@@ -82,7 +92,83 @@ export type BenchmarkSuiteOptions = {
   executeGeneratedJavaScript?: boolean;
 };
 
-export const defaultBenchmarkTasks: BenchmarkTask[] = [
+const defaultPythonTargets: Record<string, string> = {
+  "math-add": `def add(a: int, b: int) -> int:
+    return a + b
+
+
+def main() -> int:
+    return add(2, 3)
+`,
+  "imported-add": `def math_add(a: int, b: int) -> int:
+    return a + b
+
+
+def main() -> int:
+    return math_add(2, 3)
+`,
+  "record-enum": `def create_customer(name: str) -> dict:
+    return {
+        "name": name,
+        "status": "active",
+    }
+
+
+def main() -> int:
+    customer = create_customer("Ada")
+    return len(customer["status"])
+`,
+  "branch-then": `def main() -> int:
+    score = 7
+    if score > 5:
+        return 10
+    return 0
+`,
+  "branch-else": `def main() -> int:
+    score = 3
+    if score > 5:
+        return 10
+    return 1
+`,
+  "arithmetic-precedence": `def main() -> int:
+    return 2 + 3 * 4
+`,
+  "record-member": `def make_point(x: int, y: int) -> dict:
+    return {
+        "x": x,
+        "y": y,
+    }
+
+
+def main() -> int:
+    point = make_point(3, 4)
+    return point["x"]
+`,
+  "enum-argument": `def score(status: str) -> int:
+    return len(status)
+
+
+def main() -> int:
+    return score("active")
+`,
+  "nested-calls": `def inc(value: int) -> int:
+    return value + 1
+
+
+def main() -> int:
+    return inc(inc(3))
+`,
+  "bool-logic": `def main() -> int:
+    if 2 < 3 and 4 > 1:
+        return 1
+    return 0
+`,
+  "text-length": `def main() -> int:
+    return len("Ada")
+`
+};
+
+export const defaultBenchmarkTasks: BenchmarkTask[] = withPythonTargets([
   {
     id: "math-add",
     title: "Add two integers",
@@ -394,7 +480,7 @@ fn main() -> int {
     expectedResult: 3,
     entryModule: "words"
   }
-];
+]);
 
 export function measureSource(source: string): SourceMetrics {
   const trimmed = source.trim();
@@ -430,7 +516,9 @@ export async function runOfflineBenchmarkSuite(
   const runs: BenchmarkRun[] = [];
 
   for (const task of tasks) {
-    runs.push(runDirectTargetBenchmark(task, options));
+    for (const target of directTargetsForTask(task)) {
+      runs.push(runDirectTargetBenchmark(task, target, options));
+    }
     runs.push(await runAnplFirstBenchmark(task, options));
   }
 
@@ -450,7 +538,10 @@ export function benchmarkSuiteToText(result: BenchmarkSuiteResult): string {
     `ANPL offline benchmark`,
     `tasks: ${result.summary.taskCount}`,
     `anpl-first success: ${percent(result.summary.anplFirstSuccessRate)}`,
-    `direct-ts fixture success: ${percent(result.summary.directTargetSuccessRate)}`,
+    `direct fixture success: ${percent(result.summary.directTargetSuccessRate)}`,
+    ...Object.entries(result.summary.directTargetSuccessRates)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([language, value]) => `direct-${language} fixture success: ${percent(value)}`),
     `parse success: ${percent(result.summary.anplParseSuccessRate)}`,
     `semantic success: ${percent(result.summary.anplSemanticSuccessRate)}`,
     `build success: ${percent(result.summary.anplBuildSuccessRate)}`,
@@ -462,9 +553,16 @@ export function benchmarkSuiteToText(result: BenchmarkSuiteResult): string {
 
   for (const task of result.tasks) {
     const anpl = result.runs.find((run) => run.taskId === task.id && run.mode === "anpl-first");
-    const direct = result.runs.find((run) => run.taskId === task.id && run.mode === "direct-ts");
+    const direct = result.runs
+      .filter((run) => run.taskId === task.id && run.mode.startsWith("direct-"))
+      .map((run) => `${run.mode}:${run.success ? "fixture" : "missing"}`)
+      .join(",");
+    const directTokens = result.runs
+      .filter((run) => run.taskId === task.id && run.mode.startsWith("direct-"))
+      .map((run) => run.sourceTokens)
+      .join(",");
     lines.push(
-      `${task.id}: anpl=${anpl?.success ? "pass" : "fail"} direct=${direct?.success ? "fixture" : "missing"} sourceTokens=${anpl?.sourceTokens ?? 0}/${direct?.sourceTokens ?? 0}`
+      `${task.id}: anpl=${anpl?.success ? "pass" : "fail"} direct=${direct} sourceTokens=${anpl?.sourceTokens ?? 0}/${directTokens}`
     );
   }
 
@@ -473,15 +571,17 @@ export function benchmarkSuiteToText(result: BenchmarkSuiteResult): string {
 
 function runDirectTargetBenchmark(
   task: BenchmarkTask,
+  target: BenchmarkDirectTarget,
   options: BenchmarkSuiteOptions
 ): BenchmarkRun {
   const start = Date.now();
-  const source = task.directTargetSource ?? "";
+  const source = target.source;
   const sourceTokens = measureSource(source).estimatedTokens;
 
   return {
     taskId: task.id,
-    mode: "direct-ts",
+    mode: directModeForLanguage(target.language),
+    targetLanguage: target.language,
     model: options.model,
     promptTokens: measureSource(task.intent).estimatedTokens,
     outputTokens: sourceTokens,
@@ -571,11 +671,10 @@ async function executeGeneratedMain(js: string, task: BenchmarkTask): Promise<bo
 
 function summarizeRuns(tasks: BenchmarkTask[], runs: BenchmarkRun[]): BenchmarkSummary {
   const anplRuns = runs.filter((run) => run.mode === "anpl-first");
-  const directRuns = runs.filter((run) => run.mode === "direct-ts");
-  const reductions = tasks.map((task) => {
-    const anpl = anplRuns.find((run) => run.taskId === task.id);
-    const direct = directRuns.find((run) => run.taskId === task.id);
-    if (anpl === undefined || direct === undefined || direct.sourceTokens === 0) {
+  const directRuns = runs.filter((run) => run.mode.startsWith("direct-"));
+  const reductions = directRuns.map((direct) => {
+    const anpl = anplRuns.find((run) => run.taskId === direct.taskId);
+    if (anpl === undefined || direct.sourceTokens === 0) {
       return 0;
     }
     return (direct.sourceTokens - anpl.sourceTokens) / direct.sourceTokens;
@@ -590,10 +689,72 @@ function summarizeRuns(tasks: BenchmarkTask[], runs: BenchmarkRun[]): BenchmarkS
     anplSemanticSuccessRate: rate(anplRuns, (run) => run.semanticSuccess === true),
     anplBuildSuccessRate: rate(anplRuns, (run) => run.buildSuccess === true),
     anplRunSuccessRate: rate(anplRuns, (run) => run.runSuccess === true),
+    directTargetSuccessRates: directSuccessRatesByLanguage(directRuns),
     averageSourceTokenReductionRatio: roundRatio(average(reductions)),
     averageDiagnosticTokens: roundRatio(average(anplRuns.map((run) => run.diagnosticTokens))),
     averageRepairLoops: roundRatio(average(runs.map((run) => run.repairLoops)))
   };
+}
+
+function withPythonTargets(tasks: BenchmarkTask[]): BenchmarkTask[] {
+  return tasks.map((task) => {
+    const python = defaultPythonTargets[task.id];
+    if (python === undefined) {
+      return task;
+    }
+
+    return {
+      ...task,
+      directTargetVariants: [
+        ...(task.directTargetVariants ?? []),
+        {
+          language: "python",
+          source: python
+        }
+      ]
+    };
+  });
+}
+
+function directTargetsForTask(task: BenchmarkTask): BenchmarkDirectTarget[] {
+  return [
+    ...(task.directTargetSource === undefined
+      ? []
+      : [
+          {
+            language: "ts" as const,
+            source: task.directTargetSource
+          }
+        ]),
+    ...(task.directTargetVariants ?? [])
+  ];
+}
+
+function directModeForLanguage(language: BenchmarkTargetLanguage): BenchmarkRun["mode"] {
+  switch (language) {
+    case "ts":
+      return "direct-ts";
+    case "python":
+      return "direct-python";
+  }
+}
+
+function directSuccessRatesByLanguage(directRuns: BenchmarkRun[]): Record<string, number> {
+  const languages = new Set(
+    directRuns
+      .map((run) => run.targetLanguage)
+      .filter((language): language is BenchmarkTargetLanguage => language !== undefined)
+  );
+
+  return Object.fromEntries(
+    [...languages].sort().map((language) => [
+      language,
+      rate(
+        directRuns.filter((run) => run.targetLanguage === language),
+        (run) => run.success
+      )
+    ])
+  );
 }
 
 function rate<T>(items: T[], predicate: (item: T) => boolean): number {

@@ -74,7 +74,8 @@ remain planned.
   parser/AST/HIR/MIR/JavaScript snapshots, and invalid parser/AST/diagnostic
   snapshots, plus process-level CLI integration tests.
 - Offline benchmark fixture suite in `packages/benchmark` with 11 tasks, direct
-  TypeScript fixture comparison, ANPL-first parse/semantic/build/run metrics,
+  TypeScript and Python fixture comparison, ANPL-first
+  parse/semantic/build/run metrics, per-language direct fixture success rates,
   diagnostic token counts, generated-target token counts, and CLI
   `anpl benchmark`.
 

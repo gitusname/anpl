@@ -243,7 +243,7 @@ Current implemented foundation:
 * canonical formatter with stable nested block indentation and fixture-level idempotency conformance
 * conformance snapshots for parser/CST, AST, HIR, MIR, JavaScript, and semantic diagnostics
 * process-level CLI conformance tests for init, check, run, emit, build, format, diagnose, and explain
-* offline benchmark fixture suite with source-size, parse, semantic, build, run, diagnostic, and generated-output metrics
+* offline benchmark fixture suite with TypeScript/Python direct fixtures plus source-size, parse, semantic, build, run, diagnostic, and generated-output metrics
 
 ## Roadmap
 

@@ -40,7 +40,14 @@ fn add(a: int, b: int) -> int {
     expect(result.summary.anplSemanticSuccessRate).toBe(1);
     expect(result.summary.anplBuildSuccessRate).toBe(1);
     expect(result.summary.anplRunSuccessRate).toBe(1);
-    expect(result.runs).toHaveLength(defaultBenchmarkTasks.length * 2);
+    expect(result.summary.directTargetSuccessRates).toMatchObject({
+      python: 1,
+      ts: 1
+    });
+    expect(result.runs).toHaveLength(defaultBenchmarkTasks.length * 3);
+    expect(result.runs.map((run) => run.mode)).toEqual(
+      expect.arrayContaining(["direct-ts", "direct-python", "anpl-first"])
+    );
   });
 
   it("serializes benchmark results for CLI output", async () => {
@@ -51,10 +58,15 @@ fn add(a: int, b: int) -> int {
     expect(JSON.parse(json)).toMatchObject({
       summary: {
         taskCount: 1,
-        anplFirstSuccessRate: 1
+        anplFirstSuccessRate: 1,
+        directTargetSuccessRates: {
+          python: 1,
+          ts: 1
+        }
       }
     });
     expect(text).toContain("ANPL offline benchmark");
+    expect(text).toContain("direct-python fixture success");
     expect(text).toContain("math-add");
   });
 });
