@@ -13,6 +13,19 @@
         }
       ],
       "returnType": "int",
+      "span": {
+        "file": "tests/conformance/valid/math.anpl",
+        "start": {
+          "offset": 13,
+          "line": 3,
+          "column": 1
+        },
+        "end": {
+          "offset": 61,
+          "line": 5,
+          "column": 2
+        }
+      },
       "blocks": [
         {
           "id": "math.add.entry",
@@ -49,6 +62,19 @@
       "id": "math.main",
       "params": [],
       "returnType": "int",
+      "span": {
+        "file": "tests/conformance/valid/math.anpl",
+        "start": {
+          "offset": 63,
+          "line": 7,
+          "column": 1
+        },
+        "end": {
+          "offset": 129,
+          "line": 10,
+          "column": 2
+        }
+      },
       "blocks": [
         {
           "id": "math.main.entry",

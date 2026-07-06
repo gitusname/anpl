@@ -21,6 +21,7 @@ export type MirFunction = {
   id: SymbolId;
   params: MirLocal[];
   returnType: TypeId;
+  span?: Span;
   blocks: MirBlock[];
 };
 
@@ -231,6 +232,7 @@ function lowerFunction(
       type: param.type
     })),
     returnType: fn.returnType,
+    span: fn.span,
     blocks: context.blocks
   };
 }

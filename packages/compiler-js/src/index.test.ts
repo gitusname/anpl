@@ -5,6 +5,7 @@ import { lowerProgramToHir } from "@anpl/hir";
 import { lowerProgram } from "@anpl/ir";
 import { lowerHirToMir } from "@anpl/mir";
 import {
+  createMirBackendSourceMap,
   compileMirProgramToJavaScript,
   compileMirProgramToTypeScript,
   compileProgramToJavaScript,
@@ -159,13 +160,61 @@ fn main() -> int {
     });
 
     expect(result.diagnostics).toEqual([]);
-    expect(result.artifacts).toMatchObject([
-      {
-        kind: "js",
-        path: "dist/app.js"
-      }
-    ]);
+    expect(result.artifacts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "js",
+          path: "dist/app.js"
+        }),
+        expect.objectContaining({
+          kind: "map",
+          path: "dist/app.js.map.json"
+        })
+      ])
+    );
     expect(result.artifacts[0]?.content).toContain("__anpl_modules[\"math\"]");
+  });
+
+  it("emits a function-level source map for MIR JavaScript", () => {
+    const parsed = parseAnpl(`module math
+
+fn main() -> int {
+  return 1
+}`, "src/main.anpl");
+    if (!parsed.ok) {
+      throw new Error(parsed.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+
+    const mir = lowerHirToMir(lowerProgramToHir(parsed.program));
+    const source = compileMirProgramToJavaScript(mir);
+    const map = createMirBackendSourceMap(mir, "js", "dist/app.js", source);
+
+    expect(map).toMatchObject({
+      version: 1,
+      target: "js",
+      outFile: "dist/app.js",
+      mappings: [
+        {
+          generated: {
+            module: "math",
+            function: "main",
+            symbol: "__anpl_modules[\"math\"].main"
+          },
+          source: {
+            file: "src/main.anpl",
+            start: {
+              line: 3
+            }
+          },
+          mir: {
+            function: "math.main",
+            blocks: ["math.main.entry"]
+          }
+        }
+      ]
+    });
+    expect(map.mappings[0]?.generated.line).toBeGreaterThan(1);
+    expect(map.mappings[0]?.generated.column).toBeGreaterThan(0);
   });
 
   it("emits TypeScript from MIR with typed runtime scaffolding", () => {
@@ -215,12 +264,18 @@ fn main() -> int {
     });
 
     expect(result.diagnostics).toEqual([]);
-    expect(result.artifacts).toMatchObject([
-      {
-        kind: "ts",
-        path: "dist/app.ts"
-      }
-    ]);
+    expect(result.artifacts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "ts",
+          path: "dist/app.ts"
+        }),
+        expect.objectContaining({
+          kind: "map",
+          path: "dist/app.ts.map.json"
+        })
+      ])
+    );
     expect(result.artifacts[0]?.content).toContain("__anpl_modules[\"math\"]");
   });
 });

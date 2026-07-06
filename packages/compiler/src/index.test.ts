@@ -243,6 +243,28 @@ fn main() -> int {
     });
     expect(files["/project/dist/anpl.js"]).toContain("switch (__block)");
     expect(files["/project/dist/anpl.js"]).toContain("__anpl_modules[\"math\"].add");
+    expect(result.artifacts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "map",
+          path: "dist/anpl.js.map.json"
+        })
+      ])
+    );
+    const sourceMap = JSON.parse(files["/project/dist/anpl.js.map.json"] ?? "{}");
+    expect(sourceMap.target).toBe("js");
+    expect(sourceMap.mappings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          generated: expect.objectContaining({
+            module: "math"
+          }),
+          mir: expect.objectContaining({
+            function: "math.add"
+          })
+        })
+      ])
+    );
   });
 
   it("builds TypeScript through the MIR backend", async () => {
@@ -275,5 +297,24 @@ fn main() -> int {
     });
     expect(files["/project/dist/anpl.ts"]).toContain("type __AnplFunction");
     expect(files["/project/dist/anpl.ts"]).toContain("add(a: any, b: any): any");
+    expect(result.artifacts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "map",
+          path: "dist/anpl.ts.map.json"
+        })
+      ])
+    );
+    const sourceMap = JSON.parse(files["/project/dist/anpl.ts.map.json"] ?? "{}");
+    expect(sourceMap.target).toBe("ts");
+    expect(sourceMap.mappings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          generated: expect.objectContaining({
+            module: "math"
+          })
+        })
+      ])
+    );
   });
 });

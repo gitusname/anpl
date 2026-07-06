@@ -1,4 +1,4 @@
-import type { Diagnostic, GeneratedFile } from "@anpl/core";
+import type { Diagnostic, GeneratedFile, Span } from "@anpl/core";
 import type { IRExpr, IRFunction, IRModule, IRProgram, IRStmt } from "@anpl/ir";
 import type {
   MirBlock,
@@ -23,6 +23,32 @@ export type BackendResult = {
   diagnostics: Diagnostic[];
 };
 
+export type BackendSourceMap = {
+  version: 1;
+  target: "js" | "ts";
+  outFile: string;
+  mappings: BackendSourceMapEntry[];
+};
+
+export type BackendSourceMapEntry = {
+  generated: {
+    line: number;
+    column: number;
+    module: string;
+    function: string;
+    symbol: string;
+  };
+  source?: {
+    file?: string;
+    start: Span["start"];
+    end: Span["end"];
+  };
+  mir: {
+    function: string;
+    blocks: string[];
+  };
+};
+
 export type Backend = {
   name: string;
   target: string;
@@ -37,6 +63,7 @@ export const javascriptBackend: Backend = {
       program,
       context.outFile ?? "generated/anpl.js"
     );
+    const sourceMap = createMirBackendSourceMap(program, "js", generated.path, generated.content);
 
     return {
       artifacts: [
@@ -44,6 +71,11 @@ export const javascriptBackend: Backend = {
           kind: "js",
           path: generated.path,
           content: generated.content
+        },
+        {
+          kind: "map",
+          path: `${generated.path}.map.json`,
+          content: JSON.stringify(sourceMap, null, 2)
         }
       ],
       diagnostics: []
@@ -59,6 +91,7 @@ export const typescriptBackend: Backend = {
       program,
       context.outFile ?? "generated/anpl.ts"
     );
+    const sourceMap = createMirBackendSourceMap(program, "ts", generated.path, generated.content);
 
     return {
       artifacts: [
@@ -66,6 +99,11 @@ export const typescriptBackend: Backend = {
           kind: "ts",
           path: generated.path,
           content: generated.content
+        },
+        {
+          kind: "map",
+          path: `${generated.path}.map.json`,
+          content: JSON.stringify(sourceMap, null, 2)
         }
       ],
       diagnostics: []
@@ -122,6 +160,38 @@ export function compileMirProgramToTypeScriptFile(
   return {
     path,
     content: compileMirProgramToTypeScript(program)
+  };
+}
+
+export function createMirBackendSourceMap(
+  program: MirProgram,
+  target: BackendSourceMap["target"],
+  outFile: string,
+  content: string
+): BackendSourceMap {
+  return {
+    version: 1,
+    target,
+    outFile,
+    mappings: program.functions.map((fn) => {
+      const moduleName = moduleNameForSymbol(fn.id);
+      const functionName = functionNameForSymbol(fn.id);
+      const generated = generatedLocationForFunction(content, moduleName, functionName);
+
+      return {
+        generated: {
+          ...generated,
+          module: moduleName,
+          function: functionName,
+          symbol: `__anpl_modules[${JSON.stringify(moduleName)}].${functionName}`
+        },
+        source: sourceSpan(fn.span),
+        mir: {
+          function: fn.id,
+          blocks: fn.blocks.map((block) => block.id)
+        }
+      };
+    })
   };
 }
 
@@ -302,6 +372,45 @@ function moduleNameForSymbol(symbol: string): string {
 function functionNameForSymbol(symbol: string): string {
   const index = symbol.lastIndexOf(".");
   return index === -1 ? symbol : symbol.slice(index + 1);
+}
+
+function generatedLocationForFunction(
+  content: string,
+  moduleName: string,
+  functionName: string
+): { line: number; column: number } {
+  const lines = content.split("\n");
+  const moduleHeader = `__anpl_modules[${JSON.stringify(moduleName)}] = {`;
+  const moduleLine = lines.findIndex((line) => line === moduleHeader);
+  const searchStart = moduleLine === -1 ? 0 : moduleLine + 1;
+
+  for (let index = searchStart; index < lines.length; index += 1) {
+    const line = lines[index] ?? "";
+    const column = line.indexOf(`${functionName}(`);
+    if (column !== -1) {
+      return {
+        line: index + 1,
+        column: column + 1
+      };
+    }
+  }
+
+  return {
+    line: 1,
+    column: 1
+  };
+}
+
+function sourceSpan(span: Span | undefined): BackendSourceMapEntry["source"] {
+  if (span === undefined) {
+    return undefined;
+  }
+
+  return {
+    file: span.file,
+    start: span.start,
+    end: span.end
+  };
 }
 
 function indent(source: string, levels = 1): string {

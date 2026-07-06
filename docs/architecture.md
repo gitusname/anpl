@@ -340,6 +340,10 @@ __anpl_modules["math"] = {
 };
 ```
 
+Builds also emit a machine-readable `*.map.json` artifact that maps generated
+module functions back to MIR function IDs and ANPL source spans. The current map
+is function-level; block and instruction mappings are the next hardening step.
+
 Future targets:
 
 - v0.3: Python

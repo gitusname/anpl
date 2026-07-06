@@ -19,6 +19,12 @@ fn main() -> int {
 
     expect(mir.functions[0]).toMatchObject({
       id: "math.main",
+      span: {
+        file: undefined,
+        start: {
+          line: 3
+        }
+      },
       blocks: [
         {
           id: "math.main.entry"

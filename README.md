@@ -235,6 +235,7 @@ Current implemented foundation:
 * HIR/MIR foundations with import-aware HIR metadata, real MIR function-body lowering, and MIR optimizer pass architecture
 * MIR interpreter that runs `main()` with tagged runtime values and runtime stack diagnostics
 * module-aware MIR interpreter calls and MIR JavaScript/TypeScript compiler namespace output
+* function-level JavaScript/TypeScript backend source-map artifacts
 * runtime built-ins, sandbox effect policy, timeout checks, and estimated memory checks for `uuid()`, `now()`, `print(value)`, `len(value)`
 * CLI commands: `init`, `check`, `run`, `build`, `emit ast|hir|mir|ir`, `emit-ast`, `emit-hir`, `emit-mir`, `emit-ir`, `format`, `diagnose`, `benchmark`, `explain`
 * canonical formatter with stable nested block indentation and fixture-level idempotency conformance
