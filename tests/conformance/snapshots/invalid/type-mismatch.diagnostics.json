@@ -27,6 +27,14 @@
     "evidence": [
       "span 4:3-4:17"
     ],
+    "repair": {
+      "kind": "replace",
+      "span": {
+        "start": 40,
+        "end": 47
+      },
+      "replacement": "0"
+    },
     "confidence": "high"
   }
 ]

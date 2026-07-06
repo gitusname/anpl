@@ -96,6 +96,8 @@ Implemented foundation:
   punctuation.
 - Semantic diagnostics carry phase-specific category, cause, fix, and evidence
   through the semantic diagnostic helper.
+- Semantic return type mismatch diagnostics carry replace repair patches for
+  safe default values when the expected type has an unambiguous literal.
 - Diagnostic registry covers current parse, semantic, runtime, backend,
   project, and tooling diagnostic codes used by `anpl explain`.
 - Registry coverage tests assert that emitted diagnostic codes have definitions.

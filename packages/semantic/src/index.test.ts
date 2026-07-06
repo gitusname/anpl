@@ -225,7 +225,11 @@ fn broken() -> int {
           received: "text",
           cause: expect.stringContaining("declared return type"),
           fix: expect.stringContaining("Return a value"),
-          evidence: expect.arrayContaining([expect.stringContaining("span")])
+          evidence: expect.arrayContaining([expect.stringContaining("span")]),
+          repair: expect.objectContaining({
+            kind: "replace",
+            replacement: "0"
+          })
         })
       ])
     );

@@ -6,7 +6,7 @@ import type {
   Stmt,
   TypeDecl
 } from "@anpl/ast";
-import type { Span } from "@anpl/core";
+import type { DiagnosticRepair, Span } from "@anpl/core";
 import type { TypeId } from "@anpl/types";
 import { primitiveTypeId } from "@anpl/types";
 import { createScope, type Scope } from "./scopes/scope.js";
@@ -145,7 +145,15 @@ export class SemanticChecker {
         const valueType = statement.value
           ? this.inferExpr(statement.value, scope, symbols)
           : primitiveTypeId("void");
-        this.expectType(returnType, valueType, statement.span, "ANPL_RETURN_TYPE_MISMATCH");
+        this.expectType(
+          returnType,
+          valueType,
+          statement.span,
+          "ANPL_RETURN_TYPE_MISMATCH",
+          statement.value === undefined
+            ? undefined
+            : this.repairValueForType(returnType, statement.value.span)
+        );
         break;
       }
       case "IfStmt": {
@@ -459,7 +467,8 @@ export class SemanticChecker {
     expected: TypeId,
     received: TypeId,
     span: Span,
-    code = "ANPL_TYPE_MISMATCH"
+    code = "ANPL_TYPE_MISMATCH",
+    repair?: DiagnosticRepair
   ): void {
     if (this.context.types.isAssignable(received, expected)) {
       return;
@@ -470,8 +479,54 @@ export class SemanticChecker {
       message: `Expected ${displayType(this.context, expected)} but received ${displayType(this.context, received)}.`,
       span,
       expected: displayType(this.context, expected),
-      received: displayType(this.context, received)
+      received: displayType(this.context, received),
+      repair
     });
+  }
+
+  private repairValueForType(expected: TypeId, span: Span): DiagnosticRepair | undefined {
+    const replacement = this.defaultValueForType(expected);
+    if (replacement === undefined) {
+      return undefined;
+    }
+
+    return {
+      kind: "replace",
+      span: {
+        start: span.start.offset,
+        end: span.end.offset
+      },
+      replacement
+    };
+  }
+
+  private defaultValueForType(expected: TypeId): string | undefined {
+    const resolved = this.context.types.get(expected);
+
+    if (resolved.kind === "PrimitiveType") {
+      switch (resolved.name) {
+        case "int":
+          return "0";
+        case "decimal":
+          return "0.0";
+        case "text":
+        case "string":
+          return "\"\"";
+        case "bool":
+          return "false";
+        case "null":
+          return "null";
+        case "uuid":
+        case "void":
+          return undefined;
+      }
+    }
+
+    if (resolved.kind === "EnumType") {
+      return resolved.variants[0];
+    }
+
+    return undefined;
   }
 
   private isEnumType(type: TypeId): boolean {
@@ -520,6 +575,7 @@ export class SemanticChecker {
     symbol?: string;
     expected?: string;
     received?: string;
+    repair?: DiagnosticRepair;
   }): void {
     addSemanticDiagnostic(this.context, input);
   }

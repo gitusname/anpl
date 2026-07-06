@@ -68,8 +68,9 @@ remain planned.
 - Diagnostic registry coverage tests assert that emitted diagnostic codes have
   registry definitions.
 - Parser expected-token diagnostics include insert repair patches for missing
-  punctuation, and semantic diagnostics include phase-specific cause, fix, and
-  evidence metadata.
+  punctuation, semantic return type mismatch diagnostics include replace repair
+  patches for safe default values, and semantic diagnostics include
+  phase-specific cause, fix, and evidence metadata.
 - Runtime diagnostics include specific codes, cause/fix metadata, and stack
   evidence for missing or ambiguous entrypoints, missing call targets, invalid
   member access, invalid conditions, undefined values, blocked effects,
