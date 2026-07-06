@@ -23,12 +23,12 @@ import {
   loadProject,
   type InitProjectOptions,
   type ProjectCacheMetadata,
-  type ProjectDirEntry
+  type ProjectDirEntry,
+  type ProjectSourceFile
 } from "@anpl/project";
 import { createRuntimeHost, type SandboxPolicy } from "@anpl/runtime";
 import { analyzeProgram, type SemanticResult } from "@anpl/semantic";
-import type { Program } from "@anpl/ast";
-import type { ProductionSourceFile } from "@anpl/source";
+import type { ImportDecl, ModuleDecl, Program } from "@anpl/ast";
 
 export type CompileMode =
   | "init"
@@ -132,6 +132,7 @@ type PipelineState = {
   hir?: ReturnType<typeof lowerProgramToHir>;
   mir?: ReturnType<typeof lowerHirToMir>;
   ir?: ReturnType<typeof lowerProgram>;
+  entryFunction?: string;
 };
 
 export async function compileProject(
@@ -196,10 +197,14 @@ export async function compileProject(
     timings.lexMs = host.now() - lexStart;
 
     const parseStart = host.now();
-    const parsedFiles = parseProjectFiles(lexedFiles);
+    const rawParsedFiles = parseProjectFiles(lexedFiles);
+    const parsedFiles = namespaceParsedFiles(rawParsedFiles);
     const parsed = mergeParsedFiles(parsedFiles);
     const entryParsed =
-      parsedFiles.find((file) => file.source.path === sourcePath)?.parsed ?? parsed;
+      rawParsedFiles.find((file) => file.source.path === sourcePath)?.parsed ?? parsed;
+    const entryFunction = entryFunctionName(
+      parsedFiles.find((file) => file.source.path === sourcePath)?.parsed
+    );
     timings.parseMs = host.now() - parseStart;
     diagnostics.push(...parsed.diagnostics);
 
@@ -254,7 +259,8 @@ export async function compileProject(
       semantic,
       hir,
       mir: optimizedMir.program,
-      ir: optimized
+      ir: optimized,
+      entryFunction
     };
 
     const backendStart = host.now();
@@ -342,7 +348,7 @@ async function runMode(
     case "run": {
       const result = interpretMirProgram(
         state.mir,
-        "main",
+        state.entryFunction ?? "main",
         createRuntimeHost(options.runtimePolicy)
       );
       return {
@@ -423,16 +429,16 @@ function finish(input: {
 }
 
 type ParsedProjectFile = {
-  source: ProductionSourceFile;
+  source: ProjectSourceFile;
   parsed: ReturnType<typeof parseTokens>;
 };
 
 type LexedProjectFile = {
-  source: ProductionSourceFile;
+  source: ProjectSourceFile;
   lexed: ReturnType<typeof lexAnpl>;
 };
 
-function lexProjectFiles(files: ProductionSourceFile[]): LexedProjectFile[] {
+function lexProjectFiles(files: ProjectSourceFile[]): LexedProjectFile[] {
   return files.map((source) => ({
     source,
     lexed: lexAnpl({
@@ -447,6 +453,156 @@ function parseProjectFiles(files: LexedProjectFile[]): ParsedProjectFile[] {
     source: file.source,
     parsed: parseTokens(file.lexed.tokens, file.source.path, file.lexed.diagnostics)
   }));
+}
+
+function entryFunctionName(parsed: ReturnType<typeof parseTokens> | undefined): string | undefined {
+  const mainFunctions =
+    parsed?.program?.modules.flatMap((moduleDecl) =>
+      moduleDecl.body
+        .filter((decl) => decl.kind === "FunctionDecl" && decl.name === "main")
+        .map(() => `${moduleDecl.name}.main`)
+    ) ?? [];
+
+  return mainFunctions.length === 1 ? mainFunctions[0] : undefined;
+}
+
+function namespaceParsedFiles(files: ParsedProjectFile[]): ParsedProjectFile[] {
+  const namespace = buildModuleNamespace(files);
+
+  return files.map((file) => {
+    if (file.parsed.program === undefined) {
+      return file;
+    }
+
+    return {
+      source: file.source,
+      parsed: {
+        ...file.parsed,
+        program: namespaceProgram(file.parsed.program, file.source, namespace)
+      }
+    };
+  });
+}
+
+type ModuleNamespace = {
+  byPackageAndName: Map<string, ModuleBinding[]>;
+  byName: Map<string, ModuleBinding[]>;
+};
+
+type ModuleBinding = {
+  packageName: string;
+  name: string;
+  scopedName: string;
+};
+
+function buildModuleNamespace(files: ParsedProjectFile[]): ModuleNamespace {
+  const byPackageAndName = new Map<string, ModuleBinding[]>();
+  const byName = new Map<string, ModuleBinding[]>();
+
+  for (const file of files) {
+    for (const moduleDecl of file.parsed.program?.modules ?? []) {
+      const binding: ModuleBinding = {
+        packageName: file.source.packageName,
+        name: moduleDecl.name,
+        scopedName: scopedModuleName(file.source, moduleDecl.name)
+      };
+      appendModuleBinding(
+        byPackageAndName,
+        packageModuleKey(binding.packageName, binding.name),
+        binding
+      );
+      appendModuleBinding(byName, binding.name, binding);
+    }
+  }
+
+  return {
+    byPackageAndName,
+    byName
+  };
+}
+
+function appendModuleBinding(
+  map: Map<string, ModuleBinding[]>,
+  key: string,
+  binding: ModuleBinding
+): void {
+  const bindings = map.get(key) ?? [];
+  bindings.push(binding);
+  map.set(key, bindings);
+}
+
+function namespaceProgram(
+  program: Program,
+  source: ProjectSourceFile,
+  namespace: ModuleNamespace
+): Program {
+  return {
+    ...program,
+    modules: program.modules.map((moduleDecl) =>
+      namespaceModule(moduleDecl, source, namespace)
+    )
+  };
+}
+
+function namespaceModule(
+  moduleDecl: ModuleDecl,
+  source: ProjectSourceFile,
+  namespace: ModuleNamespace
+): ModuleDecl {
+  return {
+    ...moduleDecl,
+    name: scopedModuleName(source, moduleDecl.name),
+    body: moduleDecl.body.map((decl) =>
+      decl.kind === "ImportDecl" ? namespaceImport(decl, source, namespace) : decl
+    )
+  };
+}
+
+function namespaceImport(
+  importDecl: ImportDecl,
+  source: ProjectSourceFile,
+  namespace: ModuleNamespace
+): ImportDecl {
+  return {
+    ...importDecl,
+    module: resolveScopedImport(importDecl.module, source, namespace)
+  };
+}
+
+function resolveScopedImport(
+  moduleName: string,
+  source: ProjectSourceFile,
+  namespace: ModuleNamespace
+): string {
+  if (moduleName.includes(".")) {
+    const packageQualified = namespace.byPackageAndName.get(moduleName) ?? [];
+    if (packageQualified.length === 1) {
+      return packageQualified[0]!.scopedName;
+    }
+    return moduleName;
+  }
+
+  const samePackage = namespace.byPackageAndName.get(
+    packageModuleKey(source.packageName, moduleName)
+  ) ?? [];
+  if (samePackage.length === 1) {
+    return samePackage[0]!.scopedName;
+  }
+
+  const byName = namespace.byName.get(moduleName) ?? [];
+  if (byName.length === 1) {
+    return byName[0]!.scopedName;
+  }
+
+  return moduleName;
+}
+
+function scopedModuleName(source: ProjectSourceFile, moduleName: string): string {
+  return source.external ? packageModuleKey(source.packageName, moduleName) : moduleName;
+}
+
+function packageModuleKey(packageName: string, moduleName: string): string {
+  return `${packageName}.${moduleName}`;
 }
 
 function mergeParsedFiles(files: ParsedProjectFile[]): ReturnType<typeof parseTokens> {

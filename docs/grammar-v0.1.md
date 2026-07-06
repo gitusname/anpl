@@ -58,12 +58,15 @@ program         = { newline }, module_decl, { module_decl | newline } ;
 module_decl     = "module", identifier, separators, { module_item, separators } ;
 module_item     = import_decl | type_decl | function_decl ;
 
-import_decl     = "import", identifier ;
+import_decl     = "import", qualified_identifier ;
+qualified_identifier = identifier, { ".", identifier } ;
 ```
 
-The current implementation supports same-project module imports:
-`import math` brings exported functions and types from `module math` into the
-current module's semantic scope.
+The current implementation supports same-project imports and path dependency
+imports. `import math` brings exported functions and types from a visible
+`module math` into the current module's semantic scope. When dependency packages
+export same-named modules, a package-qualified import such as
+`import mathlib.math` selects `module math` from package `mathlib`.
 
 ## Types
 

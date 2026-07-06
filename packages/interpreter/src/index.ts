@@ -849,7 +849,7 @@ function mirLocalSymbol(fn: MirFunction, name: string): string {
 }
 
 function moduleNameForSymbol(symbol: string): string | undefined {
-  const index = symbol.indexOf(".");
+  const index = symbol.lastIndexOf(".");
   return index === -1 ? undefined : symbol.slice(0, index);
 }
 

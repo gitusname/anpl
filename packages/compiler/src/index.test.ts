@@ -258,6 +258,143 @@ fn add(a: int, b: int) -> int {
     });
   });
 
+  it("runs package-qualified dependency imports beside same-named local modules", async () => {
+    const result = await compileProject(
+      {
+        mode: "run",
+        projectRoot: "/project"
+      },
+      memoryHost({
+        "/project/anpl.json": JSON.stringify({
+          name: "app-pkg",
+          entry: "src/app.anpl",
+          source: ["src/**/*.anpl"],
+          dependencies: {
+            mathlib: {
+              path: "/mathlib",
+              source: ["lib/**/*.anpl"]
+            }
+          }
+        }),
+        "/project/src/app.anpl": `module app
+
+import mathlib.math
+
+fn main() -> int {
+  return add(2, 3)
+}`,
+        "/project/src/math.anpl": `module math
+
+fn add(a: int, b: int) -> int {
+  return 100
+}`,
+        "/mathlib/lib/math.anpl": `module math
+
+fn add(a: int, b: int) -> int {
+  return a + b
+}`
+      })
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.value).toMatchObject({
+      ok: true,
+      value: {
+        kind: "int",
+        value: 5
+      }
+    });
+  });
+
+  it("runs the manifest entry main when dependency packages also define main", async () => {
+    const result = await compileProject(
+      {
+        mode: "run",
+        projectRoot: "/project"
+      },
+      memoryHost({
+        "/project/anpl.json": JSON.stringify({
+          name: "app-pkg",
+          entry: "src/app.anpl",
+          source: ["src/**/*.anpl"],
+          dependencies: {
+            tools: {
+              path: "/tools",
+              source: ["lib/**/*.anpl"]
+            }
+          }
+        }),
+        "/project/src/app.anpl": `module app
+
+fn main() -> int {
+  return 7
+}`,
+        "/tools/lib/tool.anpl": `module tool
+
+fn main() -> int {
+  return 99
+}`
+      })
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.value).toMatchObject({
+      ok: true,
+      value: {
+        kind: "int",
+        value: 7
+      }
+    });
+  });
+
+  it("builds package-qualified dependency modules through the JavaScript backend", async () => {
+    const files: Record<string, string> = {
+      "/project/anpl.json": JSON.stringify({
+        name: "app-pkg",
+        entry: "src/app.anpl",
+        source: ["src/**/*.anpl"],
+        dependencies: {
+          mathlib: {
+            path: "/mathlib",
+            source: ["lib/**/*.anpl"]
+          }
+        }
+      }),
+      "/project/src/app.anpl": `module app
+
+import mathlib.math
+
+fn main() -> int {
+  return add(2, 3)
+}`,
+      "/project/src/math.anpl": `module math
+
+fn add(a: int, b: int) -> int {
+  return 100
+}`,
+      "/mathlib/lib/math.anpl": `module math
+
+fn add(a: int, b: int) -> int {
+  return a + b
+}`
+    };
+    const result = await compileProject(
+      {
+        mode: "build",
+        projectRoot: "/project",
+        outDir: "dist"
+      },
+      memoryHost(files)
+    );
+
+    expect(result.ok).toBe(true);
+    expect(files["/project/dist/anpl.js"]).toContain("__anpl_modules[\"mathlib.math\"]");
+    expect(files["/project/dist/anpl.js"]).toContain(
+      "__anpl_modules[\"mathlib.math\"].add"
+    );
+    expect(files["/project/dist/anpl.js"]).toContain("__anpl_modules[\"math\"]");
+  });
+
   it("builds JavaScript through the MIR backend", async () => {
     const files: Record<string, string> = {
       "/project/main.anpl": `module math

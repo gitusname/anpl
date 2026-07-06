@@ -22,13 +22,16 @@ Implemented foundation:
   name.
 - Require module-qualified MIR entry names when multiple modules define
   `main`.
+- Preserve dependency package boundaries by namespacing external modules as
+  `package.module` in the compiler pipeline.
+- Support package-qualified imports such as `import mathlib.math`, while keeping
+  unique unqualified dependency imports working.
 
 Next hardening work:
 
-- Extend namespace handling from same-project cross-file modules to
-  multi-package projects.
-- Add package-level collision tests for types, imported symbols, and entry
-  functions.
+- Extend package-qualified type/function identities into future package
+  registry/versioned dependency scenarios.
+- Add more package-level collision tests for types and entry functions.
 - Keep ESM runtime artifact naming reserved and collision-safe as module/package
   naming grows.
 
@@ -69,10 +72,12 @@ Implemented foundation:
 - Resolve path-based external package dependencies from `anpl.json`, load their
   source files through the compiler host, preserve package boundaries on source
   files and module graph records, and mark cross-package import edges.
+- Resolve package-qualified dependency imports and report ambiguous unqualified
+  imports when multiple packages export the same module name.
 
 Next work:
 
-- Add package registries, version constraints, and package-qualified imports.
+- Add package registries and version constraints.
 - Add incremental compilation cache storage on top of the current cache key
   metadata.
 

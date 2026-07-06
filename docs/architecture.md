@@ -142,9 +142,10 @@ source files and may declare path-based external dependency packages:
 ```
 
 The loader resolves dependency sources through the compiler host, keeps package
-metadata on source files and module graph records, and marks cross-package import
-edges. This is a package-boundary foundation, not a package registry or version
-solver.
+metadata on source files and module graph records, marks cross-package import
+edges, and supports package-qualified imports such as `import mathlib.math` when
+dependency packages export same-named modules. This is a package-boundary
+foundation, not a package registry or version solver.
 
 ## Language v0.1 Scope
 
@@ -171,14 +172,16 @@ Supported language concepts:
 
 Current implementation status:
 
-- Implemented: modules, simple module imports, type declarations, functions,
-  `let`, `return`, `if` / `else`, binary expressions, function calls, records,
-  member access, enum type references, structured compiler/runtime diagnostics.
+- Implemented: modules, simple and package-qualified module imports, type
+  declarations, functions, `let`, `return`, `if` / `else`, binary expressions,
+  function calls, records, member access, enum type references, structured
+  compiler/runtime diagnostics.
 - Implemented execution paths: semantic check, IR emission, optimization,
   interpreter, JavaScript build target.
-- Still intentionally small: path-based external dependencies are supported, but
-  there is no package registry, version solver, package-qualified import syntax,
-  advanced generics, WASM/LLVM/Python backend, or self-hosted runtime.
+- Still intentionally small: path-based external dependencies and
+  package-qualified imports are supported, but there is no package registry,
+  version solver, advanced generics, WASM/LLVM/Python backend, or self-hosted
+  runtime.
 
 Example:
 

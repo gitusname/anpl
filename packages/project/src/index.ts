@@ -972,10 +972,10 @@ function moduleGraphFromRecords(records: ModuleRecord[]): ModuleGraph {
           file: record.file,
           span: record.span,
           symbol: record.name,
-          expected: "unique module name",
-          received: "duplicate module name",
-          cause: "Two or more resolved source files declare the same module, possibly across package boundaries.",
-          fix: "Rename one module, remove the duplicate source, or wait for package-qualified imports before using duplicate module names."
+          expected: "unique package-qualified module name",
+          received: "duplicate package-qualified module name",
+          cause: "Two or more resolved source files declare the same module in the same package namespace.",
+          fix: "Rename one module, remove the duplicate source, or move it behind a distinct package name."
         })
       );
       continue;
@@ -983,17 +983,32 @@ function moduleGraphFromRecords(records: ModuleRecord[]): ModuleGraph {
     modules.set(record.id, record);
   }
 
+  const indexes = moduleIndexes(modules);
+
   for (const record of modules.values()) {
     for (const importDecl of record.imports) {
-      const target = createModuleId(importDecl.module);
-      if (modules.has(target)) {
-        const targetRecord = modules.get(target)!;
+      const targetRecord = resolveImportRecord(record, importDecl, indexes);
+      if (targetRecord !== undefined && targetRecord !== "ambiguous") {
         edges.push({
           from: record.id,
-          to: target,
+          to: targetRecord.id,
           kind: "import",
           external: record.packageName !== targetRecord.packageName
         });
+      } else if (targetRecord === "ambiguous") {
+        diagnostics.push(
+          projectDiagnostic({
+            code: "ANPL_PROJECT_AMBIGUOUS_MODULE_IMPORT",
+            message: `Imported module '${importDecl.module}' is ambiguous across project packages.`,
+            file: importDecl.span.file || record.file,
+            span: importDecl.span,
+            symbol: importDecl.module,
+            expected: "package-qualified module import",
+            received: "ambiguous unqualified module import",
+            cause: "More than one resolved package exports a module with this local name.",
+            fix: "Use a package-qualified import such as 'import package.module'."
+          })
+        );
       } else {
         diagnostics.push(
           projectDiagnostic({
@@ -1004,8 +1019,8 @@ function moduleGraphFromRecords(records: ModuleRecord[]): ModuleGraph {
             symbol: importDecl.module,
             expected: "module declared in resolved project sources",
             received: "missing module",
-            cause: "A module import refers to a module that is not present in resolved project sources.",
-            fix: "Add the missing module source file or correct the import name."
+            cause: "A module import refers to a module that is not present in resolved project sources or dependency packages.",
+            fix: "Add the missing module source file, correct the import name, or use a package-qualified import."
           })
         );
       }
@@ -1017,6 +1032,76 @@ function moduleGraphFromRecords(records: ModuleRecord[]): ModuleGraph {
     edges,
     diagnostics
   };
+}
+
+type ModuleIndex = {
+  byPackageAndName: Map<string, ModuleRecord[]>;
+  byName: Map<string, ModuleRecord[]>;
+};
+
+function moduleIndexes(modules: Map<ModuleId, ModuleRecord>): ModuleIndex {
+  const byPackageAndName = new Map<string, ModuleRecord[]>();
+  const byName = new Map<string, ModuleRecord[]>();
+
+  for (const record of modules.values()) {
+    appendModuleIndex(
+      byPackageAndName,
+      packageModuleKey(record.packageName, record.name),
+      record
+    );
+    appendModuleIndex(byName, record.name, record);
+  }
+
+  return {
+    byPackageAndName,
+    byName
+  };
+}
+
+function appendModuleIndex(
+  index: Map<string, ModuleRecord[]>,
+  key: string,
+  record: ModuleRecord
+): void {
+  const records = index.get(key) ?? [];
+  records.push(record);
+  index.set(key, records);
+}
+
+function resolveImportRecord(
+  from: ModuleRecord,
+  importDecl: ImportRecord,
+  index: ModuleIndex
+): ModuleRecord | "ambiguous" | undefined {
+  if (importDecl.module.includes(".")) {
+    const packageQualified = index.byPackageAndName.get(importDecl.module) ?? [];
+    if (packageQualified.length === 1) {
+      return packageQualified[0];
+    }
+    if (packageQualified.length > 1) {
+      return "ambiguous";
+    }
+  }
+
+  const samePackage = index.byPackageAndName.get(
+    packageModuleKey(from.packageName, importDecl.module)
+  ) ?? [];
+  if (samePackage.length === 1) {
+    return samePackage[0];
+  }
+  if (samePackage.length > 1) {
+    return "ambiguous";
+  }
+
+  const byName = index.byName.get(importDecl.module) ?? [];
+  if (byName.length === 1) {
+    return byName[0];
+  }
+  if (byName.length > 1) {
+    return "ambiguous";
+  }
+
+  return undefined;
 }
 
 function scanSourceModules(
@@ -1040,7 +1125,7 @@ function scanSourceModules(
       }
 
       currentModule = {
-        id: createModuleId(name.token.value),
+        id: moduleIdForFileModule(file, name.token.value),
         name: name.token.value,
         packageName: packageNameForFile(file),
         external: isExternalFile(file),
@@ -1054,20 +1139,47 @@ function scanSourceModules(
     }
 
     if (currentModule !== undefined && isKeywordToken(token, "import")) {
-      const name = nextSignificantToken(tokens, index + 1);
-      if (name?.token.type !== "identifier") {
+      const name = readQualifiedName(tokens, index + 1);
+      if (name === undefined) {
         continue;
       }
 
       currentModule.imports.push({
-        module: name.token.value,
-        span: spanBetweenTokens(token, name.token, file.path)
+        module: name.value,
+        span: spanBetweenTokens(token, name.end, file.path)
       });
       index = name.index;
     }
   }
 
   return records;
+}
+
+function readQualifiedName(
+  tokens: Token[],
+  start: number
+): { value: string; end: Token; index: number } | undefined {
+  const first = nextSignificantToken(tokens, start);
+  if (first?.token.type !== "identifier") {
+    return undefined;
+  }
+
+  const parts = [first.token.value];
+  let end = first.token;
+  let index = first.index;
+
+  while (tokens[index + 1]?.type === "dot" && tokens[index + 2]?.type === "identifier") {
+    const next = tokens[index + 2]!;
+    parts.push(next.value);
+    end = next;
+    index += 2;
+  }
+
+  return {
+    value: parts.join("."),
+    end,
+    index
+  };
 }
 
 function nextSignificantToken(
@@ -1227,6 +1339,19 @@ function moduleRecord(moduleDecl: ModuleDecl, file: string): ModuleRecord {
       })),
     span: moduleDecl.span
   };
+}
+
+function moduleIdForFileModule(
+  file: ProductionSourceFile | ProjectSourceFile,
+  moduleName: string
+): ModuleId {
+  return createModuleId(
+    isExternalFile(file) ? packageModuleKey(packageNameForFile(file), moduleName) : moduleName
+  );
+}
+
+function packageModuleKey(packageName: string, moduleName: string): string {
+  return `${packageName}.${moduleName}`;
 }
 
 function packageNameForFile(file: ProductionSourceFile | ProjectSourceFile): string {

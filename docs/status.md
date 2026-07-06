@@ -26,7 +26,9 @@ remain planned.
 - Source file hashing and line map primitives.
 - Project manifest loading, source glob discovery, cross-file source loading,
   path-based external package dependencies, invalid manifest/source diagnostics,
-  source-hash cache keys, and package-aware module graph primitives.
+  source-hash cache keys, package-aware module graph primitives, dependency
+  module namespacing, package-qualified imports, and ambiguous unqualified
+  import diagnostics.
 - Semantic analyzer split into early production passes for module collection,
   declaration collection, import resolution, type checks, expression checks,
   module-aware symbol tables, type registry output, and structured diagnostics.
@@ -94,6 +96,10 @@ remain planned.
 - Same-project namespace handling is module-aware for colliding function names,
   record type names, imported callees, import conflicts, and ambiguous MIR
   entrypoints.
+- Path dependency modules are namespaced as `package.module` inside the compiler
+  pipeline; source can use package-qualified imports such as
+  `import mathlib.math` when dependency packages expose the same local module
+  name.
 - JavaScript and TypeScript output have module namespacing, optional
   ESM-per-module artifacts, MIR block lowering, function/block/instruction
   source-map artifacts, target runtime policy guards, and emitted-code memory
@@ -118,9 +124,9 @@ remain planned.
 ## Planned
 
 - Deeper package model beyond path-based dependencies, including package
-  registries, version constraints, and package-qualified imports.
+  registries and version constraints.
 - Package-level namespace collision tests and package-qualified type/function
-  identities beyond the current same-project module-qualified model.
+  identities for future registry/versioned dependency scenarios.
 - Phase-specific repair patches and evidence across parser, semantic, runtime,
   and backend diagnostics.
 - Deeper runtime module instance model and more precise memory accounting.

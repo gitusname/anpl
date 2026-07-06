@@ -374,14 +374,16 @@ fn add(a: int, b: int) -> int {
         external: true
       }
     ]);
-    expect(project.moduleGraph.modules.get("math" as never)).toMatchObject({
+    expect(project.moduleGraph.modules.get("mathlib.math" as never)).toMatchObject({
+      id: "mathlib.math",
+      name: "math",
       packageName: "mathlib",
       external: true
     });
     expect(project.moduleGraph.edges).toEqual([
       {
         from: "app",
-        to: "math",
+        to: "mathlib.math",
         kind: "import",
         external: true
       }
@@ -389,6 +391,111 @@ fn add(a: int, b: int) -> int {
     expect(project.cache.packageHashes.mathlib).toEqual(expect.any(String));
     expect(project.cache.sourceHashes["/mathlib/lib/math.anpl"]).toEqual(
       project.files.find((file) => file.path === "/mathlib/lib/math.anpl")?.hash
+    );
+  });
+
+  it("resolves package-qualified imports when dependency modules share local names", async () => {
+    const project = await loadProject(
+      "/project",
+      memoryHost({
+        "/project/anpl.json": JSON.stringify({
+          name: "app-pkg",
+          entry: "src/app.anpl",
+          source: ["src/**/*.anpl"],
+          dependencies: {
+            mathlib: {
+              path: "/mathlib",
+              source: ["lib/**/*.anpl"]
+            },
+            altmath: {
+              path: "/altmath",
+              source: ["lib/**/*.anpl"]
+            }
+          }
+        }),
+        "/project/src/app.anpl": `module app
+
+import mathlib.math
+
+fn main() -> int {
+  return add(2, 3)
+}`,
+        "/mathlib/lib/math.anpl": `module math
+
+fn add(a: int, b: int) -> int {
+  return a + b
+}`,
+        "/altmath/lib/math.anpl": `module math
+
+fn add(a: int, b: int) -> int {
+  return a - b
+}`
+      })
+    );
+
+    expect(project.diagnostics).toEqual([]);
+    expect([...project.moduleGraph.modules.keys()]).toEqual([
+      "app",
+      "mathlib.math",
+      "altmath.math"
+    ]);
+    expect(project.moduleGraph.edges).toEqual([
+      {
+        from: "app",
+        to: "mathlib.math",
+        kind: "import",
+        external: true
+      }
+    ]);
+  });
+
+  it("reports ambiguous unqualified imports across dependency packages", async () => {
+    const project = await loadProject(
+      "/project",
+      memoryHost({
+        "/project/anpl.json": JSON.stringify({
+          name: "app-pkg",
+          entry: "src/app.anpl",
+          source: ["src/**/*.anpl"],
+          dependencies: {
+            mathlib: {
+              path: "/mathlib",
+              source: ["lib/**/*.anpl"]
+            },
+            altmath: {
+              path: "/altmath",
+              source: ["lib/**/*.anpl"]
+            }
+          }
+        }),
+        "/project/src/app.anpl": `module app
+
+import math
+
+fn main() -> int {
+  return 1
+}`,
+        "/mathlib/lib/math.anpl": `module math
+
+fn add(a: int, b: int) -> int {
+  return a + b
+}`,
+        "/altmath/lib/math.anpl": `module math
+
+fn add(a: int, b: int) -> int {
+  return a - b
+}`
+      })
+    );
+
+    expect(project.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "ANPL_PROJECT_AMBIGUOUS_MODULE_IMPORT",
+          symbol: "math",
+          expected: "package-qualified module import"
+        })
+      ])
     );
   });
 

@@ -160,12 +160,29 @@ class Parser {
 
   private parseImport(): ImportDecl {
     const start = this.expectKeyword("import");
-    const module = this.expectIdentifier("ANPL_PARSE_EXPECTED_IDENTIFIER");
+    const module = this.parseQualifiedIdentifier();
 
     return {
       kind: "ImportDecl",
       module: module.value,
-      span: this.spanBetween(start, module)
+      span: this.spanBetween(start, module.end)
+    };
+  }
+
+  private parseQualifiedIdentifier(): { value: string; end: Token } {
+    const first = this.expectIdentifier("ANPL_PARSE_EXPECTED_IDENTIFIER");
+    const parts = [first.value];
+    let end = first;
+
+    while (this.match("dot")) {
+      const name = this.expectIdentifier("ANPL_PARSE_EXPECTED_IDENTIFIER");
+      parts.push(name.value);
+      end = name;
+    }
+
+    return {
+      value: parts.join("."),
+      end
     };
   }
 

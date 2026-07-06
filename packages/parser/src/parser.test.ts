@@ -109,6 +109,7 @@ type Status {
 module app
 
 import shared
+import mathlib.math
 
 fn main() -> int {
   return 1
@@ -121,6 +122,10 @@ fn main() -> int {
     expect(importDecl).toMatchObject({
       kind: "ImportDecl",
       module: "shared"
+    });
+    expect(app?.body[1]).toMatchObject({
+      kind: "ImportDecl",
+      module: "mathlib.math"
     });
     if (status?.kind !== "TypeDecl") {
       throw new Error("Expected TypeDecl");

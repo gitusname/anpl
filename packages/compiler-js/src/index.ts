@@ -488,8 +488,9 @@ function compileExpr(expr: IRExpr): string {
 }
 
 function compileCallee(callee: string, context?: MirEmitContext): string {
-  const [moduleName, functionName, ...rest] = callee.split(".");
-  if (moduleName !== undefined && functionName !== undefined && rest.length === 0) {
+  const qualified = splitQualifiedSymbol(callee);
+  if (qualified !== undefined) {
+    const { moduleName, functionName } = qualified;
     if (context?.moduleFormat === "esm") {
       if (moduleName === context.currentModule) {
         return functionName;
@@ -792,21 +793,29 @@ function valueSlot(name: string): string {
 }
 
 function moduleNameForSymbol(symbol: string): string {
-  const index = symbol.indexOf(".");
-  return index === -1 ? "$main" : symbol.slice(0, index);
+  return splitQualifiedSymbol(symbol)?.moduleName ?? "$main";
 }
 
 function functionNameForSymbol(symbol: string): string {
-  const index = symbol.lastIndexOf(".");
-  return index === -1 ? symbol : symbol.slice(index + 1);
+  return splitQualifiedSymbol(symbol)?.functionName ?? symbol;
 }
 
 function qualifiedModuleName(symbol: string): string | undefined {
-  const [moduleName, functionName, ...rest] = symbol.split(".");
-  if (moduleName !== undefined && functionName !== undefined && rest.length === 0) {
-    return moduleName;
+  return splitQualifiedSymbol(symbol)?.moduleName;
+}
+
+function splitQualifiedSymbol(
+  symbol: string
+): { moduleName: string; functionName: string } | undefined {
+  const index = symbol.lastIndexOf(".");
+  if (index <= 0 || index === symbol.length - 1) {
+    return undefined;
   }
-  return undefined;
+
+  return {
+    moduleName: symbol.slice(0, index),
+    functionName: symbol.slice(index + 1)
+  };
 }
 
 function outputDirectoryFor(path: string | undefined): string | undefined {
