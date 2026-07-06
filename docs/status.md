@@ -23,7 +23,8 @@ remain planned.
   interleaving, and parser recovery metadata attached to parse results.
 - Compiler facade with host abstraction, timings, artifacts, and CLI delegation
   through `compileProject`.
-- Source file hashing and line map primitives.
+- Source file hashing, source maps, path/id lookup, offset/position/span
+  conversion helpers, and line text extraction primitives.
 - Project manifest loading, source glob discovery, cross-file source loading,
   path-based external package dependencies, invalid manifest/source diagnostics,
   source-hash cache keys, package-aware module graph primitives, dependency

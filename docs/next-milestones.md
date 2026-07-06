@@ -83,6 +83,25 @@ Next work:
 - Add incremental compilation cache storage on top of the current cache key
   metadata.
 
+## 3a. Source System Hardening
+
+The source package now provides production-oriented file metadata used by
+lexer, project loading, diagnostics, source maps, and repair patches.
+
+Implemented foundation:
+
+- Stable `SourceFileId`, source hashing, and line start computation.
+- `SourceMap` lookup by file id or path.
+- Offset-to-position, position-to-offset, and offset span helpers with range
+  clamping.
+- Line text extraction that normalizes CRLF line endings for diagnostic
+  evidence.
+
+Next work:
+
+- Thread source map helpers deeper into diagnostic rendering and future LSP
+  features.
+
 ## 4. Structured Diagnostic Improvements
 
 Diagnostics now have registry enrichment, category metadata, cause/fix
