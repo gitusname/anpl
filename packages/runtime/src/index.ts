@@ -28,15 +28,28 @@ export type RuntimeError = {
   fix?: string;
 };
 
-export type Effect =
-  | "io.read"
-  | "io.write"
-  | "net.request"
-  | "db.read"
-  | "db.write"
-  | "time.now"
-  | "random.uuid"
-  | "console.print";
+export const knownEffects = [
+  "io.read",
+  "io.write",
+  "net.request",
+  "db.read",
+  "db.write",
+  "time.now",
+  "random.uuid",
+  "console.print",
+  "process.spawn"
+] as const;
+
+export type Effect = (typeof knownEffects)[number];
+
+export type RuntimeCapability =
+  | "filesystem"
+  | "network"
+  | "database"
+  | "clock"
+  | "random"
+  | "console"
+  | "process";
 
 export type SandboxPolicy = {
   allowFileSystem: boolean;
@@ -128,13 +141,51 @@ export function mergeSandboxPolicy(policy: Partial<SandboxPolicy>): SandboxPolic
 }
 
 export function isEffectAllowed(policy: SandboxPolicy, effect: Effect): boolean {
-  if (effect.startsWith("io.")) {
-    return policy.allowFileSystem && policy.allowedEffects.includes(effect);
+  return policy.allowedEffects.includes(effect) && isCapabilityEnabled(policy, effectCapability(effect));
+}
+
+export function isKnownEffect(effect: string): effect is Effect {
+  return (knownEffects as readonly string[]).includes(effect);
+}
+
+export function effectCapability(effect: Effect): RuntimeCapability {
+  switch (effect) {
+    case "io.read":
+    case "io.write":
+      return "filesystem";
+    case "net.request":
+      return "network";
+    case "db.read":
+    case "db.write":
+      return "database";
+    case "time.now":
+      return "clock";
+    case "random.uuid":
+      return "random";
+    case "console.print":
+      return "console";
+    case "process.spawn":
+      return "process";
   }
-  if (effect === "net.request") {
-    return policy.allowNetwork && policy.allowedEffects.includes(effect);
+}
+
+export function isCapabilityEnabled(
+  policy: SandboxPolicy,
+  capability: RuntimeCapability
+): boolean {
+  switch (capability) {
+    case "filesystem":
+      return policy.allowFileSystem;
+    case "network":
+      return policy.allowNetwork;
+    case "process":
+      return policy.allowProcess;
+    case "database":
+    case "clock":
+    case "random":
+    case "console":
+      return true;
   }
-  return policy.allowedEffects.includes(effect);
 }
 
 export function checkRuntimeLimits(host: RuntimeHost): RuntimeLimitViolation | undefined {

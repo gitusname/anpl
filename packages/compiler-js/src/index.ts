@@ -968,6 +968,9 @@ function __anpl_effect_allowed(effect: string): boolean {
   if (effect === "net.request") {
     return __anpl_runtime_policy.allowNetwork && __anpl_runtime_policy.allowedEffects.includes(effect);
   }
+  if (effect === "process.spawn") {
+    return __anpl_runtime_policy.allowProcess && __anpl_runtime_policy.allowedEffects.includes(effect);
+  }
   return __anpl_runtime_policy.allowedEffects.includes(effect);
 }
 
@@ -1044,6 +1047,9 @@ function __anpl_effect_allowed(effect) {
   }
   if (effect === "net.request") {
     return __anpl_runtime_policy.allowNetwork && __anpl_runtime_policy.allowedEffects.includes(effect);
+  }
+  if (effect === "process.spawn") {
+    return __anpl_runtime_policy.allowProcess && __anpl_runtime_policy.allowedEffects.includes(effect);
   }
   return __anpl_runtime_policy.allowedEffects.includes(effect);
 }

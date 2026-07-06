@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   checkRuntimeLimits,
   createRuntimeHost,
+  effectCapability,
   isEffectAllowed,
+  isKnownEffect,
   runtimeInt,
   runtimeRecord,
   runtimeText,
@@ -35,6 +37,34 @@ describe("runtime values", () => {
 
     expect(isEffectAllowed(host.sandbox, "console.print")).toBe(true);
     expect(isEffectAllowed(host.sandbox, "random.uuid")).toBe(false);
+    expect(isKnownEffect("process.spawn")).toBe(true);
+    expect(isKnownEffect("unknown.effect")).toBe(false);
+    expect(effectCapability("process.spawn")).toBe("process");
+  });
+
+  it("requires both effect allow-list and capability gates", () => {
+    const defaultHost = createRuntimeHost({
+      allowedEffects: ["io.read", "net.request", "process.spawn"]
+    });
+    const processHost = createRuntimeHost({
+      allowProcess: true,
+      allowedEffects: ["process.spawn"]
+    });
+    const filesystemHost = createRuntimeHost({
+      allowFileSystem: true,
+      allowedEffects: ["io.read"]
+    });
+    const networkHost = createRuntimeHost({
+      allowNetwork: true,
+      allowedEffects: ["net.request"]
+    });
+
+    expect(isEffectAllowed(defaultHost.sandbox, "io.read")).toBe(false);
+    expect(isEffectAllowed(defaultHost.sandbox, "net.request")).toBe(false);
+    expect(isEffectAllowed(defaultHost.sandbox, "process.spawn")).toBe(false);
+    expect(isEffectAllowed(processHost.sandbox, "process.spawn")).toBe(true);
+    expect(isEffectAllowed(filesystemHost.sandbox, "io.read")).toBe(true);
+    expect(isEffectAllowed(networkHost.sandbox, "net.request")).toBe(true);
   });
 
   it("tracks timeout and memory sandbox limits", () => {

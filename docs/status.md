@@ -43,8 +43,9 @@ remain planned.
   unused local elimination foundations.
 - MIR interpreter support for `main()`, functions, `let`, `return`, `if`, records,
   member access, calls, basic operators, tagged runtime values, runtime stack
-  evidence, sandbox effect checks, timeout checks, estimated memory checks,
-  runtime built-ins, and module-qualified function lookup.
+  evidence, sandbox effect checks, effect-to-capability metadata, timeout
+  checks, estimated memory checks, runtime built-ins, and module-qualified
+  function lookup.
 - JavaScript and TypeScript compiler targets for MIR with default module
   namespace output and optional ESM-per-module output.
 - JavaScript and TypeScript backend source-map artifacts mapping generated module
@@ -52,8 +53,8 @@ remain planned.
   source spans.
 - Generated JavaScript and TypeScript runtime policy guards for built-in effects,
   execution timeout checks, and estimated emitted-code memory accounting,
-  configured through the compiler facade and backend context, with shared
-  runtime helper artifacts for ESM module builds.
+  process capability checks, configured through the compiler facade and backend
+  context, with shared runtime helper artifacts for ESM module builds.
 - Runtime built-ins: `uuid()`, `now()`, `print(value)`, and `len(value)`, all
   using tagged runtime values.
 - CLI commands: `init`, `check`, `run`, `build`, `emit ast|hir|mir|ir`,

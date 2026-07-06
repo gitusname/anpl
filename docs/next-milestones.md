@@ -181,6 +181,9 @@ Implemented foundation:
   blocks, instructions, and terminators.
 - Generated JavaScript and TypeScript runtime policy guards for built-in effects,
   execution timeout checks, and estimated emitted-code memory accounting.
+- Runtime effect metadata maps known effects such as `io.read`, `net.request`,
+  `process.spawn`, `time.now`, `random.uuid`, and `console.print` to
+  capabilities used by sandbox checks.
 - Optional ESM-per-module JavaScript and TypeScript backend output.
 - Shared `anpl-runtime.js` and `anpl-runtime.ts` helper artifacts for ESM module
   builds, imported by generated module artifacts.

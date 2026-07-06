@@ -172,6 +172,7 @@ fn main() -> uuid {
 
     expect(js).toContain("__anpl_runtime_policy");
     expect(js).toContain("__anpl_require_effect(\"random.uuid\", \"uuid\")");
+    expect(js).toContain("effect === \"process.spawn\"");
     expect(() => module.__anpl_modules.ids?.main()).toThrow(
       "ANPL runtime policy blocked builtin 'uuid' effect 'random.uuid'."
     );
