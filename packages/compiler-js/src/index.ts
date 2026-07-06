@@ -7,6 +7,7 @@ import type {
   MirProgram,
   MirTerminator
 } from "@anpl/mir";
+import { mergeSandboxPolicy, type SandboxPolicy } from "@anpl/runtime";
 
 export type BackendArtifact = {
   kind: "js" | "ts" | "map";
@@ -16,6 +17,7 @@ export type BackendArtifact = {
 
 export type BackendContext = {
   outFile?: string;
+  runtimePolicy?: Partial<SandboxPolicy>;
 };
 
 export type BackendResult = {
@@ -67,7 +69,10 @@ export const javascriptBackend: Backend = {
   emit(program, context = {}) {
     const generated = compileMirProgramToJavaScriptFile(
       program,
-      context.outFile ?? "generated/anpl.js"
+      context.outFile ?? "generated/anpl.js",
+      {
+        runtimePolicy: context.runtimePolicy
+      }
     );
     const sourceMap = createMirBackendSourceMap(program, "js", generated.path, generated.content);
 
@@ -95,7 +100,10 @@ export const typescriptBackend: Backend = {
   emit(program, context = {}) {
     const generated = compileMirProgramToTypeScriptFile(
       program,
-      context.outFile ?? "generated/anpl.ts"
+      context.outFile ?? "generated/anpl.ts",
+      {
+        runtimePolicy: context.runtimePolicy
+      }
     );
     const sourceMap = createMirBackendSourceMap(program, "ts", generated.path, generated.content);
 
@@ -117,55 +125,71 @@ export const typescriptBackend: Backend = {
   }
 };
 
-export function compileProgramToJavaScript(program: IRProgram): string {
+export type BackendEmitOptions = {
+  runtimePolicy?: Partial<SandboxPolicy>;
+};
+
+export function compileProgramToJavaScript(
+  program: IRProgram,
+  options: BackendEmitOptions = {}
+): string {
   const modules = program.modules.map(compileModule).join("\n\n");
 
-  return `${runtimePrelude()}\n\nconst __anpl_modules = {};\n\n${modules}\n\nexport { __anpl_modules };\n`;
+  return `${runtimePrelude("js", options.runtimePolicy ?? {})}\n\nconst __anpl_modules = {};\n\n${modules}\n\nexport { __anpl_modules };\n`;
 }
 
 export function compileProgramToJavaScriptFile(
   program: IRProgram,
-  path = "generated/anpl.js"
+  path = "generated/anpl.js",
+  options: BackendEmitOptions = {}
 ): GeneratedFile {
   return {
     path,
-    content: compileProgramToJavaScript(program)
+    content: compileProgramToJavaScript(program, options)
   };
 }
 
-export function compileMirProgramToJavaScript(program: MirProgram): string {
+export function compileMirProgramToJavaScript(
+  program: MirProgram,
+  options: BackendEmitOptions = {}
+): string {
   const modules = groupMirFunctionsByModule(program)
     .map(([moduleName, functions]) => compileMirModule(moduleName, functions, "js"))
     .join("\n\n");
 
-  return `${runtimePrelude()}\n\nconst __anpl_modules = {};\n\n${modules}\n\nexport { __anpl_modules };\n`;
+  return `${runtimePrelude("js", options.runtimePolicy ?? {})}\n\nconst __anpl_modules = {};\n\n${modules}\n\nexport { __anpl_modules };\n`;
 }
 
 export function compileMirProgramToJavaScriptFile(
   program: MirProgram,
-  path = "generated/anpl.js"
+  path = "generated/anpl.js",
+  options: BackendEmitOptions = {}
 ): GeneratedFile {
   return {
     path,
-    content: compileMirProgramToJavaScript(program)
+    content: compileMirProgramToJavaScript(program, options)
   };
 }
 
-export function compileMirProgramToTypeScript(program: MirProgram): string {
+export function compileMirProgramToTypeScript(
+  program: MirProgram,
+  options: BackendEmitOptions = {}
+): string {
   const modules = groupMirFunctionsByModule(program)
     .map(([moduleName, functions]) => compileMirModule(moduleName, functions, "ts"))
     .join("\n\n");
 
-  return `${runtimePrelude("ts")}\n\ntype __AnplFunction = (...args: any[]) => any;\nconst __anpl_modules: Record<string, Record<string, __AnplFunction>> = {};\n\n${modules}\n\nexport { __anpl_modules };\n`;
+  return `${runtimePrelude("ts", options.runtimePolicy ?? {})}\n\ntype __AnplFunction = (...args: any[]) => any;\nconst __anpl_modules: Record<string, Record<string, __AnplFunction>> = {};\n\n${modules}\n\nexport { __anpl_modules };\n`;
 }
 
 export function compileMirProgramToTypeScriptFile(
   program: MirProgram,
-  path = "generated/anpl.ts"
+  path = "generated/anpl.ts",
+  options: BackendEmitOptions = {}
 ): GeneratedFile {
   return {
     path,
-    content: compileMirProgramToTypeScript(program)
+    content: compileMirProgramToTypeScript(program, options)
   };
 }
 
@@ -396,6 +420,7 @@ function compileMirFunctionMember(fn: MirFunction, language: BackendLanguage): s
       ? `let __block: string = ${JSON.stringify(fn.blocks[0]?.id ?? `${fn.id}.entry`)};`
       : `let __block = ${JSON.stringify(fn.blocks[0]?.id ?? `${fn.id}.entry`)};`,
     "while (true) {",
+    indent("__anpl_check_runtime_limits();"),
     indent("switch (__block) {"),
     indent(fn.blocks.map(compileMirBlock).join("\n"), 2),
     indent("default:"),
@@ -537,17 +562,61 @@ function indent(source: string, levels = 1): string {
     .join("\n");
 }
 
-function runtimePrelude(language: BackendLanguage = "js"): string {
+function runtimePrelude(
+  language: BackendLanguage = "js",
+  policy: Partial<SandboxPolicy> = {}
+): string {
+  const sandbox = mergeSandboxPolicy(policy);
+  const policySource = JSON.stringify(sandbox);
+
   if (language === "ts") {
-    return `function uuid(): string {
+    return `type __AnplRuntimePolicy = {
+  allowFileSystem: boolean;
+  allowNetwork: boolean;
+  allowProcess: boolean;
+  maxExecutionMs: number;
+  maxMemoryMb: number;
+  allowedEffects: string[];
+};
+
+const __anpl_runtime_policy: __AnplRuntimePolicy = ${policySource};
+const __anpl_runtime_started_at = Date.now();
+
+function __anpl_effect_allowed(effect: string): boolean {
+  if (effect.startsWith("io.")) {
+    return __anpl_runtime_policy.allowFileSystem && __anpl_runtime_policy.allowedEffects.includes(effect);
+  }
+  if (effect === "net.request") {
+    return __anpl_runtime_policy.allowNetwork && __anpl_runtime_policy.allowedEffects.includes(effect);
+  }
+  return __anpl_runtime_policy.allowedEffects.includes(effect);
+}
+
+function __anpl_require_effect(effect: string, builtin: string): void {
+  if (!__anpl_effect_allowed(effect)) {
+    throw new Error(\`ANPL runtime policy blocked builtin '\${builtin}' effect '\${effect}'.\`);
+  }
+}
+
+function __anpl_check_runtime_limits(): void {
+  const elapsed = Date.now() - __anpl_runtime_started_at;
+  if (elapsed > __anpl_runtime_policy.maxExecutionMs) {
+    throw new Error(\`ANPL runtime policy exceeded maxExecutionMs \${__anpl_runtime_policy.maxExecutionMs}.\`);
+  }
+}
+
+function uuid(): string {
+  __anpl_require_effect("random.uuid", "uuid");
   return crypto.randomUUID();
 }
 
 function now(): string {
+  __anpl_require_effect("time.now", "now");
   return new Date().toISOString();
 }
 
 function print(value: any): null {
+  __anpl_require_effect("console.print", "print");
   console.log(value);
   return null;
 }
@@ -559,15 +628,44 @@ function len(value: any): number {
 }`;
   }
 
-  return `function uuid() {
+  return `const __anpl_runtime_policy = ${policySource};
+const __anpl_runtime_started_at = Date.now();
+
+function __anpl_effect_allowed(effect) {
+  if (effect.startsWith("io.")) {
+    return __anpl_runtime_policy.allowFileSystem && __anpl_runtime_policy.allowedEffects.includes(effect);
+  }
+  if (effect === "net.request") {
+    return __anpl_runtime_policy.allowNetwork && __anpl_runtime_policy.allowedEffects.includes(effect);
+  }
+  return __anpl_runtime_policy.allowedEffects.includes(effect);
+}
+
+function __anpl_require_effect(effect, builtin) {
+  if (!__anpl_effect_allowed(effect)) {
+    throw new Error(\`ANPL runtime policy blocked builtin '\${builtin}' effect '\${effect}'.\`);
+  }
+}
+
+function __anpl_check_runtime_limits() {
+  const elapsed = Date.now() - __anpl_runtime_started_at;
+  if (elapsed > __anpl_runtime_policy.maxExecutionMs) {
+    throw new Error(\`ANPL runtime policy exceeded maxExecutionMs \${__anpl_runtime_policy.maxExecutionMs}.\`);
+  }
+}
+
+function uuid() {
+  __anpl_require_effect("random.uuid", "uuid");
   return crypto.randomUUID();
 }
 
 function now() {
+  __anpl_require_effect("time.now", "now");
   return new Date().toISOString();
 }
 
 function print(value) {
+  __anpl_require_effect("console.print", "print");
   console.log(value);
   return null;
 }

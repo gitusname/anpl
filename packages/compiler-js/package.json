@@ -20,6 +20,7 @@
   "dependencies": {
     "@anpl/core": "workspace:*",
     "@anpl/ir": "workspace:*",
-    "@anpl/mir": "workspace:*"
+    "@anpl/mir": "workspace:*",
+    "@anpl/runtime": "workspace:*"
   }
 }

@@ -45,6 +45,9 @@ remain planned.
 - JavaScript and TypeScript backend source-map artifacts mapping generated module
   functions, MIR blocks, MIR instructions, and MIR terminators back to ANPL
   source spans.
+- Generated JavaScript and TypeScript runtime policy guards for built-in effects
+  and execution timeout checks, configured through the compiler facade and backend
+  context.
 - Runtime built-ins: `uuid()`, `now()`, `print(value)`, and `len(value)`, all
   using tagged runtime values.
 - CLI commands: `init`, `check`, `run`, `build`, `emit ast|hir|mir|ir`,
@@ -83,8 +86,8 @@ remain planned.
   source hashes. ANPL does not yet have package boundaries or external
   dependency resolution.
 - JavaScript and TypeScript output have module namespacing, MIR block lowering,
-  and function/block/instruction source-map artifacts, but they do not yet
-  implement target runtime policy or ESM-per-module output.
+  function/block/instruction source-map artifacts, and target runtime policy
+  guards, but they do not yet implement ESM-per-module output.
 - Runtime memory enforcement uses estimated runtime value allocation, not exact
   process heap measurement.
 - The formatter is deterministic for the current AST surface, but comment/trivia
@@ -107,7 +110,8 @@ remain planned.
   projects.
 - Phase-specific repair patches and evidence across parser, semantic, runtime,
   and backend diagnostics.
-- Deeper runtime module instance model and more precise memory accounting.
+- Deeper runtime module instance model and more precise memory accounting,
+  including emitted-code memory accounting.
 - Real benchmark suite comparing direct human-first target code generation with
   human intent -> ANPL -> compiler flows.
 - Expanded type system and effect model.

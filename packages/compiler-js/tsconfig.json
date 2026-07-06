@@ -15,6 +15,7 @@
     "../lexer/src/**/*.ts",
     "../mir/src/**/*.ts",
     "../parser/src/**/*.ts",
+    "../runtime/src/**/*.ts",
     "../source/src/**/*.ts",
     "../syntax/src/**/*.ts",
     "../symbols/src/**/*.ts",

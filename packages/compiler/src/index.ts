@@ -21,6 +21,7 @@ import {
   type ProjectCacheMetadata,
   type ProjectDirEntry
 } from "@anpl/project";
+import { createRuntimeHost, type SandboxPolicy } from "@anpl/runtime";
 import { analyzeProgram, type SemanticResult } from "@anpl/semantic";
 import type { Program } from "@anpl/ast";
 import type { ProductionSourceFile } from "@anpl/source";
@@ -43,6 +44,7 @@ export type CompilerOptions = {
   outDir?: string;
   diagnosticsFormat?: "human" | "json" | "yaml";
   strict?: boolean;
+  runtimePolicy?: Partial<SandboxPolicy>;
   init?: InitProjectOptions;
 };
 
@@ -333,7 +335,11 @@ async function runMode(
       return { ok: true, value: formatted, diagnostics: [] };
     }
     case "run": {
-      const result = interpretMirProgram(state.mir);
+      const result = interpretMirProgram(
+        state.mir,
+        "main",
+        createRuntimeHost(options.runtimePolicy)
+      );
       return {
         ok: result.ok,
         value: result,
@@ -360,10 +366,12 @@ async function runMode(
       const backend =
         target === "ts"
           ? typescriptBackend.emit(state.mir, {
-              outFile: join(outDir, "anpl.ts")
+              outFile: join(outDir, "anpl.ts"),
+              runtimePolicy: options.runtimePolicy
             })
           : javascriptBackend.emit(state.mir, {
-              outFile: join(outDir, "anpl.js")
+              outFile: join(outDir, "anpl.js"),
+              runtimePolicy: options.runtimePolicy
             });
       artifacts.push(...backend.artifacts);
       for (const artifact of backend.artifacts) {

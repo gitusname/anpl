@@ -344,6 +344,11 @@ Builds also emit a machine-readable `*.map.json` artifact that maps generated
 module functions, MIR blocks, MIR instructions, and MIR terminators back to ANPL
 source spans.
 
+Generated JavaScript and TypeScript also embed a target runtime policy object.
+The emitted prelude guards effect-capable built-ins such as `uuid`, `now`, and
+`print`, and checks the configured execution timeout inside the MIR dispatch
+loop.
+
 Future targets:
 
 - v0.3: Python

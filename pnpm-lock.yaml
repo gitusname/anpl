@@ -95,6 +95,9 @@ importers:
       '@anpl/ir':
         specifier: workspace:*
         version: link:../ir
+      '@anpl/lexer':
+        specifier: workspace:*
+        version: link:../lexer
       '@anpl/mir':
         specifier: workspace:*
         version: link:../mir
@@ -107,6 +110,9 @@ importers:
       '@anpl/project':
         specifier: workspace:*
         version: link:../project
+      '@anpl/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@anpl/semantic':
         specifier: workspace:*
         version: link:../semantic
@@ -131,6 +137,9 @@ importers:
       '@anpl/mir':
         specifier: workspace:*
         version: link:../mir
+      '@anpl/runtime':
+        specifier: workspace:*
+        version: link:../runtime
 
   packages/core: {}
 
@@ -187,6 +196,9 @@ importers:
       '@anpl/core':
         specifier: workspace:*
         version: link:../core
+      '@anpl/source':
+        specifier: workspace:*
+        version: link:../source
 
   packages/lsp: {}
 
@@ -237,6 +249,9 @@ importers:
       '@anpl/core':
         specifier: workspace:*
         version: link:../core
+      '@anpl/lexer':
+        specifier: workspace:*
+        version: link:../lexer
       '@anpl/source':
         specifier: workspace:*
         version: link:../source

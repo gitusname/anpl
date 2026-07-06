@@ -145,6 +145,34 @@ fn main() -> int {
     expect(js).toContain("__anpl_modules[\"app\"]");
   });
 
+  it("emits runtime policy guards for generated JavaScript built-ins", async () => {
+    const parsed = parseAnpl(`module ids
+
+fn main() -> uuid {
+  return uuid()
+}`);
+    if (!parsed.ok) {
+      throw new Error(parsed.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+
+    const js = compileMirProgramToJavaScript(lowerHirToMir(lowerProgramToHir(parsed.program)), {
+      runtimePolicy: {
+        allowedEffects: []
+      }
+    });
+    const module = (await import(
+      `data:text/javascript;charset=utf-8,${encodeURIComponent(js)}`
+    )) as {
+      __anpl_modules: Record<string, Record<string, (...args: unknown[]) => unknown>>;
+    };
+
+    expect(js).toContain("__anpl_runtime_policy");
+    expect(js).toContain("__anpl_require_effect(\"random.uuid\", \"uuid\")");
+    expect(() => module.__anpl_modules.ids?.main()).toThrow(
+      "ANPL runtime policy blocked builtin 'uuid' effect 'random.uuid'."
+    );
+  });
+
   it("exposes a backend interface for MIR JavaScript emission", () => {
     const parsed = parseAnpl(`module math
 
@@ -290,6 +318,8 @@ fn main() -> int {
     });
 
     expect(source).toContain("type __AnplFunction");
+    expect(source).toContain("const __anpl_runtime_policy");
+    expect(source).toContain("__anpl_check_runtime_limits();");
     expect(source).toContain("const __anpl_modules: Record<string, Record<string, __AnplFunction>>");
     expect(source).toContain("add(a: any, b: any): any");
     expect(transpiled.diagnostics ?? []).toEqual([]);

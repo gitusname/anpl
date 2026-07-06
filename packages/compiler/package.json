@@ -29,6 +29,7 @@
     "@anpl/optimizer": "workspace:*",
     "@anpl/parser": "workspace:*",
     "@anpl/project": "workspace:*",
+    "@anpl/runtime": "workspace:*",
     "@anpl/semantic": "workspace:*",
     "@anpl/source": "workspace:*",
     "@anpl/symbols": "workspace:*",

@@ -267,6 +267,34 @@ fn main() -> int {
     );
   });
 
+  it("passes runtime policy into generated JavaScript builds", async () => {
+    const files: Record<string, string> = {
+      "/project/main.anpl": `module ids
+
+fn main() -> uuid {
+  return uuid()
+}`
+    };
+    const result = await compileProject(
+      {
+        mode: "build",
+        projectRoot: "/project",
+        entry: "main.anpl",
+        outDir: "dist",
+        runtimePolicy: {
+          allowedEffects: []
+        }
+      },
+      memoryHost(files)
+    );
+
+    expect(result.ok).toBe(true);
+    expect(files["/project/dist/anpl.js"]).toContain("\"allowedEffects\":[]");
+    expect(files["/project/dist/anpl.js"]).toContain(
+      "__anpl_require_effect(\"random.uuid\", \"uuid\")"
+    );
+  });
+
   it("builds TypeScript through the MIR backend", async () => {
     const files: Record<string, string> = {
       "/project/main.anpl": `module math
