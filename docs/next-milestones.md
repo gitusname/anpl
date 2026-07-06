@@ -26,12 +26,14 @@ Implemented foundation:
   `package.module` in the compiler pipeline.
 - Support package-qualified imports such as `import mathlib.math`, while keeping
   unique unqualified dependency imports working.
+- Cover package-level namespace collisions for same-named record types and
+  dependency packages that also define `main`.
 
 Next hardening work:
 
 - Extend package-qualified type/function identities into future package
   registry/versioned dependency scenarios.
-- Add more package-level collision tests for types and entry functions.
+- Expand package-level collision tests as registry/versioned dependencies land.
 - Keep ESM runtime artifact naming reserved and collision-safe as module/package
   naming grows.
 

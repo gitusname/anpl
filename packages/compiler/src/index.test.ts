@@ -306,6 +306,68 @@ fn add(a: int, b: int) -> int {
     });
   });
 
+  it("keeps package-qualified dependency record types separate from local same-named modules", async () => {
+    const result = await compileProject(
+      {
+        mode: "run",
+        projectRoot: "/project"
+      },
+      memoryHost({
+        "/project/anpl.json": JSON.stringify({
+          name: "app-pkg",
+          entry: "src/app.anpl",
+          source: ["src/**/*.anpl"],
+          dependencies: {
+            customerlib: {
+              path: "/customerlib",
+              source: ["lib/**/*.anpl"]
+            }
+          }
+        }),
+        "/project/src/app.anpl": `module app
+
+import customerlib.crm
+
+fn main() -> text {
+  let customer = makeCustomer("Ada")
+  return customer.status
+}`,
+        "/project/src/crm.anpl": `module crm
+
+type Customer {
+  name: text
+}
+
+fn makeCustomer(name: text) -> Customer {
+  return Customer {
+    name: name
+  }
+}`,
+        "/customerlib/lib/crm.anpl": `module crm
+
+type Customer {
+  status: text
+}
+
+fn makeCustomer(status: text) -> Customer {
+  return Customer {
+    status: status
+  }
+}`
+      })
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.diagnostics).toEqual([]);
+    expect(result.value).toMatchObject({
+      ok: true,
+      value: {
+        kind: "text",
+        value: "Ada"
+      }
+    });
+  });
+
   it("runs the manifest entry main when dependency packages also define main", async () => {
     const result = await compileProject(
       {

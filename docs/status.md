@@ -110,7 +110,8 @@ remain planned.
 - Path dependency modules are namespaced as `package.module` inside the compiler
   pipeline; source can use package-qualified imports such as
   `import mathlib.math` when dependency packages expose the same local module
-  name.
+  name, and compiler tests cover package-level record type and entrypoint
+  collisions.
 - JavaScript and TypeScript output have module namespacing, optional
   ESM-per-module artifacts, MIR block lowering, function/block/instruction
   source-map artifacts, target runtime policy guards, and emitted-code memory
