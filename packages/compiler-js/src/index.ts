@@ -84,6 +84,16 @@ export const javascriptBackend: Backend = {
 
       return {
         artifacts: generated.flatMap((file) => {
+          if (file.kind === "runtime") {
+            return [
+              {
+                kind: "js" as const,
+                path: file.path,
+                content: file.content
+              }
+            ];
+          }
+
           const sourceMap = createMirBackendSourceMap(
             { functions: file.functions },
             "js",
@@ -150,6 +160,16 @@ export const typescriptBackend: Backend = {
 
       return {
         artifacts: generated.flatMap((file) => {
+          if (file.kind === "runtime") {
+            return [
+              {
+                kind: "ts" as const,
+                path: file.path,
+                content: file.content
+              }
+            ];
+          }
+
           const sourceMap = createMirBackendSourceMap(
             { functions: file.functions },
             "ts",
@@ -258,9 +278,7 @@ export function compileMirProgramToJavaScriptFiles(
   program: MirProgram,
   options: BackendMultiFileEmitOptions = {}
 ): GeneratedFile[] {
-  return compileMirProgramToJavaScriptModuleFiles(program, options).map(
-    ({ moduleName: _moduleName, functions: _functions, moduleImportNames: _moduleImportNames, ...file }) => file
-  );
+  return compileMirProgramToJavaScriptModuleFiles(program, options).map(toGeneratedFile);
 }
 
 export function compileMirProgramToTypeScript(
@@ -289,9 +307,7 @@ export function compileMirProgramToTypeScriptFiles(
   program: MirProgram,
   options: BackendMultiFileEmitOptions = {}
 ): GeneratedFile[] {
-  return compileMirProgramToTypeScriptModuleFiles(program, options).map(
-    ({ moduleName: _moduleName, functions: _functions, moduleImportNames: _moduleImportNames, ...file }) => file
-  );
+  return compileMirProgramToTypeScriptModuleFiles(program, options).map(toGeneratedFile);
 }
 
 export function createMirBackendSourceMap(
@@ -518,11 +534,20 @@ type MirEmitContext = {
   moduleImportNames?: ReadonlyMap<string, string>;
 };
 
+type GeneratedMirRuntimeFile = GeneratedFile & {
+  kind: "runtime";
+};
+
 type GeneratedMirModuleFile = GeneratedFile & {
+  kind: "module";
   moduleName: string;
   functions: MirFunction[];
   moduleImportNames: ReadonlyMap<string, string>;
 };
+
+type GeneratedMirEsmFile = GeneratedMirRuntimeFile | GeneratedMirModuleFile;
+
+const esmRuntimeFileBaseName = "anpl-runtime";
 
 function compileMirModule(
   moduleName: string,
@@ -544,14 +569,14 @@ function compileMirModule(
 function compileMirProgramToJavaScriptModuleFiles(
   program: MirProgram,
   options: BackendMultiFileEmitOptions = {}
-): GeneratedMirModuleFile[] {
+): GeneratedMirEsmFile[] {
   return compileMirProgramToModuleFiles(program, "js", options);
 }
 
 function compileMirProgramToTypeScriptModuleFiles(
   program: MirProgram,
   options: BackendMultiFileEmitOptions = {}
-): GeneratedMirModuleFile[] {
+): GeneratedMirEsmFile[] {
   return compileMirProgramToModuleFiles(program, "ts", options);
 }
 
@@ -559,26 +584,36 @@ function compileMirProgramToModuleFiles(
   program: MirProgram,
   language: BackendLanguage,
   options: BackendMultiFileEmitOptions
-): GeneratedMirModuleFile[] {
+): GeneratedMirEsmFile[] {
   const modules = groupMirFunctionsByModule(program);
   const moduleNames = modules.map(([moduleName]) => moduleName);
-  const moduleFileNames = uniqueModuleNames(moduleNames, moduleFileBaseName);
+  const moduleFileNames = uniqueModuleNames(
+    moduleNames,
+    moduleFileBaseName,
+    new Set([esmRuntimeFileBaseName])
+  );
   const moduleImportNames = uniqueModuleNames(moduleNames, moduleImportIdentifierBase);
   const outDir = normalizeOutDir(options.outDir ?? "generated");
+  const extension = language === "ts" ? "ts" : "js";
 
-  return modules.map(([moduleName, functions]) => {
-    const extension = language === "ts" ? "ts" : "js";
+  const runtimeFile: GeneratedMirRuntimeFile = {
+    kind: "runtime",
+    path: `${outDir}/${esmRuntimeFileBaseName}.${extension}`,
+    content: `${runtimePrelude(language, options.runtimePolicy ?? {}, { exported: true })}\n`
+  };
+
+  const moduleFiles: GeneratedMirModuleFile[] = modules.map(([moduleName, functions]) => {
     const fileName = moduleFileNames.get(moduleName) ?? moduleFileBaseName(moduleName);
     const content = compileMirEsmModule(
       moduleName,
       functions,
       language,
       moduleFileNames,
-      moduleImportNames,
-      options.runtimePolicy
+      moduleImportNames
     );
 
     return {
+      kind: "module",
       moduleName,
       functions,
       moduleImportNames,
@@ -586,6 +621,8 @@ function compileMirProgramToModuleFiles(
       content
     };
   });
+
+  return [runtimeFile, ...moduleFiles];
 }
 
 function compileMirEsmModule(
@@ -593,9 +630,9 @@ function compileMirEsmModule(
   functions: MirFunction[],
   language: BackendLanguage,
   moduleFileNames: ReadonlyMap<string, string>,
-  moduleImportNames: ReadonlyMap<string, string>,
-  runtimePolicy: Partial<SandboxPolicy> = {}
+  moduleImportNames: ReadonlyMap<string, string>
 ): string {
+  const runtimeImport = compileMirRuntimeImport();
   const imports = compileMirModuleImports(moduleName, functions, moduleFileNames, moduleImportNames);
   const declarations = functions
     .map((fn) =>
@@ -608,10 +645,21 @@ function compileMirEsmModule(
     )
     .join("\n\n");
 
-  return [imports, runtimePrelude(language, runtimePolicy), declarations]
+  return [runtimeImport, imports, declarations]
     .filter((part) => part.length > 0)
     .join("\n\n")
     .concat("\n");
+}
+
+function toGeneratedFile(file: GeneratedMirEsmFile): GeneratedFile {
+  return {
+    path: file.path,
+    content: file.content
+  };
+}
+
+function compileMirRuntimeImport(): string {
+  return `import { __anpl_check_runtime_limits, __anpl_track_value, len, now, print, uuid } from ${JSON.stringify(`./${esmRuntimeFileBaseName}.js`)};`;
 }
 
 function compileMirModuleImports(
@@ -775,16 +823,22 @@ function normalizeOutDir(path: string): string {
 
 function uniqueModuleNames(
   moduleNames: string[],
-  baseName: (moduleName: string) => string
+  baseName: (moduleName: string) => string,
+  reserved = new Set<string>()
 ): Map<string, string> {
   const used = new Map<string, number>();
   const names = new Map<string, string>();
 
   for (const moduleName of moduleNames) {
     const base = baseName(moduleName);
-    const count = used.get(base) ?? 0;
+    let count = used.get(base) ?? 0;
+    let candidate = count === 0 ? base : `${base}_${count + 1}`;
+    while (reserved.has(candidate)) {
+      count += 1;
+      candidate = `${base}_${count + 1}`;
+    }
     used.set(base, count + 1);
-    names.set(moduleName, count === 0 ? base : `${base}_${count + 1}`);
+    names.set(moduleName, candidate);
   }
 
   return names;
@@ -877,10 +931,12 @@ function indent(source: string, levels = 1): string {
 
 function runtimePrelude(
   language: BackendLanguage = "js",
-  policy: Partial<SandboxPolicy> = {}
+  policy: Partial<SandboxPolicy> = {},
+  options: { exported?: boolean } = {}
 ): string {
   const sandbox = mergeSandboxPolicy(policy);
   const policySource = JSON.stringify(sandbox);
+  const exported = options.exported === true ? "export " : "";
 
   if (language === "ts") {
     return `type __AnplRuntimePolicy = {
@@ -912,7 +968,7 @@ function __anpl_require_effect(effect: string, builtin: string): void {
   }
 }
 
-function __anpl_check_runtime_limits(): void {
+${exported}function __anpl_check_runtime_limits(): void {
   const elapsed = Date.now() - __anpl_runtime_started_at;
   if (elapsed > __anpl_runtime_policy.maxExecutionMs) {
     throw new Error(\`ANPL runtime policy exceeded maxExecutionMs \${__anpl_runtime_policy.maxExecutionMs}.\`);
@@ -940,29 +996,29 @@ function __anpl_estimate_value_bytes(value: any): number {
   return 8;
 }
 
-function __anpl_track_value<T>(value: T): T {
+${exported}function __anpl_track_value<T>(value: T): T {
   __anpl_runtime_memory_bytes += __anpl_estimate_value_bytes(value);
   __anpl_check_runtime_limits();
   return value;
 }
 
-function uuid(): string {
+${exported}function uuid(): string {
   __anpl_require_effect("random.uuid", "uuid");
   return crypto.randomUUID();
 }
 
-function now(): string {
+${exported}function now(): string {
   __anpl_require_effect("time.now", "now");
   return new Date().toISOString();
 }
 
-function print(value: any): null {
+${exported}function print(value: any): null {
   __anpl_require_effect("console.print", "print");
   console.log(value);
   return null;
 }
 
-function len(value: any): number {
+${exported}function len(value: any): number {
   if (typeof value === "string" || Array.isArray(value)) return value.length;
   if (value && typeof value === "object") return Object.keys(value).length;
   return 0;
@@ -989,7 +1045,7 @@ function __anpl_require_effect(effect, builtin) {
   }
 }
 
-function __anpl_check_runtime_limits() {
+${exported}function __anpl_check_runtime_limits() {
   const elapsed = Date.now() - __anpl_runtime_started_at;
   if (elapsed > __anpl_runtime_policy.maxExecutionMs) {
     throw new Error(\`ANPL runtime policy exceeded maxExecutionMs \${__anpl_runtime_policy.maxExecutionMs}.\`);
@@ -1017,29 +1073,29 @@ function __anpl_estimate_value_bytes(value) {
   return 8;
 }
 
-function __anpl_track_value(value) {
+${exported}function __anpl_track_value(value) {
   __anpl_runtime_memory_bytes += __anpl_estimate_value_bytes(value);
   __anpl_check_runtime_limits();
   return value;
 }
 
-function uuid() {
+${exported}function uuid() {
   __anpl_require_effect("random.uuid", "uuid");
   return crypto.randomUUID();
 }
 
-function now() {
+${exported}function now() {
   __anpl_require_effect("time.now", "now");
   return new Date().toISOString();
 }
 
-function print(value) {
+${exported}function print(value) {
   __anpl_require_effect("console.print", "print");
   console.log(value);
   return null;
 }
 
-function len(value) {
+${exported}function len(value) {
   if (typeof value === "string" || Array.isArray(value)) return value.length;
   if (value && typeof value === "object") return Object.keys(value).length;
   return 0;

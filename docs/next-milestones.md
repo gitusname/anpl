@@ -19,7 +19,8 @@ Next hardening work:
   multi-package projects.
 - Add more collision tests for types, imported symbols, and multiple `main`
   functions.
-- Add a shared emitted runtime prelude strategy for ESM module builds.
+- Keep ESM runtime artifact naming reserved and collision-safe as module/package
+  naming grows.
 
 ## 2. Canonical Formatter
 
@@ -133,13 +134,14 @@ Implemented foundation:
 - Generated JavaScript and TypeScript runtime policy guards for built-in effects,
   execution timeout checks, and estimated emitted-code memory accounting.
 - Optional ESM-per-module JavaScript and TypeScript backend output.
+- Shared `anpl-runtime.js` and `anpl-runtime.ts` helper artifacts for ESM module
+  builds, imported by generated module artifacts.
 - Starter MIR passes for constant folding, copy propagation, dead branch
   removal, and unused local elimination.
 
 Next work:
 
 - Document the current structured ANPL IR v0.1 contract.
-- Deduplicate or externalize the emitted runtime prelude for ESM module builds.
 - Keep AST-to-IR/HIR/MIR lowering deterministic and easy for AI tools to
   inspect.
 

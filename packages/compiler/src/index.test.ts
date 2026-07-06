@@ -342,14 +342,29 @@ fn main() -> int {
     );
 
     expect(result.ok).toBe(true);
+    expect(files["/project/dist/anpl-runtime.js"]).toContain(
+      "export function __anpl_track_value"
+    );
     expect(files["/project/dist/math.js"]).toContain("export function add");
+    expect(files["/project/dist/math.js"]).toContain(
+      "from \"./anpl-runtime.js\";"
+    );
+    expect(files["/project/dist/math.js"]).not.toContain("const __anpl_runtime_policy");
     expect(files["/project/dist/app.js"]).toContain(
       "import * as __anpl_math from \"./math.js\";"
     );
+    expect(files["/project/dist/app.js"]).toContain(
+      "from \"./anpl-runtime.js\";"
+    );
     expect(files["/project/dist/app.js"]).toContain("__anpl_math.add(");
+    expect(files["/project/dist/app.js"]).not.toContain("const __anpl_runtime_policy");
     expect(files["/project/dist/anpl.js"]).toBeUndefined();
     expect(result.artifacts).toEqual(
       expect.arrayContaining([
+        expect.objectContaining({
+          kind: "js",
+          path: "dist/anpl-runtime.js"
+        }),
         expect.objectContaining({
           kind: "js",
           path: "dist/math.js"

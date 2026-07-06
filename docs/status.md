@@ -48,7 +48,8 @@ remain planned.
   source spans.
 - Generated JavaScript and TypeScript runtime policy guards for built-in effects,
   execution timeout checks, and estimated emitted-code memory accounting,
-  configured through the compiler facade and backend context.
+  configured through the compiler facade and backend context, with shared
+  runtime helper artifacts for ESM module builds.
 - Runtime built-ins: `uuid()`, `now()`, `print(value)`, and `len(value)`, all
   using tagged runtime values.
 - CLI commands: `init`, `check`, `run`, `build`, `emit ast|hir|mir|ir`,
@@ -89,8 +90,9 @@ remain planned.
 - JavaScript and TypeScript output have module namespacing, optional
   ESM-per-module artifacts, MIR block lowering, function/block/instruction
   source-map artifacts, target runtime policy guards, and emitted-code memory
-  accounting. ESM module output currently duplicates the small runtime prelude
-  per emitted module.
+  accounting. ESM module output emits a shared `anpl-runtime.js` or
+  `anpl-runtime.ts` helper artifact instead of duplicating the runtime prelude
+  in every generated module.
 - Runtime memory enforcement uses estimated runtime value allocation, not exact
   process heap measurement.
 - The formatter is deterministic for the current AST surface, but comment/trivia
@@ -113,8 +115,7 @@ remain planned.
 - Deeper module namespace model for type IDs and HIR/MIR.
 - Phase-specific repair patches and evidence across parser, semantic, runtime,
   and backend diagnostics.
-- Shared emitted runtime prelude strategy for ESM module builds, deeper runtime
-  module instance model, and more precise memory accounting.
+- Deeper runtime module instance model and more precise memory accounting.
 - Real benchmark suite comparing direct human-first target code generation with
   human intent -> ANPL -> compiler flows.
 - Expanded type system and effect model.

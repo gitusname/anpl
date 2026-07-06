@@ -1,3 +1,7 @@
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 import * as ts from "typescript";
 import { parseAnpl } from "@anpl/parser";
@@ -255,6 +259,7 @@ fn main() -> int {
     });
     const math = result.artifacts.find((artifact) => artifact.path === "dist/math.js");
     const app = result.artifacts.find((artifact) => artifact.path === "dist/app.js");
+    const runtime = result.artifacts.find((artifact) => artifact.path === "dist/anpl-runtime.js");
     const appMap = result.artifacts.find((artifact) => artifact.path === "dist/app.js.map.json");
 
     expect(result.diagnostics).toEqual([]);
@@ -269,6 +274,10 @@ fn main() -> int {
           path: "dist/app.js"
         }),
         expect.objectContaining({
+          kind: "js",
+          path: "dist/anpl-runtime.js"
+        }),
+        expect.objectContaining({
           kind: "map",
           path: "dist/math.js.map.json"
         }),
@@ -278,11 +287,23 @@ fn main() -> int {
         })
       ])
     );
+    expect(runtime?.content).toContain("export function __anpl_track_value");
+    expect(runtime?.content).toContain("export function __anpl_check_runtime_limits");
     expect(math?.content).toContain("export function add(a, b)");
+    expect(math?.content).toContain(
+      "import { __anpl_check_runtime_limits, __anpl_track_value, len, now, print, uuid } from \"./anpl-runtime.js\";"
+    );
+    expect(math?.content).not.toContain("function __anpl_track_value");
+    expect(math?.content).not.toContain("const __anpl_runtime_policy");
     expect(app?.content).toContain("import * as __anpl_math from \"./math.js\";");
+    expect(app?.content).toContain(
+      "import { __anpl_check_runtime_limits, __anpl_track_value, len, now, print, uuid } from \"./anpl-runtime.js\";"
+    );
     expect(app?.content).toContain("export function main()");
     expect(app?.content).toContain("__anpl_math.add(");
     expect(app?.content).not.toContain("__anpl_modules");
+    expect(app?.content).not.toContain("function __anpl_track_value");
+    expect(app?.content).not.toContain("const __anpl_runtime_policy");
     expect(JSON.parse(appMap?.content ?? "{}")).toMatchObject({
       target: "js",
       outFile: "dist/app.js",
@@ -295,6 +316,50 @@ fn main() -> int {
         })
       ])
     });
+  });
+
+  it("executes ESM JavaScript modules with a shared runtime artifact", async () => {
+    const parsed = parseAnpl(`module math
+
+fn add(a: int, b: int) -> int {
+  return a + b
+}
+
+module app
+
+import math
+
+fn main() -> int {
+  return add(2, 3)
+}`);
+    if (!parsed.ok) {
+      throw new Error(parsed.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+
+    const result = javascriptBackend.emit(lowerHirToMir(lowerProgramToHir(parsed.program)), {
+      outDir: ".",
+      moduleFormat: "esm"
+    });
+    const tempDir = await mkdtemp(join(tmpdir(), "anpl-esm-"));
+
+    try {
+      await writeFile(join(tempDir, "package.json"), "{\"type\":\"module\"}", "utf8");
+      for (const artifact of result.artifacts) {
+        if (artifact.kind === "js" && artifact.path !== undefined) {
+          await writeFile(join(tempDir, artifact.path), artifact.content, "utf8");
+        }
+      }
+
+      const app = (await import(`${pathToFileURL(join(tempDir, "app.js")).href}?t=${Date.now()}`)) as {
+        main(): unknown;
+      };
+      expect(app.main()).toBe(5);
+    } finally {
+      await rm(tempDir, {
+        recursive: true,
+        force: true
+      });
+    }
   });
 
   it("emits a block and instruction source map for MIR JavaScript", () => {
@@ -474,6 +539,7 @@ fn main() -> int {
     });
     const math = result.artifacts.find((artifact) => artifact.path === "dist/math.ts");
     const app = result.artifacts.find((artifact) => artifact.path === "dist/app.ts");
+    const runtime = result.artifacts.find((artifact) => artifact.path === "dist/anpl-runtime.ts");
     const transpiled = ts.transpileModule(app?.content ?? "", {
       compilerOptions: {
         module: ts.ModuleKind.ESNext,
@@ -484,11 +550,20 @@ fn main() -> int {
     });
 
     expect(result.diagnostics).toEqual([]);
+    expect(runtime?.content).toContain("export function __anpl_track_value<T>(value: T): T");
     expect(math?.content).toContain("export function add(a: any, b: any): any");
+    expect(math?.content).toContain(
+      "import { __anpl_check_runtime_limits, __anpl_track_value, len, now, print, uuid } from \"./anpl-runtime.js\";"
+    );
+    expect(math?.content).not.toContain("function __anpl_track_value");
     expect(app?.content).toContain("import * as __anpl_math from \"./math.js\";");
+    expect(app?.content).toContain(
+      "import { __anpl_check_runtime_limits, __anpl_track_value, len, now, print, uuid } from \"./anpl-runtime.js\";"
+    );
     expect(app?.content).toContain("export function main(): any");
     expect(app?.content).toContain("__anpl_math.add(");
     expect(app?.content).not.toContain("const __anpl_modules");
+    expect(app?.content).not.toContain("const __anpl_runtime_policy");
     expect(transpiled.diagnostics ?? []).toEqual([]);
   });
 });

@@ -372,6 +372,7 @@ __anpl_modules["math"] = {
 artifact per ANPL module. Cross-module MIR calls become ESM imports:
 
 ```js
+import { __anpl_check_runtime_limits, __anpl_track_value, len, now, print, uuid } from "./anpl-runtime.js";
 import * as __anpl_math from "./math.js";
 
 export function main() {
@@ -379,6 +380,10 @@ export function main() {
   return __anpl_math.add(2, 3);
 }
 ```
+
+The ESM build also emits `anpl-runtime.js` or `anpl-runtime.ts` once per output
+directory so generated module artifacts share runtime policy guards, built-ins,
+timeout checks, and memory accounting helpers.
 
 Builds also emit a machine-readable `*.map.json` artifact that maps generated
 module functions, MIR blocks, MIR instructions, and MIR terminators back to ANPL
