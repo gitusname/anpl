@@ -1,0 +1,33 @@
+[
+  {
+    "code": "ANPL_RETURN_MISSING",
+    "severity": "error",
+    "category": "semantic",
+    "message": "Function 'main' must return int.",
+    "file": "tests/conformance/invalid/missing-return.anpl",
+    "line": 3,
+    "column": 1,
+    "span": {
+      "file": "tests/conformance/invalid/missing-return.anpl",
+      "start": {
+        "offset": 12,
+        "line": 3,
+        "column": 1
+      },
+      "end": {
+        "offset": 53,
+        "line": 5,
+        "column": 2
+      }
+    },
+    "symbol": "main",
+    "expected": "int",
+    "received": "void",
+    "cause": "Function 'main' can reach the end without returning int.",
+    "fix": "Add a return statement on every control-flow path or change the return type to void.",
+    "evidence": [
+      "span 3:1-5:2"
+    ],
+    "confidence": "high"
+  }
+]

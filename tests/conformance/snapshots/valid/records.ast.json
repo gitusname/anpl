@@ -1,0 +1,386 @@
+{
+  "kind": "Program",
+  "modules": [
+    {
+      "kind": "ModuleDecl",
+      "name": "crm",
+      "body": [
+        {
+          "kind": "TypeDecl",
+          "name": "Customer",
+          "fields": [
+            {
+              "kind": "FieldDecl",
+              "name": "id",
+              "optional": false,
+              "type": {
+                "kind": "TypeRef",
+                "name": "uuid",
+                "span": {
+                  "file": "tests/conformance/valid/records.anpl",
+                  "start": {
+                    "offset": 34,
+                    "line": 4,
+                    "column": 7
+                  },
+                  "end": {
+                    "offset": 38,
+                    "line": 4,
+                    "column": 11
+                  }
+                }
+              },
+              "span": {
+                "file": "tests/conformance/valid/records.anpl",
+                "start": {
+                  "offset": 30,
+                  "line": 4,
+                  "column": 3
+                },
+                "end": {
+                  "offset": 38,
+                  "line": 4,
+                  "column": 11
+                }
+              }
+            },
+            {
+              "kind": "FieldDecl",
+              "name": "name",
+              "optional": false,
+              "type": {
+                "kind": "TypeRef",
+                "name": "text",
+                "span": {
+                  "file": "tests/conformance/valid/records.anpl",
+                  "start": {
+                    "offset": 47,
+                    "line": 5,
+                    "column": 9
+                  },
+                  "end": {
+                    "offset": 51,
+                    "line": 5,
+                    "column": 13
+                  }
+                }
+              },
+              "span": {
+                "file": "tests/conformance/valid/records.anpl",
+                "start": {
+                  "offset": 41,
+                  "line": 5,
+                  "column": 3
+                },
+                "end": {
+                  "offset": 51,
+                  "line": 5,
+                  "column": 13
+                }
+              }
+            },
+            {
+              "kind": "FieldDecl",
+              "name": "age",
+              "optional": true,
+              "type": {
+                "kind": "TypeRef",
+                "name": "int",
+                "span": {
+                  "file": "tests/conformance/valid/records.anpl",
+                  "start": {
+                    "offset": 60,
+                    "line": 6,
+                    "column": 9
+                  },
+                  "end": {
+                    "offset": 63,
+                    "line": 6,
+                    "column": 12
+                  }
+                }
+              },
+              "span": {
+                "file": "tests/conformance/valid/records.anpl",
+                "start": {
+                  "offset": 54,
+                  "line": 6,
+                  "column": 3
+                },
+                "end": {
+                  "offset": 63,
+                  "line": 6,
+                  "column": 12
+                }
+              }
+            }
+          ],
+          "span": {
+            "file": "tests/conformance/valid/records.anpl",
+            "start": {
+              "offset": 12,
+              "line": 3,
+              "column": 1
+            },
+            "end": {
+              "offset": 65,
+              "line": 7,
+              "column": 2
+            }
+          }
+        },
+        {
+          "kind": "FunctionDecl",
+          "name": "createCustomer",
+          "params": [
+            {
+              "kind": "Param",
+              "name": "id",
+              "type": {
+                "kind": "TypeRef",
+                "name": "uuid",
+                "span": {
+                  "file": "tests/conformance/valid/records.anpl",
+                  "start": {
+                    "offset": 89,
+                    "line": 9,
+                    "column": 23
+                  },
+                  "end": {
+                    "offset": 93,
+                    "line": 9,
+                    "column": 27
+                  }
+                }
+              },
+              "span": {
+                "file": "tests/conformance/valid/records.anpl",
+                "start": {
+                  "offset": 85,
+                  "line": 9,
+                  "column": 19
+                },
+                "end": {
+                  "offset": 93,
+                  "line": 9,
+                  "column": 27
+                }
+              }
+            },
+            {
+              "kind": "Param",
+              "name": "name",
+              "type": {
+                "kind": "TypeRef",
+                "name": "text",
+                "span": {
+                  "file": "tests/conformance/valid/records.anpl",
+                  "start": {
+                    "offset": 101,
+                    "line": 9,
+                    "column": 35
+                  },
+                  "end": {
+                    "offset": 105,
+                    "line": 9,
+                    "column": 39
+                  }
+                }
+              },
+              "span": {
+                "file": "tests/conformance/valid/records.anpl",
+                "start": {
+                  "offset": 95,
+                  "line": 9,
+                  "column": 29
+                },
+                "end": {
+                  "offset": 105,
+                  "line": 9,
+                  "column": 39
+                }
+              }
+            }
+          ],
+          "returnType": {
+            "kind": "TypeRef",
+            "name": "Customer",
+            "span": {
+              "file": "tests/conformance/valid/records.anpl",
+              "start": {
+                "offset": 110,
+                "line": 9,
+                "column": 44
+              },
+              "end": {
+                "offset": 118,
+                "line": 9,
+                "column": 52
+              }
+            }
+          },
+          "body": {
+            "kind": "BlockStmt",
+            "statements": [
+              {
+                "kind": "ReturnStmt",
+                "value": {
+                  "kind": "RecordExpr",
+                  "typeName": "Customer",
+                  "fields": [
+                    {
+                      "kind": "RecordFieldExpr",
+                      "name": "id",
+                      "value": {
+                        "kind": "IdentifierExpr",
+                        "name": "id",
+                        "span": {
+                          "file": "tests/conformance/valid/records.anpl",
+                          "start": {
+                            "offset": 149,
+                            "line": 11,
+                            "column": 9
+                          },
+                          "end": {
+                            "offset": 151,
+                            "line": 11,
+                            "column": 11
+                          }
+                        }
+                      },
+                      "span": {
+                        "file": "tests/conformance/valid/records.anpl",
+                        "start": {
+                          "offset": 145,
+                          "line": 11,
+                          "column": 5
+                        },
+                        "end": {
+                          "offset": 151,
+                          "line": 11,
+                          "column": 11
+                        }
+                      }
+                    },
+                    {
+                      "kind": "RecordFieldExpr",
+                      "name": "name",
+                      "value": {
+                        "kind": "IdentifierExpr",
+                        "name": "name",
+                        "span": {
+                          "file": "tests/conformance/valid/records.anpl",
+                          "start": {
+                            "offset": 162,
+                            "line": 12,
+                            "column": 11
+                          },
+                          "end": {
+                            "offset": 166,
+                            "line": 12,
+                            "column": 15
+                          }
+                        }
+                      },
+                      "span": {
+                        "file": "tests/conformance/valid/records.anpl",
+                        "start": {
+                          "offset": 156,
+                          "line": 12,
+                          "column": 5
+                        },
+                        "end": {
+                          "offset": 166,
+                          "line": 12,
+                          "column": 15
+                        }
+                      }
+                    }
+                  ],
+                  "span": {
+                    "file": "tests/conformance/valid/records.anpl",
+                    "start": {
+                      "offset": 130,
+                      "line": 10,
+                      "column": 10
+                    },
+                    "end": {
+                      "offset": 170,
+                      "line": 13,
+                      "column": 4
+                    }
+                  }
+                },
+                "span": {
+                  "file": "tests/conformance/valid/records.anpl",
+                  "start": {
+                    "offset": 123,
+                    "line": 10,
+                    "column": 3
+                  },
+                  "end": {
+                    "offset": 170,
+                    "line": 13,
+                    "column": 4
+                  }
+                }
+              }
+            ],
+            "span": {
+              "file": "tests/conformance/valid/records.anpl",
+              "start": {
+                "offset": 119,
+                "line": 9,
+                "column": 53
+              },
+              "end": {
+                "offset": 172,
+                "line": 14,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "file": "tests/conformance/valid/records.anpl",
+            "start": {
+              "offset": 67,
+              "line": 9,
+              "column": 1
+            },
+            "end": {
+              "offset": 172,
+              "line": 14,
+              "column": 2
+            }
+          }
+        }
+      ],
+      "span": {
+        "file": "tests/conformance/valid/records.anpl",
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 173,
+          "line": 14,
+          "column": 3
+        }
+      }
+    }
+  ],
+  "span": {
+    "file": "tests/conformance/valid/records.anpl",
+    "start": {
+      "offset": 0,
+      "line": 1,
+      "column": 1
+    },
+    "end": {
+      "offset": 173,
+      "line": 14,
+      "column": 3
+    }
+  }
+}

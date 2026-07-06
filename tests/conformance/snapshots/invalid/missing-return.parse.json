@@ -1,0 +1,801 @@
+{
+  "ok": true,
+  "diagnostics": [],
+  "cst": {
+    "kind": "Program",
+    "span": {
+      "file": "tests/conformance/invalid/missing-return.anpl",
+      "start": {
+        "offset": 0,
+        "line": 1,
+        "column": 1
+      },
+      "end": {
+        "offset": 54,
+        "line": 5,
+        "column": 3
+      }
+    },
+    "children": [
+      {
+        "kind": "ModuleDecl",
+        "span": {
+          "file": "tests/conformance/invalid/missing-return.anpl",
+          "start": {
+            "offset": 0,
+            "line": 1,
+            "column": 1
+          },
+          "end": {
+            "offset": 54,
+            "line": 5,
+            "column": 3
+          }
+        },
+        "children": [
+          {
+            "kind": "keyword",
+            "type": "keyword",
+            "lexeme": "module",
+            "value": "module",
+            "line": 1,
+            "column": 1,
+            "offset": 0,
+            "span": {
+              "file": "tests/conformance/invalid/missing-return.anpl",
+              "start": {
+                "offset": 0,
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "offset": 6,
+                "line": 1,
+                "column": 7
+              }
+            }
+          },
+          {
+            "kind": "identifier",
+            "type": "identifier",
+            "lexeme": "app",
+            "value": "app",
+            "line": 1,
+            "column": 8,
+            "offset": 7,
+            "span": {
+              "file": "tests/conformance/invalid/missing-return.anpl",
+              "start": {
+                "offset": 7,
+                "line": 1,
+                "column": 8
+              },
+              "end": {
+                "offset": 10,
+                "line": 1,
+                "column": 11
+              }
+            },
+            "leadingTrivia": [
+              {
+                "kind": "Whitespace",
+                "text": " ",
+                "span": {
+                  "file": "tests/conformance/invalid/missing-return.anpl",
+                  "start": {
+                    "offset": 6,
+                    "line": 1,
+                    "column": 7
+                  },
+                  "end": {
+                    "offset": 7,
+                    "line": 1,
+                    "column": 8
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "kind": "newline",
+            "type": "newline",
+            "lexeme": "\n",
+            "value": "\n",
+            "line": 1,
+            "column": 11,
+            "offset": 10,
+            "span": {
+              "file": "tests/conformance/invalid/missing-return.anpl",
+              "start": {
+                "offset": 10,
+                "line": 1,
+                "column": 11
+              },
+              "end": {
+                "offset": 11,
+                "line": 1,
+                "column": 12
+              }
+            }
+          },
+          {
+            "kind": "newline",
+            "type": "newline",
+            "lexeme": "\n",
+            "value": "\n",
+            "line": 2,
+            "column": 1,
+            "offset": 11,
+            "span": {
+              "file": "tests/conformance/invalid/missing-return.anpl",
+              "start": {
+                "offset": 11,
+                "line": 2,
+                "column": 1
+              },
+              "end": {
+                "offset": 12,
+                "line": 2,
+                "column": 2
+              }
+            }
+          },
+          {
+            "kind": "FunctionDecl",
+            "span": {
+              "file": "tests/conformance/invalid/missing-return.anpl",
+              "start": {
+                "offset": 12,
+                "line": 3,
+                "column": 1
+              },
+              "end": {
+                "offset": 53,
+                "line": 5,
+                "column": 2
+              }
+            },
+            "children": [
+              {
+                "kind": "keyword",
+                "type": "keyword",
+                "lexeme": "fn",
+                "value": "fn",
+                "line": 3,
+                "column": 1,
+                "offset": 12,
+                "span": {
+                  "file": "tests/conformance/invalid/missing-return.anpl",
+                  "start": {
+                    "offset": 12,
+                    "line": 3,
+                    "column": 1
+                  },
+                  "end": {
+                    "offset": 14,
+                    "line": 3,
+                    "column": 3
+                  }
+                }
+              },
+              {
+                "kind": "identifier",
+                "type": "identifier",
+                "lexeme": "main",
+                "value": "main",
+                "line": 3,
+                "column": 4,
+                "offset": 15,
+                "span": {
+                  "file": "tests/conformance/invalid/missing-return.anpl",
+                  "start": {
+                    "offset": 15,
+                    "line": 3,
+                    "column": 4
+                  },
+                  "end": {
+                    "offset": 19,
+                    "line": 3,
+                    "column": 8
+                  }
+                },
+                "leadingTrivia": [
+                  {
+                    "kind": "Whitespace",
+                    "text": " ",
+                    "span": {
+                      "file": "tests/conformance/invalid/missing-return.anpl",
+                      "start": {
+                        "offset": 14,
+                        "line": 3,
+                        "column": 3
+                      },
+                      "end": {
+                        "offset": 15,
+                        "line": 3,
+                        "column": 4
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "lparen",
+                "type": "lparen",
+                "lexeme": "(",
+                "value": "(",
+                "line": 3,
+                "column": 8,
+                "offset": 19,
+                "span": {
+                  "file": "tests/conformance/invalid/missing-return.anpl",
+                  "start": {
+                    "offset": 19,
+                    "line": 3,
+                    "column": 8
+                  },
+                  "end": {
+                    "offset": 20,
+                    "line": 3,
+                    "column": 9
+                  }
+                }
+              },
+              {
+                "kind": "rparen",
+                "type": "rparen",
+                "lexeme": ")",
+                "value": ")",
+                "line": 3,
+                "column": 9,
+                "offset": 20,
+                "span": {
+                  "file": "tests/conformance/invalid/missing-return.anpl",
+                  "start": {
+                    "offset": 20,
+                    "line": 3,
+                    "column": 9
+                  },
+                  "end": {
+                    "offset": 21,
+                    "line": 3,
+                    "column": 10
+                  }
+                }
+              },
+              {
+                "kind": "arrow",
+                "type": "arrow",
+                "lexeme": "->",
+                "value": "->",
+                "line": 3,
+                "column": 11,
+                "offset": 22,
+                "span": {
+                  "file": "tests/conformance/invalid/missing-return.anpl",
+                  "start": {
+                    "offset": 22,
+                    "line": 3,
+                    "column": 11
+                  },
+                  "end": {
+                    "offset": 24,
+                    "line": 3,
+                    "column": 13
+                  }
+                },
+                "leadingTrivia": [
+                  {
+                    "kind": "Whitespace",
+                    "text": " ",
+                    "span": {
+                      "file": "tests/conformance/invalid/missing-return.anpl",
+                      "start": {
+                        "offset": 21,
+                        "line": 3,
+                        "column": 10
+                      },
+                      "end": {
+                        "offset": 22,
+                        "line": 3,
+                        "column": 11
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "TypeRef",
+                "span": {
+                  "file": "tests/conformance/invalid/missing-return.anpl",
+                  "start": {
+                    "offset": 25,
+                    "line": 3,
+                    "column": 14
+                  },
+                  "end": {
+                    "offset": 28,
+                    "line": 3,
+                    "column": 17
+                  }
+                },
+                "children": [
+                  {
+                    "kind": "keyword",
+                    "type": "keyword",
+                    "lexeme": "int",
+                    "value": "int",
+                    "line": 3,
+                    "column": 14,
+                    "offset": 25,
+                    "span": {
+                      "file": "tests/conformance/invalid/missing-return.anpl",
+                      "start": {
+                        "offset": 25,
+                        "line": 3,
+                        "column": 14
+                      },
+                      "end": {
+                        "offset": 28,
+                        "line": 3,
+                        "column": 17
+                      }
+                    },
+                    "leadingTrivia": [
+                      {
+                        "kind": "Whitespace",
+                        "text": " ",
+                        "span": {
+                          "file": "tests/conformance/invalid/missing-return.anpl",
+                          "start": {
+                            "offset": 24,
+                            "line": 3,
+                            "column": 13
+                          },
+                          "end": {
+                            "offset": 25,
+                            "line": 3,
+                            "column": 14
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "BlockStmt",
+                "span": {
+                  "file": "tests/conformance/invalid/missing-return.anpl",
+                  "start": {
+                    "offset": 29,
+                    "line": 3,
+                    "column": 18
+                  },
+                  "end": {
+                    "offset": 53,
+                    "line": 5,
+                    "column": 2
+                  }
+                },
+                "children": [
+                  {
+                    "kind": "lbrace",
+                    "type": "lbrace",
+                    "lexeme": "{",
+                    "value": "{",
+                    "line": 3,
+                    "column": 18,
+                    "offset": 29,
+                    "span": {
+                      "file": "tests/conformance/invalid/missing-return.anpl",
+                      "start": {
+                        "offset": 29,
+                        "line": 3,
+                        "column": 18
+                      },
+                      "end": {
+                        "offset": 30,
+                        "line": 3,
+                        "column": 19
+                      }
+                    },
+                    "leadingTrivia": [
+                      {
+                        "kind": "Whitespace",
+                        "text": " ",
+                        "span": {
+                          "file": "tests/conformance/invalid/missing-return.anpl",
+                          "start": {
+                            "offset": 28,
+                            "line": 3,
+                            "column": 17
+                          },
+                          "end": {
+                            "offset": 29,
+                            "line": 3,
+                            "column": 18
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "newline",
+                    "type": "newline",
+                    "lexeme": "\n",
+                    "value": "\n",
+                    "line": 3,
+                    "column": 19,
+                    "offset": 30,
+                    "span": {
+                      "file": "tests/conformance/invalid/missing-return.anpl",
+                      "start": {
+                        "offset": 30,
+                        "line": 3,
+                        "column": 19
+                      },
+                      "end": {
+                        "offset": 31,
+                        "line": 3,
+                        "column": 20
+                      }
+                    }
+                  },
+                  {
+                    "kind": "LetStmt",
+                    "span": {
+                      "file": "tests/conformance/invalid/missing-return.anpl",
+                      "start": {
+                        "offset": 33,
+                        "line": 4,
+                        "column": 3
+                      },
+                      "end": {
+                        "offset": 51,
+                        "line": 4,
+                        "column": 21
+                      }
+                    },
+                    "children": [
+                      {
+                        "kind": "keyword",
+                        "type": "keyword",
+                        "lexeme": "let",
+                        "value": "let",
+                        "line": 4,
+                        "column": 3,
+                        "offset": 33,
+                        "span": {
+                          "file": "tests/conformance/invalid/missing-return.anpl",
+                          "start": {
+                            "offset": 33,
+                            "line": 4,
+                            "column": 3
+                          },
+                          "end": {
+                            "offset": 36,
+                            "line": 4,
+                            "column": 6
+                          }
+                        },
+                        "leadingTrivia": [
+                          {
+                            "kind": "Whitespace",
+                            "text": "  ",
+                            "span": {
+                              "file": "tests/conformance/invalid/missing-return.anpl",
+                              "start": {
+                                "offset": 31,
+                                "line": 4,
+                                "column": 1
+                              },
+                              "end": {
+                                "offset": 33,
+                                "line": 4,
+                                "column": 3
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "identifier",
+                        "type": "identifier",
+                        "lexeme": "value",
+                        "value": "value",
+                        "line": 4,
+                        "column": 7,
+                        "offset": 37,
+                        "span": {
+                          "file": "tests/conformance/invalid/missing-return.anpl",
+                          "start": {
+                            "offset": 37,
+                            "line": 4,
+                            "column": 7
+                          },
+                          "end": {
+                            "offset": 42,
+                            "line": 4,
+                            "column": 12
+                          }
+                        },
+                        "leadingTrivia": [
+                          {
+                            "kind": "Whitespace",
+                            "text": " ",
+                            "span": {
+                              "file": "tests/conformance/invalid/missing-return.anpl",
+                              "start": {
+                                "offset": 36,
+                                "line": 4,
+                                "column": 6
+                              },
+                              "end": {
+                                "offset": 37,
+                                "line": 4,
+                                "column": 7
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "colon",
+                        "type": "colon",
+                        "lexeme": ":",
+                        "value": ":",
+                        "line": 4,
+                        "column": 12,
+                        "offset": 42,
+                        "span": {
+                          "file": "tests/conformance/invalid/missing-return.anpl",
+                          "start": {
+                            "offset": 42,
+                            "line": 4,
+                            "column": 12
+                          },
+                          "end": {
+                            "offset": 43,
+                            "line": 4,
+                            "column": 13
+                          }
+                        }
+                      },
+                      {
+                        "kind": "TypeRef",
+                        "span": {
+                          "file": "tests/conformance/invalid/missing-return.anpl",
+                          "start": {
+                            "offset": 44,
+                            "line": 4,
+                            "column": 14
+                          },
+                          "end": {
+                            "offset": 47,
+                            "line": 4,
+                            "column": 17
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "keyword",
+                            "type": "keyword",
+                            "lexeme": "int",
+                            "value": "int",
+                            "line": 4,
+                            "column": 14,
+                            "offset": 44,
+                            "span": {
+                              "file": "tests/conformance/invalid/missing-return.anpl",
+                              "start": {
+                                "offset": 44,
+                                "line": 4,
+                                "column": 14
+                              },
+                              "end": {
+                                "offset": 47,
+                                "line": 4,
+                                "column": 17
+                              }
+                            },
+                            "leadingTrivia": [
+                              {
+                                "kind": "Whitespace",
+                                "text": " ",
+                                "span": {
+                                  "file": "tests/conformance/invalid/missing-return.anpl",
+                                  "start": {
+                                    "offset": 43,
+                                    "line": 4,
+                                    "column": 13
+                                  },
+                                  "end": {
+                                    "offset": 44,
+                                    "line": 4,
+                                    "column": 14
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "equal",
+                        "type": "equal",
+                        "lexeme": "=",
+                        "value": "=",
+                        "line": 4,
+                        "column": 18,
+                        "offset": 48,
+                        "span": {
+                          "file": "tests/conformance/invalid/missing-return.anpl",
+                          "start": {
+                            "offset": 48,
+                            "line": 4,
+                            "column": 18
+                          },
+                          "end": {
+                            "offset": 49,
+                            "line": 4,
+                            "column": 19
+                          }
+                        },
+                        "leadingTrivia": [
+                          {
+                            "kind": "Whitespace",
+                            "text": " ",
+                            "span": {
+                              "file": "tests/conformance/invalid/missing-return.anpl",
+                              "start": {
+                                "offset": 47,
+                                "line": 4,
+                                "column": 17
+                              },
+                              "end": {
+                                "offset": 48,
+                                "line": 4,
+                                "column": 18
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "LiteralExpr",
+                        "span": {
+                          "file": "tests/conformance/invalid/missing-return.anpl",
+                          "start": {
+                            "offset": 50,
+                            "line": 4,
+                            "column": 20
+                          },
+                          "end": {
+                            "offset": 51,
+                            "line": 4,
+                            "column": 21
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "number",
+                            "type": "number",
+                            "lexeme": "1",
+                            "value": "1",
+                            "literal": 1,
+                            "line": 4,
+                            "column": 20,
+                            "offset": 50,
+                            "span": {
+                              "file": "tests/conformance/invalid/missing-return.anpl",
+                              "start": {
+                                "offset": 50,
+                                "line": 4,
+                                "column": 20
+                              },
+                              "end": {
+                                "offset": 51,
+                                "line": 4,
+                                "column": 21
+                              }
+                            },
+                            "leadingTrivia": [
+                              {
+                                "kind": "Whitespace",
+                                "text": " ",
+                                "span": {
+                                  "file": "tests/conformance/invalid/missing-return.anpl",
+                                  "start": {
+                                    "offset": 49,
+                                    "line": 4,
+                                    "column": 19
+                                  },
+                                  "end": {
+                                    "offset": 50,
+                                    "line": 4,
+                                    "column": 20
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "newline",
+                    "type": "newline",
+                    "lexeme": "\n",
+                    "value": "\n",
+                    "line": 4,
+                    "column": 21,
+                    "offset": 51,
+                    "span": {
+                      "file": "tests/conformance/invalid/missing-return.anpl",
+                      "start": {
+                        "offset": 51,
+                        "line": 4,
+                        "column": 21
+                      },
+                      "end": {
+                        "offset": 52,
+                        "line": 4,
+                        "column": 22
+                      }
+                    }
+                  },
+                  {
+                    "kind": "rbrace",
+                    "type": "rbrace",
+                    "lexeme": "}",
+                    "value": "}",
+                    "line": 5,
+                    "column": 1,
+                    "offset": 52,
+                    "span": {
+                      "file": "tests/conformance/invalid/missing-return.anpl",
+                      "start": {
+                        "offset": 52,
+                        "line": 5,
+                        "column": 1
+                      },
+                      "end": {
+                        "offset": 53,
+                        "line": 5,
+                        "column": 2
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "newline",
+            "type": "newline",
+            "lexeme": "\n",
+            "value": "\n",
+            "line": 5,
+            "column": 2,
+            "offset": 53,
+            "span": {
+              "file": "tests/conformance/invalid/missing-return.anpl",
+              "start": {
+                "offset": 53,
+                "line": 5,
+                "column": 2
+              },
+              "end": {
+                "offset": 54,
+                "line": 5,
+                "column": 3
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,312 @@
+{
+  "modules": [
+    {
+      "id": "math",
+      "name": "math",
+      "imports": [],
+      "types": [],
+      "functions": [
+        {
+          "id": "math.add",
+          "name": "add",
+          "params": [
+            {
+              "name": "a",
+              "type": "int",
+              "span": {
+                "file": "tests/conformance/valid/imports.anpl",
+                "start": {
+                  "offset": 20,
+                  "line": 3,
+                  "column": 8
+                },
+                "end": {
+                  "offset": 26,
+                  "line": 3,
+                  "column": 14
+                }
+              }
+            },
+            {
+              "name": "b",
+              "type": "int",
+              "span": {
+                "file": "tests/conformance/valid/imports.anpl",
+                "start": {
+                  "offset": 28,
+                  "line": 3,
+                  "column": 16
+                },
+                "end": {
+                  "offset": 34,
+                  "line": 3,
+                  "column": 22
+                }
+              }
+            }
+          ],
+          "returnType": "int",
+          "body": {
+            "statements": [
+              {
+                "kind": "ReturnStmt",
+                "value": {
+                  "kind": "BinaryExpr",
+                  "operator": "+",
+                  "left": {
+                    "kind": "IdentifierExpr",
+                    "name": "a",
+                    "span": {
+                      "file": "tests/conformance/valid/imports.anpl",
+                      "start": {
+                        "offset": 54,
+                        "line": 4,
+                        "column": 10
+                      },
+                      "end": {
+                        "offset": 55,
+                        "line": 4,
+                        "column": 11
+                      }
+                    }
+                  },
+                  "right": {
+                    "kind": "IdentifierExpr",
+                    "name": "b",
+                    "span": {
+                      "file": "tests/conformance/valid/imports.anpl",
+                      "start": {
+                        "offset": 58,
+                        "line": 4,
+                        "column": 14
+                      },
+                      "end": {
+                        "offset": 59,
+                        "line": 4,
+                        "column": 15
+                      }
+                    }
+                  },
+                  "span": {
+                    "file": "tests/conformance/valid/imports.anpl",
+                    "start": {
+                      "offset": 54,
+                      "line": 4,
+                      "column": 10
+                    },
+                    "end": {
+                      "offset": 59,
+                      "line": 4,
+                      "column": 15
+                    }
+                  }
+                },
+                "span": {
+                  "file": "tests/conformance/valid/imports.anpl",
+                  "start": {
+                    "offset": 47,
+                    "line": 4,
+                    "column": 3
+                  },
+                  "end": {
+                    "offset": 59,
+                    "line": 4,
+                    "column": 15
+                  }
+                }
+              }
+            ],
+            "span": {
+              "file": "tests/conformance/valid/imports.anpl",
+              "start": {
+                "offset": 43,
+                "line": 3,
+                "column": 31
+              },
+              "end": {
+                "offset": 61,
+                "line": 5,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "file": "tests/conformance/valid/imports.anpl",
+            "start": {
+              "offset": 13,
+              "line": 3,
+              "column": 1
+            },
+            "end": {
+              "offset": 61,
+              "line": 5,
+              "column": 2
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "app",
+      "name": "app",
+      "imports": [
+        {
+          "module": "math",
+          "span": {
+            "file": "tests/conformance/valid/imports.anpl",
+            "start": {
+              "offset": 75,
+              "line": 9,
+              "column": 1
+            },
+            "end": {
+              "offset": 86,
+              "line": 9,
+              "column": 12
+            }
+          }
+        }
+      ],
+      "types": [],
+      "functions": [
+        {
+          "id": "app.main",
+          "name": "main",
+          "params": [],
+          "returnType": "int",
+          "body": {
+            "statements": [
+              {
+                "kind": "ReturnStmt",
+                "value": {
+                  "kind": "CallExpr",
+                  "callee": {
+                    "kind": "IdentifierExpr",
+                    "name": "add",
+                    "span": {
+                      "file": "tests/conformance/valid/imports.anpl",
+                      "start": {
+                        "offset": 116,
+                        "line": 12,
+                        "column": 10
+                      },
+                      "end": {
+                        "offset": 119,
+                        "line": 12,
+                        "column": 13
+                      }
+                    }
+                  },
+                  "args": [
+                    {
+                      "kind": "LiteralExpr",
+                      "value": 2,
+                      "span": {
+                        "file": "tests/conformance/valid/imports.anpl",
+                        "start": {
+                          "offset": 120,
+                          "line": 12,
+                          "column": 14
+                        },
+                        "end": {
+                          "offset": 121,
+                          "line": 12,
+                          "column": 15
+                        }
+                      }
+                    },
+                    {
+                      "kind": "LiteralExpr",
+                      "value": 3,
+                      "span": {
+                        "file": "tests/conformance/valid/imports.anpl",
+                        "start": {
+                          "offset": 123,
+                          "line": 12,
+                          "column": 17
+                        },
+                        "end": {
+                          "offset": 124,
+                          "line": 12,
+                          "column": 18
+                        }
+                      }
+                    }
+                  ],
+                  "span": {
+                    "file": "tests/conformance/valid/imports.anpl",
+                    "start": {
+                      "offset": 116,
+                      "line": 12,
+                      "column": 10
+                    },
+                    "end": {
+                      "offset": 125,
+                      "line": 12,
+                      "column": 19
+                    }
+                  }
+                },
+                "span": {
+                  "file": "tests/conformance/valid/imports.anpl",
+                  "start": {
+                    "offset": 109,
+                    "line": 12,
+                    "column": 3
+                  },
+                  "end": {
+                    "offset": 125,
+                    "line": 12,
+                    "column": 19
+                  }
+                }
+              }
+            ],
+            "span": {
+              "file": "tests/conformance/valid/imports.anpl",
+              "start": {
+                "offset": 105,
+                "line": 11,
+                "column": 18
+              },
+              "end": {
+                "offset": 127,
+                "line": 13,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "file": "tests/conformance/valid/imports.anpl",
+            "start": {
+              "offset": 88,
+              "line": 11,
+              "column": 1
+            },
+            "end": {
+              "offset": 127,
+              "line": 13,
+              "column": 2
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "typeFacts": {
+    "resolvedTypeRefs": {
+      "tests/conformance/valid/imports.anpl:23-26": "int",
+      "tests/conformance/valid/imports.anpl:31-34": "int",
+      "tests/conformance/valid/imports.anpl:39-42": "int",
+      "tests/conformance/valid/imports.anpl:101-104": "int"
+    },
+    "expressionTypes": {
+      "tests/conformance/valid/imports.anpl:54-55": "int",
+      "tests/conformance/valid/imports.anpl:58-59": "int",
+      "tests/conformance/valid/imports.anpl:54-59": "int",
+      "tests/conformance/valid/imports.anpl:120-121": "int",
+      "tests/conformance/valid/imports.anpl:123-124": "int",
+      "tests/conformance/valid/imports.anpl:116-125": "int"
+    }
+  }
+}

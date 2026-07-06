@@ -159,11 +159,13 @@ Implemented foundation:
 - MIR JavaScript execution checks for runnable valid fixtures.
 - A deterministic MIR golden snapshot for the math fixture.
 - Parser CST output and synchronization recovery metadata tests.
+- Parser/CST, AST, HIR, MIR, and JavaScript snapshots for every current valid
+  fixture.
+- Parser/CST, AST, and semantic diagnostic snapshots for every current invalid
+  fixture.
 
 Next work:
 
-- Add parser, AST, HIR, MIR, JavaScript, and diagnostic snapshots for every
-  valid/invalid fixture.
 - Add broader CLI integration conformance tests.
 - Broaden formatter idempotency coverage as new valid fixtures are added.
 - Broaden parser robustness and recovery fixture coverage.

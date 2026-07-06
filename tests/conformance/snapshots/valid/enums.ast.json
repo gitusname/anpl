@@ -1,0 +1,266 @@
+{
+  "kind": "Program",
+  "modules": [
+    {
+      "kind": "ModuleDecl",
+      "name": "orders",
+      "body": [
+        {
+          "kind": "TypeDecl",
+          "name": "Order",
+          "fields": [
+            {
+              "kind": "FieldDecl",
+              "name": "status",
+              "optional": false,
+              "type": {
+                "kind": "TypeRef",
+                "name": "enum",
+                "typeArgs": [
+                  {
+                    "kind": "TypeRef",
+                    "name": "pending",
+                    "span": {
+                      "file": "tests/conformance/valid/enums.anpl",
+                      "start": {
+                        "offset": 43,
+                        "line": 4,
+                        "column": 16
+                      },
+                      "end": {
+                        "offset": 50,
+                        "line": 4,
+                        "column": 23
+                      }
+                    }
+                  },
+                  {
+                    "kind": "TypeRef",
+                    "name": "paid",
+                    "span": {
+                      "file": "tests/conformance/valid/enums.anpl",
+                      "start": {
+                        "offset": 52,
+                        "line": 4,
+                        "column": 25
+                      },
+                      "end": {
+                        "offset": 56,
+                        "line": 4,
+                        "column": 29
+                      }
+                    }
+                  },
+                  {
+                    "kind": "TypeRef",
+                    "name": "cancelled",
+                    "span": {
+                      "file": "tests/conformance/valid/enums.anpl",
+                      "start": {
+                        "offset": 58,
+                        "line": 4,
+                        "column": 31
+                      },
+                      "end": {
+                        "offset": 67,
+                        "line": 4,
+                        "column": 40
+                      }
+                    }
+                  }
+                ],
+                "span": {
+                  "file": "tests/conformance/valid/enums.anpl",
+                  "start": {
+                    "offset": 38,
+                    "line": 4,
+                    "column": 11
+                  },
+                  "end": {
+                    "offset": 68,
+                    "line": 4,
+                    "column": 41
+                  }
+                }
+              },
+              "span": {
+                "file": "tests/conformance/valid/enums.anpl",
+                "start": {
+                  "offset": 30,
+                  "line": 4,
+                  "column": 3
+                },
+                "end": {
+                  "offset": 68,
+                  "line": 4,
+                  "column": 41
+                }
+              }
+            }
+          ],
+          "span": {
+            "file": "tests/conformance/valid/enums.anpl",
+            "start": {
+              "offset": 15,
+              "line": 3,
+              "column": 1
+            },
+            "end": {
+              "offset": 70,
+              "line": 5,
+              "column": 2
+            }
+          }
+        },
+        {
+          "kind": "FunctionDecl",
+          "name": "createOrder",
+          "params": [],
+          "returnType": {
+            "kind": "TypeRef",
+            "name": "Order",
+            "span": {
+              "file": "tests/conformance/valid/enums.anpl",
+              "start": {
+                "offset": 92,
+                "line": 7,
+                "column": 21
+              },
+              "end": {
+                "offset": 97,
+                "line": 7,
+                "column": 26
+              }
+            }
+          },
+          "body": {
+            "kind": "BlockStmt",
+            "statements": [
+              {
+                "kind": "ReturnStmt",
+                "value": {
+                  "kind": "RecordExpr",
+                  "typeName": "Order",
+                  "fields": [
+                    {
+                      "kind": "RecordFieldExpr",
+                      "name": "status",
+                      "value": {
+                        "kind": "IdentifierExpr",
+                        "name": "pending",
+                        "span": {
+                          "file": "tests/conformance/valid/enums.anpl",
+                          "start": {
+                            "offset": 129,
+                            "line": 9,
+                            "column": 13
+                          },
+                          "end": {
+                            "offset": 136,
+                            "line": 9,
+                            "column": 20
+                          }
+                        }
+                      },
+                      "span": {
+                        "file": "tests/conformance/valid/enums.anpl",
+                        "start": {
+                          "offset": 121,
+                          "line": 9,
+                          "column": 5
+                        },
+                        "end": {
+                          "offset": 136,
+                          "line": 9,
+                          "column": 20
+                        }
+                      }
+                    }
+                  ],
+                  "span": {
+                    "file": "tests/conformance/valid/enums.anpl",
+                    "start": {
+                      "offset": 109,
+                      "line": 8,
+                      "column": 10
+                    },
+                    "end": {
+                      "offset": 140,
+                      "line": 10,
+                      "column": 4
+                    }
+                  }
+                },
+                "span": {
+                  "file": "tests/conformance/valid/enums.anpl",
+                  "start": {
+                    "offset": 102,
+                    "line": 8,
+                    "column": 3
+                  },
+                  "end": {
+                    "offset": 140,
+                    "line": 10,
+                    "column": 4
+                  }
+                }
+              }
+            ],
+            "span": {
+              "file": "tests/conformance/valid/enums.anpl",
+              "start": {
+                "offset": 98,
+                "line": 7,
+                "column": 27
+              },
+              "end": {
+                "offset": 142,
+                "line": 11,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "file": "tests/conformance/valid/enums.anpl",
+            "start": {
+              "offset": 72,
+              "line": 7,
+              "column": 1
+            },
+            "end": {
+              "offset": 142,
+              "line": 11,
+              "column": 2
+            }
+          }
+        }
+      ],
+      "span": {
+        "file": "tests/conformance/valid/enums.anpl",
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 143,
+          "line": 11,
+          "column": 3
+        }
+      }
+    }
+  ],
+  "span": {
+    "file": "tests/conformance/valid/enums.anpl",
+    "start": {
+      "offset": 0,
+      "line": 1,
+      "column": 1
+    },
+    "end": {
+      "offset": 143,
+      "line": 11,
+      "column": 3
+    }
+  }
+}

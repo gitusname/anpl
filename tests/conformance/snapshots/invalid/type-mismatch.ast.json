@@ -1,0 +1,123 @@
+{
+  "kind": "Program",
+  "modules": [
+    {
+      "kind": "ModuleDecl",
+      "name": "app",
+      "body": [
+        {
+          "kind": "FunctionDecl",
+          "name": "main",
+          "params": [],
+          "returnType": {
+            "kind": "TypeRef",
+            "name": "int",
+            "span": {
+              "file": "tests/conformance/invalid/type-mismatch.anpl",
+              "start": {
+                "offset": 25,
+                "line": 3,
+                "column": 14
+              },
+              "end": {
+                "offset": 28,
+                "line": 3,
+                "column": 17
+              }
+            }
+          },
+          "body": {
+            "kind": "BlockStmt",
+            "statements": [
+              {
+                "kind": "ReturnStmt",
+                "value": {
+                  "kind": "LiteralExpr",
+                  "value": "wrong",
+                  "span": {
+                    "file": "tests/conformance/invalid/type-mismatch.anpl",
+                    "start": {
+                      "offset": 40,
+                      "line": 4,
+                      "column": 10
+                    },
+                    "end": {
+                      "offset": 47,
+                      "line": 4,
+                      "column": 17
+                    }
+                  }
+                },
+                "span": {
+                  "file": "tests/conformance/invalid/type-mismatch.anpl",
+                  "start": {
+                    "offset": 33,
+                    "line": 4,
+                    "column": 3
+                  },
+                  "end": {
+                    "offset": 47,
+                    "line": 4,
+                    "column": 17
+                  }
+                }
+              }
+            ],
+            "span": {
+              "file": "tests/conformance/invalid/type-mismatch.anpl",
+              "start": {
+                "offset": 29,
+                "line": 3,
+                "column": 18
+              },
+              "end": {
+                "offset": 49,
+                "line": 5,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "file": "tests/conformance/invalid/type-mismatch.anpl",
+            "start": {
+              "offset": 12,
+              "line": 3,
+              "column": 1
+            },
+            "end": {
+              "offset": 49,
+              "line": 5,
+              "column": 2
+            }
+          }
+        }
+      ],
+      "span": {
+        "file": "tests/conformance/invalid/type-mismatch.anpl",
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 50,
+          "line": 5,
+          "column": 3
+        }
+      }
+    }
+  ],
+  "span": {
+    "file": "tests/conformance/invalid/type-mismatch.anpl",
+    "start": {
+      "offset": 0,
+      "line": 1,
+      "column": 1
+    },
+    "end": {
+      "offset": 50,
+      "line": 5,
+      "column": 3
+    }
+  }
+}

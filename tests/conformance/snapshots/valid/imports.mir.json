@@ -1,0 +1,243 @@
+{
+  "functions": [
+    {
+      "id": "math.add",
+      "params": [
+        {
+          "name": "a",
+          "type": "int"
+        },
+        {
+          "name": "b",
+          "type": "int"
+        }
+      ],
+      "returnType": "int",
+      "span": {
+        "file": "tests/conformance/valid/imports.anpl",
+        "start": {
+          "offset": 13,
+          "line": 3,
+          "column": 1
+        },
+        "end": {
+          "offset": 61,
+          "line": 5,
+          "column": 2
+        }
+      },
+      "blocks": [
+        {
+          "id": "math.add.entry",
+          "span": {
+            "file": "tests/conformance/valid/imports.anpl",
+            "start": {
+              "offset": 43,
+              "line": 3,
+              "column": 31
+            },
+            "end": {
+              "offset": 61,
+              "line": 5,
+              "column": 2
+            }
+          },
+          "instructions": [
+            {
+              "op": "load",
+              "target": "%1",
+              "symbol": "math.add.a",
+              "type": "int",
+              "span": {
+                "file": "tests/conformance/valid/imports.anpl",
+                "start": {
+                  "offset": 54,
+                  "line": 4,
+                  "column": 10
+                },
+                "end": {
+                  "offset": 55,
+                  "line": 4,
+                  "column": 11
+                }
+              }
+            },
+            {
+              "op": "load",
+              "target": "%2",
+              "symbol": "math.add.b",
+              "type": "int",
+              "span": {
+                "file": "tests/conformance/valid/imports.anpl",
+                "start": {
+                  "offset": 58,
+                  "line": 4,
+                  "column": 14
+                },
+                "end": {
+                  "offset": 59,
+                  "line": 4,
+                  "column": 15
+                }
+              }
+            },
+            {
+              "op": "binary",
+              "target": "%3",
+              "operator": "+",
+              "left": "%1",
+              "right": "%2",
+              "type": "int",
+              "span": {
+                "file": "tests/conformance/valid/imports.anpl",
+                "start": {
+                  "offset": 54,
+                  "line": 4,
+                  "column": 10
+                },
+                "end": {
+                  "offset": 59,
+                  "line": 4,
+                  "column": 15
+                }
+              }
+            }
+          ],
+          "terminator": {
+            "kind": "return",
+            "value": "%3",
+            "span": {
+              "file": "tests/conformance/valid/imports.anpl",
+              "start": {
+                "offset": 47,
+                "line": 4,
+                "column": 3
+              },
+              "end": {
+                "offset": 59,
+                "line": 4,
+                "column": 15
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "app.main",
+      "params": [],
+      "returnType": "int",
+      "span": {
+        "file": "tests/conformance/valid/imports.anpl",
+        "start": {
+          "offset": 88,
+          "line": 11,
+          "column": 1
+        },
+        "end": {
+          "offset": 127,
+          "line": 13,
+          "column": 2
+        }
+      },
+      "blocks": [
+        {
+          "id": "app.main.entry",
+          "span": {
+            "file": "tests/conformance/valid/imports.anpl",
+            "start": {
+              "offset": 105,
+              "line": 11,
+              "column": 18
+            },
+            "end": {
+              "offset": 127,
+              "line": 13,
+              "column": 2
+            }
+          },
+          "instructions": [
+            {
+              "op": "const",
+              "target": "%1",
+              "value": 2,
+              "type": "int",
+              "span": {
+                "file": "tests/conformance/valid/imports.anpl",
+                "start": {
+                  "offset": 120,
+                  "line": 12,
+                  "column": 14
+                },
+                "end": {
+                  "offset": 121,
+                  "line": 12,
+                  "column": 15
+                }
+              }
+            },
+            {
+              "op": "const",
+              "target": "%2",
+              "value": 3,
+              "type": "int",
+              "span": {
+                "file": "tests/conformance/valid/imports.anpl",
+                "start": {
+                  "offset": 123,
+                  "line": 12,
+                  "column": 17
+                },
+                "end": {
+                  "offset": 124,
+                  "line": 12,
+                  "column": 18
+                }
+              }
+            },
+            {
+              "op": "call",
+              "target": "%3",
+              "callee": "math.add",
+              "args": [
+                "%1",
+                "%2"
+              ],
+              "type": "int",
+              "span": {
+                "file": "tests/conformance/valid/imports.anpl",
+                "start": {
+                  "offset": 116,
+                  "line": 12,
+                  "column": 10
+                },
+                "end": {
+                  "offset": 125,
+                  "line": 12,
+                  "column": 19
+                }
+              }
+            }
+          ],
+          "terminator": {
+            "kind": "return",
+            "value": "%3",
+            "span": {
+              "file": "tests/conformance/valid/imports.anpl",
+              "start": {
+                "offset": 109,
+                "line": 12,
+                "column": 3
+              },
+              "end": {
+                "offset": 125,
+                "line": 12,
+                "column": 19
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+[
+  {
+    "code": "ANPL_SEMANTIC_UNKNOWN_SYMBOL",
+    "severity": "error",
+    "category": "semantic",
+    "message": "Symbol 'missingValue' is not defined.",
+    "file": "tests/conformance/invalid/unknown-symbol.anpl",
+    "line": 4,
+    "column": 10,
+    "span": {
+      "file": "tests/conformance/invalid/unknown-symbol.anpl",
+      "start": {
+        "offset": 40,
+        "line": 4,
+        "column": 10
+      },
+      "end": {
+        "offset": 52,
+        "line": 4,
+        "column": 22
+      }
+    },
+    "symbol": "missingValue",
+    "cause": "Symbol 'missingValue' is not visible in the current module scope.",
+    "fix": "Declare the symbol, import its module, or correct the symbol name.",
+    "evidence": [
+      "span 4:10-4:22"
+    ],
+    "confidence": "high"
+  }
+]

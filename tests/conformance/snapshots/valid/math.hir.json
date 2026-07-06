@@ -1,0 +1,340 @@
+{
+  "modules": [
+    {
+      "id": "math",
+      "name": "math",
+      "imports": [],
+      "types": [],
+      "functions": [
+        {
+          "id": "math.add",
+          "name": "add",
+          "params": [
+            {
+              "name": "a",
+              "type": "int",
+              "span": {
+                "file": "tests/conformance/valid/math.anpl",
+                "start": {
+                  "offset": 20,
+                  "line": 3,
+                  "column": 8
+                },
+                "end": {
+                  "offset": 26,
+                  "line": 3,
+                  "column": 14
+                }
+              }
+            },
+            {
+              "name": "b",
+              "type": "int",
+              "span": {
+                "file": "tests/conformance/valid/math.anpl",
+                "start": {
+                  "offset": 28,
+                  "line": 3,
+                  "column": 16
+                },
+                "end": {
+                  "offset": 34,
+                  "line": 3,
+                  "column": 22
+                }
+              }
+            }
+          ],
+          "returnType": "int",
+          "body": {
+            "statements": [
+              {
+                "kind": "ReturnStmt",
+                "value": {
+                  "kind": "BinaryExpr",
+                  "operator": "+",
+                  "left": {
+                    "kind": "IdentifierExpr",
+                    "name": "a",
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 54,
+                        "line": 4,
+                        "column": 10
+                      },
+                      "end": {
+                        "offset": 55,
+                        "line": 4,
+                        "column": 11
+                      }
+                    }
+                  },
+                  "right": {
+                    "kind": "IdentifierExpr",
+                    "name": "b",
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 58,
+                        "line": 4,
+                        "column": 14
+                      },
+                      "end": {
+                        "offset": 59,
+                        "line": 4,
+                        "column": 15
+                      }
+                    }
+                  },
+                  "span": {
+                    "file": "tests/conformance/valid/math.anpl",
+                    "start": {
+                      "offset": 54,
+                      "line": 4,
+                      "column": 10
+                    },
+                    "end": {
+                      "offset": 59,
+                      "line": 4,
+                      "column": 15
+                    }
+                  }
+                },
+                "span": {
+                  "file": "tests/conformance/valid/math.anpl",
+                  "start": {
+                    "offset": 47,
+                    "line": 4,
+                    "column": 3
+                  },
+                  "end": {
+                    "offset": 59,
+                    "line": 4,
+                    "column": 15
+                  }
+                }
+              }
+            ],
+            "span": {
+              "file": "tests/conformance/valid/math.anpl",
+              "start": {
+                "offset": 43,
+                "line": 3,
+                "column": 31
+              },
+              "end": {
+                "offset": 61,
+                "line": 5,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "file": "tests/conformance/valid/math.anpl",
+            "start": {
+              "offset": 13,
+              "line": 3,
+              "column": 1
+            },
+            "end": {
+              "offset": 61,
+              "line": 5,
+              "column": 2
+            }
+          }
+        },
+        {
+          "id": "math.main",
+          "name": "main",
+          "params": [],
+          "returnType": "int",
+          "body": {
+            "statements": [
+              {
+                "kind": "LetStmt",
+                "name": "result",
+                "type": {
+                  "kind": "TypeRef",
+                  "name": "int",
+                  "span": {
+                    "file": "tests/conformance/valid/math.anpl",
+                    "start": {
+                      "offset": 96,
+                      "line": 8,
+                      "column": 15
+                    },
+                    "end": {
+                      "offset": 99,
+                      "line": 8,
+                      "column": 18
+                    }
+                  }
+                },
+                "value": {
+                  "kind": "CallExpr",
+                  "callee": {
+                    "kind": "IdentifierExpr",
+                    "name": "add",
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 102,
+                        "line": 8,
+                        "column": 21
+                      },
+                      "end": {
+                        "offset": 105,
+                        "line": 8,
+                        "column": 24
+                      }
+                    }
+                  },
+                  "args": [
+                    {
+                      "kind": "LiteralExpr",
+                      "value": 2,
+                      "span": {
+                        "file": "tests/conformance/valid/math.anpl",
+                        "start": {
+                          "offset": 106,
+                          "line": 8,
+                          "column": 25
+                        },
+                        "end": {
+                          "offset": 107,
+                          "line": 8,
+                          "column": 26
+                        }
+                      }
+                    },
+                    {
+                      "kind": "LiteralExpr",
+                      "value": 3,
+                      "span": {
+                        "file": "tests/conformance/valid/math.anpl",
+                        "start": {
+                          "offset": 109,
+                          "line": 8,
+                          "column": 28
+                        },
+                        "end": {
+                          "offset": 110,
+                          "line": 8,
+                          "column": 29
+                        }
+                      }
+                    }
+                  ],
+                  "span": {
+                    "file": "tests/conformance/valid/math.anpl",
+                    "start": {
+                      "offset": 102,
+                      "line": 8,
+                      "column": 21
+                    },
+                    "end": {
+                      "offset": 111,
+                      "line": 8,
+                      "column": 30
+                    }
+                  }
+                },
+                "span": {
+                  "file": "tests/conformance/valid/math.anpl",
+                  "start": {
+                    "offset": 84,
+                    "line": 8,
+                    "column": 3
+                  },
+                  "end": {
+                    "offset": 111,
+                    "line": 8,
+                    "column": 30
+                  }
+                }
+              },
+              {
+                "kind": "ReturnStmt",
+                "value": {
+                  "kind": "IdentifierExpr",
+                  "name": "result",
+                  "span": {
+                    "file": "tests/conformance/valid/math.anpl",
+                    "start": {
+                      "offset": 121,
+                      "line": 9,
+                      "column": 10
+                    },
+                    "end": {
+                      "offset": 127,
+                      "line": 9,
+                      "column": 16
+                    }
+                  }
+                },
+                "span": {
+                  "file": "tests/conformance/valid/math.anpl",
+                  "start": {
+                    "offset": 114,
+                    "line": 9,
+                    "column": 3
+                  },
+                  "end": {
+                    "offset": 127,
+                    "line": 9,
+                    "column": 16
+                  }
+                }
+              }
+            ],
+            "span": {
+              "file": "tests/conformance/valid/math.anpl",
+              "start": {
+                "offset": 80,
+                "line": 7,
+                "column": 18
+              },
+              "end": {
+                "offset": 129,
+                "line": 10,
+                "column": 2
+              }
+            }
+          },
+          "span": {
+            "file": "tests/conformance/valid/math.anpl",
+            "start": {
+              "offset": 63,
+              "line": 7,
+              "column": 1
+            },
+            "end": {
+              "offset": 129,
+              "line": 10,
+              "column": 2
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "typeFacts": {
+    "resolvedTypeRefs": {
+      "tests/conformance/valid/math.anpl:23-26": "int",
+      "tests/conformance/valid/math.anpl:31-34": "int",
+      "tests/conformance/valid/math.anpl:39-42": "int",
+      "tests/conformance/valid/math.anpl:76-79": "int",
+      "tests/conformance/valid/math.anpl:96-99": "int"
+    },
+    "expressionTypes": {
+      "tests/conformance/valid/math.anpl:54-55": "int",
+      "tests/conformance/valid/math.anpl:58-59": "int",
+      "tests/conformance/valid/math.anpl:54-59": "int",
+      "tests/conformance/valid/math.anpl:106-107": "int",
+      "tests/conformance/valid/math.anpl:109-110": "int",
+      "tests/conformance/valid/math.anpl:102-111": "int",
+      "tests/conformance/valid/math.anpl:121-127": "int"
+    }
+  }
+}

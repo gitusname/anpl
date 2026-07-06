@@ -34,8 +34,11 @@ describe("ANPL conformance fixtures", () => {
       const semantic = analyzeProgram(parsed.program);
       expect(semantic.diagnostics).toEqual([]);
       expect(semantic.ok).toBe(true);
+      if (!semantic.ok) {
+        return;
+      }
 
-      const mir = lowerHirToMir(lowerProgramToHir(parsed.program));
+      const mir = lowerHirToMir(lowerProgramToHir(parsed.program, semantic.typedProgram));
       expect(mir.functions.length).toBeGreaterThan(0);
     });
   }
@@ -58,19 +61,58 @@ describe("ANPL conformance fixtures", () => {
     });
   }
 
-  it("keeps math MIR golden output stable", () => {
-    const file = join(fixtureRoot, "valid", "math.anpl");
-    const snapshot = join(fixtureRoot, "snapshots", "math.mir.json");
-    const parsed = parseAnpl(readFileSync(file, "utf8"), file);
+  for (const fixture of validFixtures) {
+    it(`keeps valid fixture snapshots stable for ${fixture}`, () => {
+      const file = join(fixtureRoot, "valid", fixture);
+      const parsed = parseAnpl(readFileSync(file, "utf8"), file);
+      const name = fixtureBaseName(fixture);
 
-    expect(parsed.ok).toBe(true);
-    if (!parsed.ok) {
-      return;
-    }
+      expect(snapshotJson({ ok: parsed.ok, diagnostics: parsed.diagnostics, cst: parsed.cst })).toBe(
+        readSnapshot("valid", `${name}.parse.json`)
+      );
+      expect(parsed.ok).toBe(true);
+      if (!parsed.ok) {
+        return;
+      }
+      expect(snapshotJson(parsed.program)).toBe(readSnapshot("valid", `${name}.ast.json`));
 
-    const mir = lowerHirToMir(lowerProgramToHir(parsed.program));
-    expect(`${JSON.stringify(mir, null, 2)}\n`).toBe(readFileSync(snapshot, "utf8"));
-  });
+      const semantic = analyzeProgram(parsed.program);
+      expect(semantic.ok).toBe(true);
+      if (!semantic.ok) {
+        return;
+      }
+
+      const hir = lowerProgramToHir(parsed.program, semantic.typedProgram);
+      const mir = lowerHirToMir(hir);
+      const js = compileMirProgramToJavaScript(mir);
+
+      expect(snapshotJson(hir)).toBe(readSnapshot("valid", `${name}.hir.json`));
+      expect(snapshotJson(mir)).toBe(readSnapshot("valid", `${name}.mir.json`));
+      expect(js).toBe(readSnapshot("valid", `${name}.js`));
+    });
+  }
+
+  for (const [fixture] of Object.entries(invalidFixtures)) {
+    it(`keeps invalid fixture snapshots stable for ${fixture}`, () => {
+      const file = join(fixtureRoot, "invalid", fixture);
+      const parsed = parseAnpl(readFileSync(file, "utf8"), file);
+      const name = fixtureBaseName(fixture);
+
+      expect(snapshotJson({ ok: parsed.ok, diagnostics: parsed.diagnostics, cst: parsed.cst })).toBe(
+        readSnapshot("invalid", `${name}.parse.json`)
+      );
+      expect(parsed.ok).toBe(true);
+      if (!parsed.ok) {
+        return;
+      }
+      expect(snapshotJson(parsed.program)).toBe(readSnapshot("invalid", `${name}.ast.json`));
+
+      const semantic = analyzeProgram(parsed.program);
+      expect(snapshotJson(semantic.diagnostics)).toBe(
+        readSnapshot("invalid", `${name}.diagnostics.json`)
+      );
+    });
+  }
 
   for (const fixture of ["math.anpl", "imports.anpl"]) {
     it(`executes ${fixture} through MIR`, () => {
@@ -84,8 +126,13 @@ describe("ANPL conformance fixtures", () => {
 
       const semantic = analyzeProgram(parsed.program);
       expect(semantic.ok).toBe(true);
+      if (!semantic.ok) {
+        return;
+      }
 
-      const result = interpretMirProgram(lowerHirToMir(lowerProgramToHir(parsed.program)));
+      const result = interpretMirProgram(
+        lowerHirToMir(lowerProgramToHir(parsed.program, semantic.typedProgram))
+      );
       expect(result).toMatchObject({
         ok: true,
         value: {
@@ -108,9 +155,12 @@ describe("ANPL conformance fixtures", () => {
 
       const semantic = analyzeProgram(parsed.program);
       expect(semantic.ok).toBe(true);
+      if (!semantic.ok) {
+        return;
+      }
 
       const js = compileMirProgramToJavaScript(
-        lowerHirToMir(lowerProgramToHir(parsed.program))
+        lowerHirToMir(lowerProgramToHir(parsed.program, semantic.typedProgram))
       );
       const module = (await import(
         `data:text/javascript;charset=utf-8,${encodeURIComponent(js)}`
@@ -123,3 +173,15 @@ describe("ANPL conformance fixtures", () => {
     });
   }
 });
+
+function fixtureBaseName(fixture: string): string {
+  return fixture.replace(/\.anpl$/, "");
+}
+
+function snapshotJson(value: unknown): string {
+  return `${JSON.stringify(value, null, 2)}\n`;
+}
+
+function readSnapshot(group: "valid" | "invalid", file: string): string {
+  return readFileSync(join(fixtureRoot, "snapshots", group, file), "utf8");
+}

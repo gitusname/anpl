@@ -1,0 +1,32 @@
+[
+  {
+    "code": "ANPL_RETURN_TYPE_MISMATCH",
+    "severity": "error",
+    "category": "type",
+    "message": "Expected int but received text.",
+    "file": "tests/conformance/invalid/type-mismatch.anpl",
+    "line": 4,
+    "column": 3,
+    "span": {
+      "file": "tests/conformance/invalid/type-mismatch.anpl",
+      "start": {
+        "offset": 33,
+        "line": 4,
+        "column": 3
+      },
+      "end": {
+        "offset": 47,
+        "line": 4,
+        "column": 17
+      }
+    },
+    "expected": "int",
+    "received": "text",
+    "cause": "The returned expression type text does not match the declared return type int.",
+    "fix": "Return a value of the declared type or change the function return type.",
+    "evidence": [
+      "span 4:3-4:17"
+    ],
+    "confidence": "high"
+  }
+]

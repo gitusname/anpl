@@ -1,0 +1,128 @@
+{
+  "functions": [
+    {
+      "id": "crm.createCustomer",
+      "params": [
+        {
+          "name": "id",
+          "type": "uuid"
+        },
+        {
+          "name": "name",
+          "type": "text"
+        }
+      ],
+      "returnType": "record:crm.Customer",
+      "span": {
+        "file": "tests/conformance/valid/records.anpl",
+        "start": {
+          "offset": 67,
+          "line": 9,
+          "column": 1
+        },
+        "end": {
+          "offset": 172,
+          "line": 14,
+          "column": 2
+        }
+      },
+      "blocks": [
+        {
+          "id": "crm.createCustomer.entry",
+          "span": {
+            "file": "tests/conformance/valid/records.anpl",
+            "start": {
+              "offset": 119,
+              "line": 9,
+              "column": 53
+            },
+            "end": {
+              "offset": 172,
+              "line": 14,
+              "column": 2
+            }
+          },
+          "instructions": [
+            {
+              "op": "load",
+              "target": "%1",
+              "symbol": "crm.createCustomer.id",
+              "type": "uuid",
+              "span": {
+                "file": "tests/conformance/valid/records.anpl",
+                "start": {
+                  "offset": 149,
+                  "line": 11,
+                  "column": 9
+                },
+                "end": {
+                  "offset": 151,
+                  "line": 11,
+                  "column": 11
+                }
+              }
+            },
+            {
+              "op": "load",
+              "target": "%2",
+              "symbol": "crm.createCustomer.name",
+              "type": "text",
+              "span": {
+                "file": "tests/conformance/valid/records.anpl",
+                "start": {
+                  "offset": 162,
+                  "line": 12,
+                  "column": 11
+                },
+                "end": {
+                  "offset": 166,
+                  "line": 12,
+                  "column": 15
+                }
+              }
+            },
+            {
+              "op": "record",
+              "target": "%3",
+              "type": "record:crm.Customer",
+              "fields": {
+                "id": "%1",
+                "name": "%2"
+              },
+              "span": {
+                "file": "tests/conformance/valid/records.anpl",
+                "start": {
+                  "offset": 130,
+                  "line": 10,
+                  "column": 10
+                },
+                "end": {
+                  "offset": 170,
+                  "line": 13,
+                  "column": 4
+                }
+              }
+            }
+          ],
+          "terminator": {
+            "kind": "return",
+            "value": "%3",
+            "span": {
+              "file": "tests/conformance/valid/records.anpl",
+              "start": {
+                "offset": 123,
+                "line": 10,
+                "column": 3
+              },
+              "end": {
+                "offset": 170,
+                "line": 13,
+                "column": 4
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

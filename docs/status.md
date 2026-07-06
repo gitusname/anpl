@@ -66,7 +66,9 @@ remain planned.
 - Canonical AST formatter with stable nested block indentation and fixture-level
   idempotency conformance over valid programs.
 - Initial conformance fixture suite with valid programs, invalid diagnostic
-  expectations, MIR execution checks, and a MIR golden snapshot.
+  expectations, MIR execution checks, JavaScript execution checks, valid
+  parser/AST/HIR/MIR/JavaScript snapshots, and invalid parser/AST/diagnostic
+  snapshots.
 - Offline benchmark fixture suite in `packages/benchmark` with 11 tasks, direct
   TypeScript fixture comparison, ANPL-first parse/semantic/build/run metrics,
   diagnostic token counts, generated-target token counts, and CLI

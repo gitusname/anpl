@@ -1,0 +1,2038 @@
+{
+  "ok": true,
+  "diagnostics": [],
+  "cst": {
+    "kind": "Program",
+    "span": {
+      "file": "tests/conformance/valid/math.anpl",
+      "start": {
+        "offset": 0,
+        "line": 1,
+        "column": 1
+      },
+      "end": {
+        "offset": 130,
+        "line": 10,
+        "column": 3
+      }
+    },
+    "children": [
+      {
+        "kind": "ModuleDecl",
+        "span": {
+          "file": "tests/conformance/valid/math.anpl",
+          "start": {
+            "offset": 0,
+            "line": 1,
+            "column": 1
+          },
+          "end": {
+            "offset": 130,
+            "line": 10,
+            "column": 3
+          }
+        },
+        "children": [
+          {
+            "kind": "keyword",
+            "type": "keyword",
+            "lexeme": "module",
+            "value": "module",
+            "line": 1,
+            "column": 1,
+            "offset": 0,
+            "span": {
+              "file": "tests/conformance/valid/math.anpl",
+              "start": {
+                "offset": 0,
+                "line": 1,
+                "column": 1
+              },
+              "end": {
+                "offset": 6,
+                "line": 1,
+                "column": 7
+              }
+            }
+          },
+          {
+            "kind": "identifier",
+            "type": "identifier",
+            "lexeme": "math",
+            "value": "math",
+            "line": 1,
+            "column": 8,
+            "offset": 7,
+            "span": {
+              "file": "tests/conformance/valid/math.anpl",
+              "start": {
+                "offset": 7,
+                "line": 1,
+                "column": 8
+              },
+              "end": {
+                "offset": 11,
+                "line": 1,
+                "column": 12
+              }
+            },
+            "leadingTrivia": [
+              {
+                "kind": "Whitespace",
+                "text": " ",
+                "span": {
+                  "file": "tests/conformance/valid/math.anpl",
+                  "start": {
+                    "offset": 6,
+                    "line": 1,
+                    "column": 7
+                  },
+                  "end": {
+                    "offset": 7,
+                    "line": 1,
+                    "column": 8
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "kind": "newline",
+            "type": "newline",
+            "lexeme": "\n",
+            "value": "\n",
+            "line": 1,
+            "column": 12,
+            "offset": 11,
+            "span": {
+              "file": "tests/conformance/valid/math.anpl",
+              "start": {
+                "offset": 11,
+                "line": 1,
+                "column": 12
+              },
+              "end": {
+                "offset": 12,
+                "line": 1,
+                "column": 13
+              }
+            }
+          },
+          {
+            "kind": "newline",
+            "type": "newline",
+            "lexeme": "\n",
+            "value": "\n",
+            "line": 2,
+            "column": 1,
+            "offset": 12,
+            "span": {
+              "file": "tests/conformance/valid/math.anpl",
+              "start": {
+                "offset": 12,
+                "line": 2,
+                "column": 1
+              },
+              "end": {
+                "offset": 13,
+                "line": 2,
+                "column": 2
+              }
+            }
+          },
+          {
+            "kind": "FunctionDecl",
+            "span": {
+              "file": "tests/conformance/valid/math.anpl",
+              "start": {
+                "offset": 13,
+                "line": 3,
+                "column": 1
+              },
+              "end": {
+                "offset": 61,
+                "line": 5,
+                "column": 2
+              }
+            },
+            "children": [
+              {
+                "kind": "keyword",
+                "type": "keyword",
+                "lexeme": "fn",
+                "value": "fn",
+                "line": 3,
+                "column": 1,
+                "offset": 13,
+                "span": {
+                  "file": "tests/conformance/valid/math.anpl",
+                  "start": {
+                    "offset": 13,
+                    "line": 3,
+                    "column": 1
+                  },
+                  "end": {
+                    "offset": 15,
+                    "line": 3,
+                    "column": 3
+                  }
+                }
+              },
+              {
+                "kind": "identifier",
+                "type": "identifier",
+                "lexeme": "add",
+                "value": "add",
+                "line": 3,
+                "column": 4,
+                "offset": 16,
+                "span": {
+                  "file": "tests/conformance/valid/math.anpl",
+                  "start": {
+                    "offset": 16,
+                    "line": 3,
+                    "column": 4
+                  },
+                  "end": {
+                    "offset": 19,
+                    "line": 3,
+                    "column": 7
+                  }
+                },
+                "leadingTrivia": [
+                  {
+                    "kind": "Whitespace",
+                    "text": " ",
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 15,
+                        "line": 3,
+                        "column": 3
+                      },
+                      "end": {
+                        "offset": 16,
+                        "line": 3,
+                        "column": 4
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "lparen",
+                "type": "lparen",
+                "lexeme": "(",
+                "value": "(",
+                "line": 3,
+                "column": 7,
+                "offset": 19,
+                "span": {
+                  "file": "tests/conformance/valid/math.anpl",
+                  "start": {
+                    "offset": 19,
+                    "line": 3,
+                    "column": 7
+                  },
+                  "end": {
+                    "offset": 20,
+                    "line": 3,
+                    "column": 8
+                  }
+                }
+              },
+              {
+                "kind": "Param",
+                "span": {
+                  "file": "tests/conformance/valid/math.anpl",
+                  "start": {
+                    "offset": 20,
+                    "line": 3,
+                    "column": 8
+                  },
+                  "end": {
+                    "offset": 26,
+                    "line": 3,
+                    "column": 14
+                  }
+                },
+                "children": [
+                  {
+                    "kind": "identifier",
+                    "type": "identifier",
+                    "lexeme": "a",
+                    "value": "a",
+                    "line": 3,
+                    "column": 8,
+                    "offset": 20,
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 20,
+                        "line": 3,
+                        "column": 8
+                      },
+                      "end": {
+                        "offset": 21,
+                        "line": 3,
+                        "column": 9
+                      }
+                    }
+                  },
+                  {
+                    "kind": "colon",
+                    "type": "colon",
+                    "lexeme": ":",
+                    "value": ":",
+                    "line": 3,
+                    "column": 9,
+                    "offset": 21,
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 21,
+                        "line": 3,
+                        "column": 9
+                      },
+                      "end": {
+                        "offset": 22,
+                        "line": 3,
+                        "column": 10
+                      }
+                    }
+                  },
+                  {
+                    "kind": "TypeRef",
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 23,
+                        "line": 3,
+                        "column": 11
+                      },
+                      "end": {
+                        "offset": 26,
+                        "line": 3,
+                        "column": 14
+                      }
+                    },
+                    "children": [
+                      {
+                        "kind": "keyword",
+                        "type": "keyword",
+                        "lexeme": "int",
+                        "value": "int",
+                        "line": 3,
+                        "column": 11,
+                        "offset": 23,
+                        "span": {
+                          "file": "tests/conformance/valid/math.anpl",
+                          "start": {
+                            "offset": 23,
+                            "line": 3,
+                            "column": 11
+                          },
+                          "end": {
+                            "offset": 26,
+                            "line": 3,
+                            "column": 14
+                          }
+                        },
+                        "leadingTrivia": [
+                          {
+                            "kind": "Whitespace",
+                            "text": " ",
+                            "span": {
+                              "file": "tests/conformance/valid/math.anpl",
+                              "start": {
+                                "offset": 22,
+                                "line": 3,
+                                "column": 10
+                              },
+                              "end": {
+                                "offset": 23,
+                                "line": 3,
+                                "column": 11
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "comma",
+                "type": "comma",
+                "lexeme": ",",
+                "value": ",",
+                "line": 3,
+                "column": 14,
+                "offset": 26,
+                "span": {
+                  "file": "tests/conformance/valid/math.anpl",
+                  "start": {
+                    "offset": 26,
+                    "line": 3,
+                    "column": 14
+                  },
+                  "end": {
+                    "offset": 27,
+                    "line": 3,
+                    "column": 15
+                  }
+                }
+              },
+              {
+                "kind": "Param",
+                "span": {
+                  "file": "tests/conformance/valid/math.anpl",
+                  "start": {
+                    "offset": 28,
+                    "line": 3,
+                    "column": 16
+                  },
+                  "end": {
+                    "offset": 34,
+                    "line": 3,
+                    "column": 22
+                  }
+                },
+                "children": [
+                  {
+                    "kind": "identifier",
+                    "type": "identifier",
+                    "lexeme": "b",
+                    "value": "b",
+                    "line": 3,
+                    "column": 16,
+                    "offset": 28,
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 28,
+                        "line": 3,
+                        "column": 16
+                      },
+                      "end": {
+                        "offset": 29,
+                        "line": 3,
+                        "column": 17
+                      }
+                    },
+                    "leadingTrivia": [
+                      {
+                        "kind": "Whitespace",
+                        "text": " ",
+                        "span": {
+                          "file": "tests/conformance/valid/math.anpl",
+                          "start": {
+                            "offset": 27,
+                            "line": 3,
+                            "column": 15
+                          },
+                          "end": {
+                            "offset": 28,
+                            "line": 3,
+                            "column": 16
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "colon",
+                    "type": "colon",
+                    "lexeme": ":",
+                    "value": ":",
+                    "line": 3,
+                    "column": 17,
+                    "offset": 29,
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 29,
+                        "line": 3,
+                        "column": 17
+                      },
+                      "end": {
+                        "offset": 30,
+                        "line": 3,
+                        "column": 18
+                      }
+                    }
+                  },
+                  {
+                    "kind": "TypeRef",
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 31,
+                        "line": 3,
+                        "column": 19
+                      },
+                      "end": {
+                        "offset": 34,
+                        "line": 3,
+                        "column": 22
+                      }
+                    },
+                    "children": [
+                      {
+                        "kind": "keyword",
+                        "type": "keyword",
+                        "lexeme": "int",
+                        "value": "int",
+                        "line": 3,
+                        "column": 19,
+                        "offset": 31,
+                        "span": {
+                          "file": "tests/conformance/valid/math.anpl",
+                          "start": {
+                            "offset": 31,
+                            "line": 3,
+                            "column": 19
+                          },
+                          "end": {
+                            "offset": 34,
+                            "line": 3,
+                            "column": 22
+                          }
+                        },
+                        "leadingTrivia": [
+                          {
+                            "kind": "Whitespace",
+                            "text": " ",
+                            "span": {
+                              "file": "tests/conformance/valid/math.anpl",
+                              "start": {
+                                "offset": 30,
+                                "line": 3,
+                                "column": 18
+                              },
+                              "end": {
+                                "offset": 31,
+                                "line": 3,
+                                "column": 19
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "rparen",
+                "type": "rparen",
+                "lexeme": ")",
+                "value": ")",
+                "line": 3,
+                "column": 22,
+                "offset": 34,
+                "span": {
+                  "file": "tests/conformance/valid/math.anpl",
+                  "start": {
+                    "offset": 34,
+                    "line": 3,
+                    "column": 22
+                  },
+                  "end": {
+                    "offset": 35,
+                    "line": 3,
+                    "column": 23
+                  }
+                }
+              },
+              {
+                "kind": "arrow",
+                "type": "arrow",
+                "lexeme": "->",
+                "value": "->",
+                "line": 3,
+                "column": 24,
+                "offset": 36,
+                "span": {
+                  "file": "tests/conformance/valid/math.anpl",
+                  "start": {
+                    "offset": 36,
+                    "line": 3,
+                    "column": 24
+                  },
+                  "end": {
+                    "offset": 38,
+                    "line": 3,
+                    "column": 26
+                  }
+                },
+                "leadingTrivia": [
+                  {
+                    "kind": "Whitespace",
+                    "text": " ",
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 35,
+                        "line": 3,
+                        "column": 23
+                      },
+                      "end": {
+                        "offset": 36,
+                        "line": 3,
+                        "column": 24
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "TypeRef",
+                "span": {
+                  "file": "tests/conformance/valid/math.anpl",
+                  "start": {
+                    "offset": 39,
+                    "line": 3,
+                    "column": 27
+                  },
+                  "end": {
+                    "offset": 42,
+                    "line": 3,
+                    "column": 30
+                  }
+                },
+                "children": [
+                  {
+                    "kind": "keyword",
+                    "type": "keyword",
+                    "lexeme": "int",
+                    "value": "int",
+                    "line": 3,
+                    "column": 27,
+                    "offset": 39,
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 39,
+                        "line": 3,
+                        "column": 27
+                      },
+                      "end": {
+                        "offset": 42,
+                        "line": 3,
+                        "column": 30
+                      }
+                    },
+                    "leadingTrivia": [
+                      {
+                        "kind": "Whitespace",
+                        "text": " ",
+                        "span": {
+                          "file": "tests/conformance/valid/math.anpl",
+                          "start": {
+                            "offset": 38,
+                            "line": 3,
+                            "column": 26
+                          },
+                          "end": {
+                            "offset": 39,
+                            "line": 3,
+                            "column": 27
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "BlockStmt",
+                "span": {
+                  "file": "tests/conformance/valid/math.anpl",
+                  "start": {
+                    "offset": 43,
+                    "line": 3,
+                    "column": 31
+                  },
+                  "end": {
+                    "offset": 61,
+                    "line": 5,
+                    "column": 2
+                  }
+                },
+                "children": [
+                  {
+                    "kind": "lbrace",
+                    "type": "lbrace",
+                    "lexeme": "{",
+                    "value": "{",
+                    "line": 3,
+                    "column": 31,
+                    "offset": 43,
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 43,
+                        "line": 3,
+                        "column": 31
+                      },
+                      "end": {
+                        "offset": 44,
+                        "line": 3,
+                        "column": 32
+                      }
+                    },
+                    "leadingTrivia": [
+                      {
+                        "kind": "Whitespace",
+                        "text": " ",
+                        "span": {
+                          "file": "tests/conformance/valid/math.anpl",
+                          "start": {
+                            "offset": 42,
+                            "line": 3,
+                            "column": 30
+                          },
+                          "end": {
+                            "offset": 43,
+                            "line": 3,
+                            "column": 31
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "newline",
+                    "type": "newline",
+                    "lexeme": "\n",
+                    "value": "\n",
+                    "line": 3,
+                    "column": 32,
+                    "offset": 44,
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 44,
+                        "line": 3,
+                        "column": 32
+                      },
+                      "end": {
+                        "offset": 45,
+                        "line": 3,
+                        "column": 33
+                      }
+                    }
+                  },
+                  {
+                    "kind": "ReturnStmt",
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 47,
+                        "line": 4,
+                        "column": 3
+                      },
+                      "end": {
+                        "offset": 59,
+                        "line": 4,
+                        "column": 15
+                      }
+                    },
+                    "children": [
+                      {
+                        "kind": "keyword",
+                        "type": "keyword",
+                        "lexeme": "return",
+                        "value": "return",
+                        "line": 4,
+                        "column": 3,
+                        "offset": 47,
+                        "span": {
+                          "file": "tests/conformance/valid/math.anpl",
+                          "start": {
+                            "offset": 47,
+                            "line": 4,
+                            "column": 3
+                          },
+                          "end": {
+                            "offset": 53,
+                            "line": 4,
+                            "column": 9
+                          }
+                        },
+                        "leadingTrivia": [
+                          {
+                            "kind": "Whitespace",
+                            "text": "  ",
+                            "span": {
+                              "file": "tests/conformance/valid/math.anpl",
+                              "start": {
+                                "offset": 45,
+                                "line": 4,
+                                "column": 1
+                              },
+                              "end": {
+                                "offset": 47,
+                                "line": 4,
+                                "column": 3
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "BinaryExpr",
+                        "span": {
+                          "file": "tests/conformance/valid/math.anpl",
+                          "start": {
+                            "offset": 54,
+                            "line": 4,
+                            "column": 10
+                          },
+                          "end": {
+                            "offset": 59,
+                            "line": 4,
+                            "column": 15
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "IdentifierExpr",
+                            "span": {
+                              "file": "tests/conformance/valid/math.anpl",
+                              "start": {
+                                "offset": 54,
+                                "line": 4,
+                                "column": 10
+                              },
+                              "end": {
+                                "offset": 55,
+                                "line": 4,
+                                "column": 11
+                              }
+                            },
+                            "children": [
+                              {
+                                "kind": "identifier",
+                                "type": "identifier",
+                                "lexeme": "a",
+                                "value": "a",
+                                "line": 4,
+                                "column": 10,
+                                "offset": 54,
+                                "span": {
+                                  "file": "tests/conformance/valid/math.anpl",
+                                  "start": {
+                                    "offset": 54,
+                                    "line": 4,
+                                    "column": 10
+                                  },
+                                  "end": {
+                                    "offset": 55,
+                                    "line": 4,
+                                    "column": 11
+                                  }
+                                },
+                                "leadingTrivia": [
+                                  {
+                                    "kind": "Whitespace",
+                                    "text": " ",
+                                    "span": {
+                                      "file": "tests/conformance/valid/math.anpl",
+                                      "start": {
+                                        "offset": 53,
+                                        "line": 4,
+                                        "column": 9
+                                      },
+                                      "end": {
+                                        "offset": 54,
+                                        "line": 4,
+                                        "column": 10
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "plus",
+                            "type": "plus",
+                            "lexeme": "+",
+                            "value": "+",
+                            "line": 4,
+                            "column": 12,
+                            "offset": 56,
+                            "span": {
+                              "file": "tests/conformance/valid/math.anpl",
+                              "start": {
+                                "offset": 56,
+                                "line": 4,
+                                "column": 12
+                              },
+                              "end": {
+                                "offset": 57,
+                                "line": 4,
+                                "column": 13
+                              }
+                            },
+                            "leadingTrivia": [
+                              {
+                                "kind": "Whitespace",
+                                "text": " ",
+                                "span": {
+                                  "file": "tests/conformance/valid/math.anpl",
+                                  "start": {
+                                    "offset": 55,
+                                    "line": 4,
+                                    "column": 11
+                                  },
+                                  "end": {
+                                    "offset": 56,
+                                    "line": 4,
+                                    "column": 12
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "IdentifierExpr",
+                            "span": {
+                              "file": "tests/conformance/valid/math.anpl",
+                              "start": {
+                                "offset": 58,
+                                "line": 4,
+                                "column": 14
+                              },
+                              "end": {
+                                "offset": 59,
+                                "line": 4,
+                                "column": 15
+                              }
+                            },
+                            "children": [
+                              {
+                                "kind": "identifier",
+                                "type": "identifier",
+                                "lexeme": "b",
+                                "value": "b",
+                                "line": 4,
+                                "column": 14,
+                                "offset": 58,
+                                "span": {
+                                  "file": "tests/conformance/valid/math.anpl",
+                                  "start": {
+                                    "offset": 58,
+                                    "line": 4,
+                                    "column": 14
+                                  },
+                                  "end": {
+                                    "offset": 59,
+                                    "line": 4,
+                                    "column": 15
+                                  }
+                                },
+                                "leadingTrivia": [
+                                  {
+                                    "kind": "Whitespace",
+                                    "text": " ",
+                                    "span": {
+                                      "file": "tests/conformance/valid/math.anpl",
+                                      "start": {
+                                        "offset": 57,
+                                        "line": 4,
+                                        "column": 13
+                                      },
+                                      "end": {
+                                        "offset": 58,
+                                        "line": 4,
+                                        "column": 14
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "newline",
+                    "type": "newline",
+                    "lexeme": "\n",
+                    "value": "\n",
+                    "line": 4,
+                    "column": 15,
+                    "offset": 59,
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 59,
+                        "line": 4,
+                        "column": 15
+                      },
+                      "end": {
+                        "offset": 60,
+                        "line": 4,
+                        "column": 16
+                      }
+                    }
+                  },
+                  {
+                    "kind": "rbrace",
+                    "type": "rbrace",
+                    "lexeme": "}",
+                    "value": "}",
+                    "line": 5,
+                    "column": 1,
+                    "offset": 60,
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 60,
+                        "line": 5,
+                        "column": 1
+                      },
+                      "end": {
+                        "offset": 61,
+                        "line": 5,
+                        "column": 2
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "newline",
+            "type": "newline",
+            "lexeme": "\n",
+            "value": "\n",
+            "line": 5,
+            "column": 2,
+            "offset": 61,
+            "span": {
+              "file": "tests/conformance/valid/math.anpl",
+              "start": {
+                "offset": 61,
+                "line": 5,
+                "column": 2
+              },
+              "end": {
+                "offset": 62,
+                "line": 5,
+                "column": 3
+              }
+            }
+          },
+          {
+            "kind": "newline",
+            "type": "newline",
+            "lexeme": "\n",
+            "value": "\n",
+            "line": 6,
+            "column": 1,
+            "offset": 62,
+            "span": {
+              "file": "tests/conformance/valid/math.anpl",
+              "start": {
+                "offset": 62,
+                "line": 6,
+                "column": 1
+              },
+              "end": {
+                "offset": 63,
+                "line": 6,
+                "column": 2
+              }
+            }
+          },
+          {
+            "kind": "FunctionDecl",
+            "span": {
+              "file": "tests/conformance/valid/math.anpl",
+              "start": {
+                "offset": 63,
+                "line": 7,
+                "column": 1
+              },
+              "end": {
+                "offset": 129,
+                "line": 10,
+                "column": 2
+              }
+            },
+            "children": [
+              {
+                "kind": "keyword",
+                "type": "keyword",
+                "lexeme": "fn",
+                "value": "fn",
+                "line": 7,
+                "column": 1,
+                "offset": 63,
+                "span": {
+                  "file": "tests/conformance/valid/math.anpl",
+                  "start": {
+                    "offset": 63,
+                    "line": 7,
+                    "column": 1
+                  },
+                  "end": {
+                    "offset": 65,
+                    "line": 7,
+                    "column": 3
+                  }
+                }
+              },
+              {
+                "kind": "identifier",
+                "type": "identifier",
+                "lexeme": "main",
+                "value": "main",
+                "line": 7,
+                "column": 4,
+                "offset": 66,
+                "span": {
+                  "file": "tests/conformance/valid/math.anpl",
+                  "start": {
+                    "offset": 66,
+                    "line": 7,
+                    "column": 4
+                  },
+                  "end": {
+                    "offset": 70,
+                    "line": 7,
+                    "column": 8
+                  }
+                },
+                "leadingTrivia": [
+                  {
+                    "kind": "Whitespace",
+                    "text": " ",
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 65,
+                        "line": 7,
+                        "column": 3
+                      },
+                      "end": {
+                        "offset": 66,
+                        "line": 7,
+                        "column": 4
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "lparen",
+                "type": "lparen",
+                "lexeme": "(",
+                "value": "(",
+                "line": 7,
+                "column": 8,
+                "offset": 70,
+                "span": {
+                  "file": "tests/conformance/valid/math.anpl",
+                  "start": {
+                    "offset": 70,
+                    "line": 7,
+                    "column": 8
+                  },
+                  "end": {
+                    "offset": 71,
+                    "line": 7,
+                    "column": 9
+                  }
+                }
+              },
+              {
+                "kind": "rparen",
+                "type": "rparen",
+                "lexeme": ")",
+                "value": ")",
+                "line": 7,
+                "column": 9,
+                "offset": 71,
+                "span": {
+                  "file": "tests/conformance/valid/math.anpl",
+                  "start": {
+                    "offset": 71,
+                    "line": 7,
+                    "column": 9
+                  },
+                  "end": {
+                    "offset": 72,
+                    "line": 7,
+                    "column": 10
+                  }
+                }
+              },
+              {
+                "kind": "arrow",
+                "type": "arrow",
+                "lexeme": "->",
+                "value": "->",
+                "line": 7,
+                "column": 11,
+                "offset": 73,
+                "span": {
+                  "file": "tests/conformance/valid/math.anpl",
+                  "start": {
+                    "offset": 73,
+                    "line": 7,
+                    "column": 11
+                  },
+                  "end": {
+                    "offset": 75,
+                    "line": 7,
+                    "column": 13
+                  }
+                },
+                "leadingTrivia": [
+                  {
+                    "kind": "Whitespace",
+                    "text": " ",
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 72,
+                        "line": 7,
+                        "column": 10
+                      },
+                      "end": {
+                        "offset": 73,
+                        "line": 7,
+                        "column": 11
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "kind": "TypeRef",
+                "span": {
+                  "file": "tests/conformance/valid/math.anpl",
+                  "start": {
+                    "offset": 76,
+                    "line": 7,
+                    "column": 14
+                  },
+                  "end": {
+                    "offset": 79,
+                    "line": 7,
+                    "column": 17
+                  }
+                },
+                "children": [
+                  {
+                    "kind": "keyword",
+                    "type": "keyword",
+                    "lexeme": "int",
+                    "value": "int",
+                    "line": 7,
+                    "column": 14,
+                    "offset": 76,
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 76,
+                        "line": 7,
+                        "column": 14
+                      },
+                      "end": {
+                        "offset": 79,
+                        "line": 7,
+                        "column": 17
+                      }
+                    },
+                    "leadingTrivia": [
+                      {
+                        "kind": "Whitespace",
+                        "text": " ",
+                        "span": {
+                          "file": "tests/conformance/valid/math.anpl",
+                          "start": {
+                            "offset": 75,
+                            "line": 7,
+                            "column": 13
+                          },
+                          "end": {
+                            "offset": 76,
+                            "line": 7,
+                            "column": 14
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "kind": "BlockStmt",
+                "span": {
+                  "file": "tests/conformance/valid/math.anpl",
+                  "start": {
+                    "offset": 80,
+                    "line": 7,
+                    "column": 18
+                  },
+                  "end": {
+                    "offset": 129,
+                    "line": 10,
+                    "column": 2
+                  }
+                },
+                "children": [
+                  {
+                    "kind": "lbrace",
+                    "type": "lbrace",
+                    "lexeme": "{",
+                    "value": "{",
+                    "line": 7,
+                    "column": 18,
+                    "offset": 80,
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 80,
+                        "line": 7,
+                        "column": 18
+                      },
+                      "end": {
+                        "offset": 81,
+                        "line": 7,
+                        "column": 19
+                      }
+                    },
+                    "leadingTrivia": [
+                      {
+                        "kind": "Whitespace",
+                        "text": " ",
+                        "span": {
+                          "file": "tests/conformance/valid/math.anpl",
+                          "start": {
+                            "offset": 79,
+                            "line": 7,
+                            "column": 17
+                          },
+                          "end": {
+                            "offset": 80,
+                            "line": 7,
+                            "column": 18
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "newline",
+                    "type": "newline",
+                    "lexeme": "\n",
+                    "value": "\n",
+                    "line": 7,
+                    "column": 19,
+                    "offset": 81,
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 81,
+                        "line": 7,
+                        "column": 19
+                      },
+                      "end": {
+                        "offset": 82,
+                        "line": 7,
+                        "column": 20
+                      }
+                    }
+                  },
+                  {
+                    "kind": "LetStmt",
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 84,
+                        "line": 8,
+                        "column": 3
+                      },
+                      "end": {
+                        "offset": 111,
+                        "line": 8,
+                        "column": 30
+                      }
+                    },
+                    "children": [
+                      {
+                        "kind": "keyword",
+                        "type": "keyword",
+                        "lexeme": "let",
+                        "value": "let",
+                        "line": 8,
+                        "column": 3,
+                        "offset": 84,
+                        "span": {
+                          "file": "tests/conformance/valid/math.anpl",
+                          "start": {
+                            "offset": 84,
+                            "line": 8,
+                            "column": 3
+                          },
+                          "end": {
+                            "offset": 87,
+                            "line": 8,
+                            "column": 6
+                          }
+                        },
+                        "leadingTrivia": [
+                          {
+                            "kind": "Whitespace",
+                            "text": "  ",
+                            "span": {
+                              "file": "tests/conformance/valid/math.anpl",
+                              "start": {
+                                "offset": 82,
+                                "line": 8,
+                                "column": 1
+                              },
+                              "end": {
+                                "offset": 84,
+                                "line": 8,
+                                "column": 3
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "identifier",
+                        "type": "identifier",
+                        "lexeme": "result",
+                        "value": "result",
+                        "line": 8,
+                        "column": 7,
+                        "offset": 88,
+                        "span": {
+                          "file": "tests/conformance/valid/math.anpl",
+                          "start": {
+                            "offset": 88,
+                            "line": 8,
+                            "column": 7
+                          },
+                          "end": {
+                            "offset": 94,
+                            "line": 8,
+                            "column": 13
+                          }
+                        },
+                        "leadingTrivia": [
+                          {
+                            "kind": "Whitespace",
+                            "text": " ",
+                            "span": {
+                              "file": "tests/conformance/valid/math.anpl",
+                              "start": {
+                                "offset": 87,
+                                "line": 8,
+                                "column": 6
+                              },
+                              "end": {
+                                "offset": 88,
+                                "line": 8,
+                                "column": 7
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "colon",
+                        "type": "colon",
+                        "lexeme": ":",
+                        "value": ":",
+                        "line": 8,
+                        "column": 13,
+                        "offset": 94,
+                        "span": {
+                          "file": "tests/conformance/valid/math.anpl",
+                          "start": {
+                            "offset": 94,
+                            "line": 8,
+                            "column": 13
+                          },
+                          "end": {
+                            "offset": 95,
+                            "line": 8,
+                            "column": 14
+                          }
+                        }
+                      },
+                      {
+                        "kind": "TypeRef",
+                        "span": {
+                          "file": "tests/conformance/valid/math.anpl",
+                          "start": {
+                            "offset": 96,
+                            "line": 8,
+                            "column": 15
+                          },
+                          "end": {
+                            "offset": 99,
+                            "line": 8,
+                            "column": 18
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "keyword",
+                            "type": "keyword",
+                            "lexeme": "int",
+                            "value": "int",
+                            "line": 8,
+                            "column": 15,
+                            "offset": 96,
+                            "span": {
+                              "file": "tests/conformance/valid/math.anpl",
+                              "start": {
+                                "offset": 96,
+                                "line": 8,
+                                "column": 15
+                              },
+                              "end": {
+                                "offset": 99,
+                                "line": 8,
+                                "column": 18
+                              }
+                            },
+                            "leadingTrivia": [
+                              {
+                                "kind": "Whitespace",
+                                "text": " ",
+                                "span": {
+                                  "file": "tests/conformance/valid/math.anpl",
+                                  "start": {
+                                    "offset": 95,
+                                    "line": 8,
+                                    "column": 14
+                                  },
+                                  "end": {
+                                    "offset": 96,
+                                    "line": 8,
+                                    "column": 15
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "equal",
+                        "type": "equal",
+                        "lexeme": "=",
+                        "value": "=",
+                        "line": 8,
+                        "column": 19,
+                        "offset": 100,
+                        "span": {
+                          "file": "tests/conformance/valid/math.anpl",
+                          "start": {
+                            "offset": 100,
+                            "line": 8,
+                            "column": 19
+                          },
+                          "end": {
+                            "offset": 101,
+                            "line": 8,
+                            "column": 20
+                          }
+                        },
+                        "leadingTrivia": [
+                          {
+                            "kind": "Whitespace",
+                            "text": " ",
+                            "span": {
+                              "file": "tests/conformance/valid/math.anpl",
+                              "start": {
+                                "offset": 99,
+                                "line": 8,
+                                "column": 18
+                              },
+                              "end": {
+                                "offset": 100,
+                                "line": 8,
+                                "column": 19
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "CallExpr",
+                        "span": {
+                          "file": "tests/conformance/valid/math.anpl",
+                          "start": {
+                            "offset": 102,
+                            "line": 8,
+                            "column": 21
+                          },
+                          "end": {
+                            "offset": 111,
+                            "line": 8,
+                            "column": 30
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "IdentifierExpr",
+                            "span": {
+                              "file": "tests/conformance/valid/math.anpl",
+                              "start": {
+                                "offset": 102,
+                                "line": 8,
+                                "column": 21
+                              },
+                              "end": {
+                                "offset": 105,
+                                "line": 8,
+                                "column": 24
+                              }
+                            },
+                            "children": [
+                              {
+                                "kind": "identifier",
+                                "type": "identifier",
+                                "lexeme": "add",
+                                "value": "add",
+                                "line": 8,
+                                "column": 21,
+                                "offset": 102,
+                                "span": {
+                                  "file": "tests/conformance/valid/math.anpl",
+                                  "start": {
+                                    "offset": 102,
+                                    "line": 8,
+                                    "column": 21
+                                  },
+                                  "end": {
+                                    "offset": 105,
+                                    "line": 8,
+                                    "column": 24
+                                  }
+                                },
+                                "leadingTrivia": [
+                                  {
+                                    "kind": "Whitespace",
+                                    "text": " ",
+                                    "span": {
+                                      "file": "tests/conformance/valid/math.anpl",
+                                      "start": {
+                                        "offset": 101,
+                                        "line": 8,
+                                        "column": 20
+                                      },
+                                      "end": {
+                                        "offset": 102,
+                                        "line": 8,
+                                        "column": 21
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "lparen",
+                            "type": "lparen",
+                            "lexeme": "(",
+                            "value": "(",
+                            "line": 8,
+                            "column": 24,
+                            "offset": 105,
+                            "span": {
+                              "file": "tests/conformance/valid/math.anpl",
+                              "start": {
+                                "offset": 105,
+                                "line": 8,
+                                "column": 24
+                              },
+                              "end": {
+                                "offset": 106,
+                                "line": 8,
+                                "column": 25
+                              }
+                            }
+                          },
+                          {
+                            "kind": "LiteralExpr",
+                            "span": {
+                              "file": "tests/conformance/valid/math.anpl",
+                              "start": {
+                                "offset": 106,
+                                "line": 8,
+                                "column": 25
+                              },
+                              "end": {
+                                "offset": 107,
+                                "line": 8,
+                                "column": 26
+                              }
+                            },
+                            "children": [
+                              {
+                                "kind": "number",
+                                "type": "number",
+                                "lexeme": "2",
+                                "value": "2",
+                                "literal": 2,
+                                "line": 8,
+                                "column": 25,
+                                "offset": 106,
+                                "span": {
+                                  "file": "tests/conformance/valid/math.anpl",
+                                  "start": {
+                                    "offset": 106,
+                                    "line": 8,
+                                    "column": 25
+                                  },
+                                  "end": {
+                                    "offset": 107,
+                                    "line": 8,
+                                    "column": 26
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "comma",
+                            "type": "comma",
+                            "lexeme": ",",
+                            "value": ",",
+                            "line": 8,
+                            "column": 26,
+                            "offset": 107,
+                            "span": {
+                              "file": "tests/conformance/valid/math.anpl",
+                              "start": {
+                                "offset": 107,
+                                "line": 8,
+                                "column": 26
+                              },
+                              "end": {
+                                "offset": 108,
+                                "line": 8,
+                                "column": 27
+                              }
+                            }
+                          },
+                          {
+                            "kind": "LiteralExpr",
+                            "span": {
+                              "file": "tests/conformance/valid/math.anpl",
+                              "start": {
+                                "offset": 109,
+                                "line": 8,
+                                "column": 28
+                              },
+                              "end": {
+                                "offset": 110,
+                                "line": 8,
+                                "column": 29
+                              }
+                            },
+                            "children": [
+                              {
+                                "kind": "number",
+                                "type": "number",
+                                "lexeme": "3",
+                                "value": "3",
+                                "literal": 3,
+                                "line": 8,
+                                "column": 28,
+                                "offset": 109,
+                                "span": {
+                                  "file": "tests/conformance/valid/math.anpl",
+                                  "start": {
+                                    "offset": 109,
+                                    "line": 8,
+                                    "column": 28
+                                  },
+                                  "end": {
+                                    "offset": 110,
+                                    "line": 8,
+                                    "column": 29
+                                  }
+                                },
+                                "leadingTrivia": [
+                                  {
+                                    "kind": "Whitespace",
+                                    "text": " ",
+                                    "span": {
+                                      "file": "tests/conformance/valid/math.anpl",
+                                      "start": {
+                                        "offset": 108,
+                                        "line": 8,
+                                        "column": 27
+                                      },
+                                      "end": {
+                                        "offset": 109,
+                                        "line": 8,
+                                        "column": 28
+                                      }
+                                    }
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          {
+                            "kind": "rparen",
+                            "type": "rparen",
+                            "lexeme": ")",
+                            "value": ")",
+                            "line": 8,
+                            "column": 29,
+                            "offset": 110,
+                            "span": {
+                              "file": "tests/conformance/valid/math.anpl",
+                              "start": {
+                                "offset": 110,
+                                "line": 8,
+                                "column": 29
+                              },
+                              "end": {
+                                "offset": 111,
+                                "line": 8,
+                                "column": 30
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "newline",
+                    "type": "newline",
+                    "lexeme": "\n",
+                    "value": "\n",
+                    "line": 8,
+                    "column": 30,
+                    "offset": 111,
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 111,
+                        "line": 8,
+                        "column": 30
+                      },
+                      "end": {
+                        "offset": 112,
+                        "line": 8,
+                        "column": 31
+                      }
+                    }
+                  },
+                  {
+                    "kind": "ReturnStmt",
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 114,
+                        "line": 9,
+                        "column": 3
+                      },
+                      "end": {
+                        "offset": 127,
+                        "line": 9,
+                        "column": 16
+                      }
+                    },
+                    "children": [
+                      {
+                        "kind": "keyword",
+                        "type": "keyword",
+                        "lexeme": "return",
+                        "value": "return",
+                        "line": 9,
+                        "column": 3,
+                        "offset": 114,
+                        "span": {
+                          "file": "tests/conformance/valid/math.anpl",
+                          "start": {
+                            "offset": 114,
+                            "line": 9,
+                            "column": 3
+                          },
+                          "end": {
+                            "offset": 120,
+                            "line": 9,
+                            "column": 9
+                          }
+                        },
+                        "leadingTrivia": [
+                          {
+                            "kind": "Whitespace",
+                            "text": "  ",
+                            "span": {
+                              "file": "tests/conformance/valid/math.anpl",
+                              "start": {
+                                "offset": 112,
+                                "line": 9,
+                                "column": 1
+                              },
+                              "end": {
+                                "offset": 114,
+                                "line": 9,
+                                "column": 3
+                              }
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "kind": "IdentifierExpr",
+                        "span": {
+                          "file": "tests/conformance/valid/math.anpl",
+                          "start": {
+                            "offset": 121,
+                            "line": 9,
+                            "column": 10
+                          },
+                          "end": {
+                            "offset": 127,
+                            "line": 9,
+                            "column": 16
+                          }
+                        },
+                        "children": [
+                          {
+                            "kind": "identifier",
+                            "type": "identifier",
+                            "lexeme": "result",
+                            "value": "result",
+                            "line": 9,
+                            "column": 10,
+                            "offset": 121,
+                            "span": {
+                              "file": "tests/conformance/valid/math.anpl",
+                              "start": {
+                                "offset": 121,
+                                "line": 9,
+                                "column": 10
+                              },
+                              "end": {
+                                "offset": 127,
+                                "line": 9,
+                                "column": 16
+                              }
+                            },
+                            "leadingTrivia": [
+                              {
+                                "kind": "Whitespace",
+                                "text": " ",
+                                "span": {
+                                  "file": "tests/conformance/valid/math.anpl",
+                                  "start": {
+                                    "offset": 120,
+                                    "line": 9,
+                                    "column": 9
+                                  },
+                                  "end": {
+                                    "offset": 121,
+                                    "line": 9,
+                                    "column": 10
+                                  }
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "kind": "newline",
+                    "type": "newline",
+                    "lexeme": "\n",
+                    "value": "\n",
+                    "line": 9,
+                    "column": 16,
+                    "offset": 127,
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 127,
+                        "line": 9,
+                        "column": 16
+                      },
+                      "end": {
+                        "offset": 128,
+                        "line": 9,
+                        "column": 17
+                      }
+                    }
+                  },
+                  {
+                    "kind": "rbrace",
+                    "type": "rbrace",
+                    "lexeme": "}",
+                    "value": "}",
+                    "line": 10,
+                    "column": 1,
+                    "offset": 128,
+                    "span": {
+                      "file": "tests/conformance/valid/math.anpl",
+                      "start": {
+                        "offset": 128,
+                        "line": 10,
+                        "column": 1
+                      },
+                      "end": {
+                        "offset": 129,
+                        "line": 10,
+                        "column": 2
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "kind": "newline",
+            "type": "newline",
+            "lexeme": "\n",
+            "value": "\n",
+            "line": 10,
+            "column": 2,
+            "offset": 129,
+            "span": {
+              "file": "tests/conformance/valid/math.anpl",
+              "start": {
+                "offset": 129,
+                "line": 10,
+                "column": 2
+              },
+              "end": {
+                "offset": 130,
+                "line": 10,
+                "column": 3
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

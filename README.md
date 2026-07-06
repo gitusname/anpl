@@ -241,6 +241,7 @@ Current implemented foundation:
 * runtime built-ins, sandbox effect policy, timeout checks, and estimated memory checks for `uuid()`, `now()`, `print(value)`, `len(value)`
 * CLI commands: `init`, `check`, `run`, `build`, `emit ast|hir|mir|ir`, `emit-ast`, `emit-hir`, `emit-mir`, `emit-ir`, `format`, `diagnose`, `benchmark`, `explain`
 * canonical formatter with stable nested block indentation and fixture-level idempotency conformance
+* conformance snapshots for parser/CST, AST, HIR, MIR, JavaScript, and semantic diagnostics
 * offline benchmark fixture suite with source-size, parse, semantic, build, run, diagnostic, and generated-output metrics
 
 ## Roadmap
