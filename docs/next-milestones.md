@@ -138,10 +138,11 @@ Implemented foundation:
   builds, imported by generated module artifacts.
 - Starter MIR passes for constant folding, copy propagation, dead branch
   removal, and unused local elimination.
+- Documented current structured ANPL IR, HIR, and MIR v0.1 contract in
+  `docs/ir-v0.1.md`.
 
 Next work:
 
-- Document the current structured ANPL IR v0.1 contract.
 - Keep AST-to-IR/HIR/MIR lowering deterministic and easy for AI tools to
   inspect.
 

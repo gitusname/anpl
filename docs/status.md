@@ -33,7 +33,7 @@ remain planned.
 - HIR lowering with module import metadata, MIR lowering for function bodies,
   statements, expressions, locals, calls, records, members, returns, and
   conditional control-flow blocks, plus the current structured ANPL IR v0.1
-  lowering from AST.
+  lowering from AST and a documented IR v0.1 contract.
 - Optimizer support for the current structured IR plus a MIR optimization pass
   architecture with constant folding, copy propagation, dead branch removal, and
   unused local elimination foundations.

@@ -233,6 +233,7 @@ Current implemented foundation:
 * pass-oriented semantic analyzer with module imports, module-aware symbol tables, type registry output, scope checks, type checks, return checks, record checks, enum field checks, and structured diagnostics
 * compiler facade with host abstraction, timings, artifacts, and CLI delegation
 * HIR/MIR foundations with import-aware HIR metadata, real MIR function-body lowering, and MIR optimizer pass architecture
+* documented structured ANPL IR, HIR, and MIR v0.1 contract
 * MIR interpreter that runs `main()` with tagged runtime values and runtime stack diagnostics
 * module-aware MIR interpreter calls and MIR JavaScript/TypeScript compiler namespace output plus optional ESM-per-module output
 * JavaScript/TypeScript backend source-map artifacts for MIR functions, blocks, instructions, and terminators
@@ -248,6 +249,7 @@ Technical references:
 
 * [Architecture](docs/architecture.md)
 * [Grammar v0.1](docs/grammar-v0.1.md)
+* [IR v0.1 Contract](docs/ir-v0.1.md)
 * [Status](docs/status.md)
 * [Next Milestones](docs/next-milestones.md)
 

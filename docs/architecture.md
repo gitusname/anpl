@@ -325,23 +325,24 @@ function bodies. MIR lowers function bodies into compiler-friendly blocks,
 temporaries, local stores, calls, records, members, returns, jumps, and
 branches. The interpreter path and JavaScript backend now execute/emit from MIR.
 The current structured ANPL IR v0.1 is kept as a compatibility artifact while
-MIR becomes the main backend input.
+MIR becomes the main backend input. The public contract is documented in
+[IR v0.1 Contract](./ir-v0.1.md).
 
-Example IR shape:
+Current MIR shape:
 
 ```ts
-type IRProgram = {
-  modules: IRModule[];
+type MirProgram = {
+  functions: MirFunction[];
 };
 
-type IRInstruction =
-  | { op: "const"; target: string; value: unknown }
-  | { op: "load"; target: string; name: string }
-  | { op: "store"; name: string; value: string }
-  | { op: "binary"; target: string; operator: string; left: string; right: string }
-  | { op: "call"; target: string; fn: string; args: string[] }
-  | { op: "return"; value: string }
-  | { op: "branch"; condition: string; thenBlock: string; elseBlock?: string };
+type MirInstruction =
+  | { op: "const"; target: string; value: unknown; type: TypeId }
+  | { op: "load"; target: string; symbol: SymbolId; type: TypeId }
+  | { op: "store"; symbol: SymbolId; value: string }
+  | { op: "binary"; target: string; operator: string; left: string; right: string; type: TypeId }
+  | { op: "call"; target?: string; callee: SymbolId; args: string[]; type: TypeId }
+  | { op: "record"; target: string; type: TypeId; fields: Record<string, string> }
+  | { op: "member"; target: string; object: string; field: string; type: TypeId };
 ```
 
 ## Backends
