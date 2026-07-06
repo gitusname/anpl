@@ -25,8 +25,8 @@ remain planned.
   through `compileProject`.
 - Source file hashing and line map primitives.
 - Project manifest loading, source glob discovery, cross-file source loading,
-  invalid manifest/source diagnostics, source-hash cache keys, and same-project
-  module graph primitives.
+  path-based external package dependencies, invalid manifest/source diagnostics,
+  source-hash cache keys, and package-aware module graph primitives.
 - Semantic analyzer split into early production passes for module collection,
   declaration collection, import resolution, type checks, expression checks,
   module-aware symbol tables, type registry output, and structured diagnostics.
@@ -81,10 +81,10 @@ remain planned.
 - MIR optimization passes operate on the MIR shape and MIR lowering is
   deterministic, and backend builds now emit block/instruction-level
   MIR-to-source maps.
-- Module imports work across files discovered from `anpl.json` source patterns,
-  and project cache keys are derived from the effective manifest plus resolved
-  source hashes. ANPL does not yet have package boundaries or external
-  dependency resolution.
+- Module imports work across files discovered from `anpl.json` source patterns
+  and path-based external dependency packages. Project cache keys are derived
+  from the effective manifest, external package manifests, and resolved source
+  hashes.
 - JavaScript and TypeScript output have module namespacing, MIR block lowering,
   function/block/instruction source-map artifacts, and target runtime policy
   guards, but they do not yet implement ESM-per-module output.
@@ -105,9 +105,9 @@ remain planned.
 
 ## Planned
 
-- Package boundaries and external dependency resolution.
-- Deeper module namespace model for type IDs, HIR/MIR, and multi-package
-  projects.
+- Deeper package model beyond path-based dependencies, including package
+  registries, version constraints, and package-qualified imports.
+- Deeper module namespace model for type IDs and HIR/MIR.
 - Phase-specific repair patches and evidence across parser, semantic, runtime,
   and backend diagnostics.
 - Deeper runtime module instance model and more precise memory accounting,

@@ -214,6 +214,50 @@ fn main() -> int {
     });
   });
 
+  it("runs a project that imports an external dependency package", async () => {
+    const result = await compileProject(
+      {
+        mode: "run",
+        projectRoot: "/project"
+      },
+      memoryHost({
+        "/project/anpl.json": JSON.stringify({
+          name: "app-pkg",
+          entry: "src/app.anpl",
+          source: ["src/**/*.anpl"],
+          dependencies: {
+            mathlib: {
+              path: "/mathlib",
+              source: ["lib/**/*.anpl"]
+            }
+          }
+        }),
+        "/project/src/app.anpl": `module app
+
+import math
+
+fn main() -> int {
+  return add(2, 3)
+}`,
+        "/mathlib/lib/math.anpl": `module math
+
+fn add(a: int, b: int) -> int {
+  return a + b
+}`
+      })
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.cache?.packageHashes.mathlib).toEqual(expect.any(String));
+    expect(result.value).toMatchObject({
+      ok: true,
+      value: {
+        kind: "int",
+        value: 5
+      }
+    });
+  });
+
   it("builds JavaScript through the MIR backend", async () => {
     const files: Record<string, string> = {
       "/project/main.anpl": `module math

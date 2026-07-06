@@ -12,6 +12,7 @@ export type AnplManifest = {
   version: string;
   entry: string;
   source: string[];
+  dependencies: Record<string, AnplDependency>;
   target: {
     default: "js" | "ts" | "interpreter";
     outDir: string;
@@ -23,10 +24,17 @@ export type AnplManifest = {
   };
 };
 
+export type AnplDependency = {
+  path: string;
+  entry?: string;
+  source?: string[];
+};
+
 export type AnplProject = {
   root: string;
   manifest: AnplManifest;
-  files: ProductionSourceFile[];
+  packages: ProjectPackage[];
+  files: ProjectSourceFile[];
   moduleGraph: ModuleGraph;
   diagnostics: Diagnostic[];
   cache: ProjectCacheMetadata;
@@ -60,8 +68,23 @@ export type ParseManifestResult = {
 
 export type ProjectCacheMetadata = {
   manifestHash: string;
+  packageHashes: Record<string, string>;
   sourceHashes: Record<string, string>;
   cacheKey: string;
+};
+
+export type ProjectPackage = {
+  name: string;
+  root: string;
+  external: boolean;
+  manifest: AnplManifest;
+  files: string[];
+};
+
+export type ProjectSourceFile = ProductionSourceFile & {
+  packageName: string;
+  packageRoot: string;
+  external: boolean;
 };
 
 export type ModuleGraph = {
@@ -73,6 +96,8 @@ export type ModuleGraph = {
 export type ModuleRecord = {
   id: ModuleId;
   name: string;
+  packageName: string;
+  external: boolean;
   file: string;
   imports: ImportRecord[];
   span: Span;
@@ -87,6 +112,7 @@ export type ModuleEdge = {
   from: ModuleId;
   to: ModuleId;
   kind: "import";
+  external: boolean;
 };
 
 export type ProjectDirEntry = {
@@ -108,6 +134,7 @@ export const defaultManifest: AnplManifest = {
   version: "0.1.0",
   entry: "src/main.anpl",
   source: ["src/**/*.anpl"],
+  dependencies: {},
   target: {
     default: "js",
     outDir: "dist"
@@ -137,27 +164,35 @@ export async function loadProject(
     entry: options.entry ?? loadedManifest.manifest.entry
   };
   const discovery = await discoverSourcePathsDetailed(root, manifest, host, {
-    reportPatternDiagnostics: manifestFileExists
+    reportPatternDiagnostics: manifestFileExists,
+    includeEntry: true
   });
   const diagnostics = [...loadedManifest.diagnostics, ...discovery.diagnostics];
-  const files: ProductionSourceFile[] = [];
+  const localPackage = createProjectPackage(manifest.name, root, false, manifest, discovery.paths);
+  const packages: ProjectPackage[] = [localPackage];
+  const files: ProjectSourceFile[] = [];
 
   for (const sourcePath of discovery.paths) {
-    try {
-      files.push(createSourceFile(sourcePath, await host.readFile(sourcePath)));
-    } catch (error) {
-      diagnostics.push(
-        projectDiagnostic({
-          code: "ANPL_PROJECT_SOURCE_READ_ERROR",
-          message: `Could not read ANPL source file '${sourcePath}'.`,
-          file: sourcePath,
-          symbol: sourcePath,
-          cause: "The project loader resolved a source path, but the compiler host could not read it.",
-          fix: "Make the file readable or remove it from the manifest source patterns.",
-          evidence: [error instanceof Error ? error.message : String(error)]
-        })
-      );
+    const file = await readProjectSourceFile(sourcePath, localPackage, host, diagnostics);
+    if (file !== undefined) {
+      files.push(file);
     }
+  }
+
+  for (const [dependencyName, dependency] of Object.entries(manifest.dependencies)) {
+    const dependencyPackage = await loadDependencyPackage(
+      root,
+      dependencyName,
+      dependency,
+      host,
+      diagnostics
+    );
+    if (dependencyPackage === undefined) {
+      continue;
+    }
+
+    packages.push(dependencyPackage.package);
+    files.push(...dependencyPackage.files);
   }
   const moduleGraph = buildModuleGraphFromSources(files);
   diagnostics.push(
@@ -167,10 +202,11 @@ export async function loadProject(
   return {
     root,
     manifest,
+    packages,
     files,
     moduleGraph,
     diagnostics,
-    cache: createProjectCache(manifest, files)
+    cache: createProjectCache(manifest, files, packages)
   };
 }
 
@@ -256,6 +292,132 @@ export async function createProjectFiles(
   ];
 }
 
+async function loadDependencyPackage(
+  projectRoot: string,
+  dependencyName: string,
+  dependency: AnplDependency,
+  host: ProjectHost,
+  diagnostics: Diagnostic[]
+): Promise<{ package: ProjectPackage; files: ProjectSourceFile[] } | undefined> {
+  const dependencyRoot = await host.resolvePath(projectRoot, dependency.path);
+  if (!(await host.fileExists(dependencyRoot))) {
+    diagnostics.push(
+      projectDiagnostic({
+        code: "ANPL_PROJECT_DEPENDENCY_NOT_FOUND",
+        message: `Dependency '${dependencyName}' was not found at '${dependency.path}'.`,
+        symbol: dependencyName,
+        expected: "readable ANPL dependency root",
+        received: "missing dependency root",
+        cause: "The project manifest declares a dependency path that the compiler host cannot resolve.",
+        fix: "Create the dependency project, correct the dependency path, or remove the dependency from anpl.json."
+      })
+    );
+    return undefined;
+  }
+
+  const dependencyManifestPath = await host.resolvePath(dependencyRoot, "anpl.json");
+  const dependencyManifestExists = await host.fileExists(dependencyManifestPath);
+  const loadedManifest = dependencyManifestExists
+    ? await readManifest(dependencyManifestPath, host)
+    : {
+        manifest: {
+          ...defaultManifest,
+          name: dependencyName,
+          entry: dependency.entry ?? defaultManifest.entry,
+          source: dependency.source ?? defaultManifest.source,
+          dependencies: {}
+        },
+        diagnostics: []
+      };
+  diagnostics.push(...loadedManifest.diagnostics);
+
+  const manifest: AnplManifest = {
+    ...loadedManifest.manifest,
+    name: loadedManifest.manifest.name === defaultManifest.name ? dependencyName : loadedManifest.manifest.name,
+    entry: dependency.entry ?? loadedManifest.manifest.entry,
+    source: dependency.source ?? loadedManifest.manifest.source,
+    dependencies: {}
+  };
+  const discovery = await discoverSourcePathsDetailed(dependencyRoot, manifest, host, {
+    reportPatternDiagnostics: true,
+    includeEntry: dependency.entry !== undefined || dependencyManifestExists
+  });
+  diagnostics.push(...discovery.diagnostics);
+
+  const projectPackage = createProjectPackage(
+    manifest.name,
+    dependencyRoot,
+    true,
+    manifest,
+    discovery.paths
+  );
+  const files: ProjectSourceFile[] = [];
+  for (const sourcePath of discovery.paths) {
+    const file = await readProjectSourceFile(sourcePath, projectPackage, host, diagnostics);
+    if (file !== undefined) {
+      files.push(file);
+    }
+  }
+
+  return {
+    package: projectPackage,
+    files
+  };
+}
+
+async function readProjectSourceFile(
+  sourcePath: string,
+  projectPackage: ProjectPackage,
+  host: ProjectHost,
+  diagnostics: Diagnostic[]
+): Promise<ProjectSourceFile | undefined> {
+  try {
+    return createProjectSourceFile(sourcePath, await host.readFile(sourcePath), projectPackage);
+  } catch (error) {
+    diagnostics.push(
+      projectDiagnostic({
+        code: "ANPL_PROJECT_SOURCE_READ_ERROR",
+        message: `Could not read ANPL source file '${sourcePath}'.`,
+        file: sourcePath,
+        symbol: sourcePath,
+        cause: "The project loader resolved a source path, but the compiler host could not read it.",
+        fix: "Make the file readable or remove it from the manifest source patterns.",
+        evidence: [error instanceof Error ? error.message : String(error)]
+      })
+    );
+    return undefined;
+  }
+}
+
+function createProjectSourceFile(
+  path: string,
+  content: string,
+  projectPackage: ProjectPackage
+): ProjectSourceFile {
+  return {
+    ...createSourceFile(path, content),
+    packageName: projectPackage.name,
+    packageRoot: projectPackage.root,
+    external: projectPackage.external
+  };
+}
+
+function createProjectPackage(
+  name: string,
+  root: string,
+  external: boolean,
+  manifest: AnplManifest,
+  files: string[]
+): ProjectPackage {
+  return {
+    name,
+    root,
+    external,
+    manifest,
+    files
+  };
+}
+
 export async function discoverSourcePaths(
   root: string,
   manifest: AnplManifest,
@@ -273,7 +435,7 @@ async function discoverSourcePathsDetailed(
   root: string,
   manifest: AnplManifest,
   host: ProjectHost,
-  options: { reportPatternDiagnostics?: boolean } = {}
+  options: { reportPatternDiagnostics?: boolean; includeEntry?: boolean } = {}
 ): Promise<SourceDiscoveryResult> {
   const sourcePaths = new Set<string>();
   const diagnostics: Diagnostic[] = [];
@@ -332,20 +494,22 @@ async function discoverSourcePathsDetailed(
     }
   }
 
-  if (await host.fileExists(entryPath)) {
-    sourcePaths.add(entryPath);
-  } else {
-    diagnostics.push(
-      projectDiagnostic({
-        code: "ANPL_PROJECT_ENTRY_NOT_FOUND",
-        message: `Project entry '${manifest.entry}' was not found.`,
-        symbol: manifest.entry,
-        expected: "readable ANPL entry file",
-        received: "missing file",
-        cause: "The compiler could not resolve the project entry file before parsing.",
-        fix: "Create the entry file, update anpl.json, or pass a valid entry path."
-      })
-    );
+  if (options.includeEntry !== false) {
+    if (await host.fileExists(entryPath)) {
+      sourcePaths.add(entryPath);
+    } else {
+      diagnostics.push(
+        projectDiagnostic({
+          code: "ANPL_PROJECT_ENTRY_NOT_FOUND",
+          message: `Project entry '${manifest.entry}' was not found.`,
+          symbol: manifest.entry,
+          expected: "readable ANPL entry file",
+          received: "missing file",
+          cause: "The compiler could not resolve the project entry file before parsing.",
+          fix: "Create the entry file, update anpl.json, or pass a valid entry path."
+        })
+      );
+    }
   }
 
   return {
@@ -446,6 +610,13 @@ function normalizeManifest(parsed: unknown, file: string): ParseManifestResult {
       version: optionalString(parsed.version, defaultManifest.version, file, "version", diagnostics),
       entry: optionalString(parsed.entry, defaultManifest.entry, file, "entry", diagnostics),
       source: optionalStringArray(parsed.source, defaultManifest.source, file, "source", diagnostics),
+      dependencies: optionalDependencies(
+        parsed.dependencies,
+        defaultManifest.dependencies,
+        file,
+        "dependencies",
+        diagnostics
+      ),
       target: {
         default: optionalTargetDefault(
           target?.default,
@@ -492,20 +663,35 @@ function normalizeManifest(parsed: unknown, file: string): ParseManifestResult {
 
 function createProjectCache(
   manifest: AnplManifest,
-  files: ProductionSourceFile[]
+  files: ProjectSourceFile[],
+  packages: ProjectPackage[] = []
 ): ProjectCacheMetadata {
   const manifestHash = hashSource(JSON.stringify(manifest));
+  const packageHashes = Object.fromEntries(
+    packages
+      .filter((projectPackage) => projectPackage.external)
+      .map((projectPackage) => [
+        projectPackage.name,
+        hashSource(JSON.stringify(projectPackage.manifest))
+      ] as const)
+      .sort(([left], [right]) => left.localeCompare(right))
+  );
   const sourceHashes = Object.fromEntries(
     files
       .map((file) => [file.path, file.hash] as const)
       .sort(([left], [right]) => left.localeCompare(right))
   );
   const cacheKey = hashSource(
-    [manifestHash, ...Object.entries(sourceHashes).map(([path, hash]) => `${path}:${hash}`)].join("\n")
+    [
+      manifestHash,
+      ...Object.entries(packageHashes).map(([name, hash]) => `package:${name}:${hash}`),
+      ...Object.entries(sourceHashes).map(([path, hash]) => `${path}:${hash}`)
+    ].join("\n")
   );
 
   return {
     manifestHash,
+    packageHashes,
     sourceHashes,
     cacheKey
   };
@@ -547,6 +733,68 @@ function optionalStringArray(
 
   diagnostics.push(invalidManifestField(file, field, "array of non-empty strings", describeValue(value)));
   return fallback;
+}
+
+function optionalDependencies(
+  value: unknown,
+  fallback: Record<string, AnplDependency>,
+  file: string,
+  field: string,
+  diagnostics: Diagnostic[]
+): Record<string, AnplDependency> {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  if (!isRecord(value)) {
+    diagnostics.push(invalidManifestField(file, field, "object mapping dependency names to dependency specs", describeValue(value)));
+    return fallback;
+  }
+
+  const dependencies: Record<string, AnplDependency> = {};
+  for (const [name, spec] of Object.entries(value)) {
+    if (typeof spec === "string" && spec.length > 0) {
+      dependencies[name] = {
+        path: spec
+      };
+      continue;
+    }
+
+    if (!isRecord(spec)) {
+      diagnostics.push(
+        invalidManifestField(
+          file,
+          `${field}.${name}`,
+          "dependency path string or object",
+          describeValue(spec)
+        )
+      );
+      continue;
+    }
+
+    const path = optionalString(spec.path, "", file, `${field}.${name}.path`, diagnostics);
+    if (path.length === 0) {
+      continue;
+    }
+
+    const dependency: AnplDependency = { path };
+    const entry = optionalString(spec.entry, "", file, `${field}.${name}.entry`, diagnostics);
+    if (entry.length > 0) {
+      dependency.entry = entry;
+    }
+    if (spec.source !== undefined) {
+      dependency.source = optionalStringArray(
+        spec.source,
+        defaultManifest.source,
+        file,
+        `${field}.${name}.source`,
+        diagnostics
+      );
+    }
+    dependencies[name] = dependency;
+  }
+
+  return dependencies;
 }
 
 function optionalBoolean(
@@ -688,7 +936,7 @@ export function buildModuleGraph(program: Program, file = "<memory>"): ModuleGra
   );
 }
 
-export function buildModuleGraphFromSources(files: ProductionSourceFile[]): ModuleGraph {
+export function buildModuleGraphFromSources(files: Array<ProductionSourceFile | ProjectSourceFile>): ModuleGraph {
   const records: ModuleRecord[] = [];
   const diagnostics: Diagnostic[] = [];
 
@@ -726,8 +974,8 @@ function moduleGraphFromRecords(records: ModuleRecord[]): ModuleGraph {
           symbol: record.name,
           expected: "unique module name",
           received: "duplicate module name",
-          cause: "Two or more resolved source files declare the same module.",
-          fix: "Rename one module or remove the duplicate source from the project manifest."
+          cause: "Two or more resolved source files declare the same module, possibly across package boundaries.",
+          fix: "Rename one module, remove the duplicate source, or wait for package-qualified imports before using duplicate module names."
         })
       );
       continue;
@@ -739,10 +987,12 @@ function moduleGraphFromRecords(records: ModuleRecord[]): ModuleGraph {
     for (const importDecl of record.imports) {
       const target = createModuleId(importDecl.module);
       if (modules.has(target)) {
+        const targetRecord = modules.get(target)!;
         edges.push({
           from: record.id,
           to: target,
-          kind: "import"
+          kind: "import",
+          external: record.packageName !== targetRecord.packageName
         });
       } else {
         diagnostics.push(
@@ -769,7 +1019,10 @@ function moduleGraphFromRecords(records: ModuleRecord[]): ModuleGraph {
   };
 }
 
-function scanSourceModules(file: ProductionSourceFile, tokens: Token[]): ModuleRecord[] {
+function scanSourceModules(
+  file: ProductionSourceFile | ProjectSourceFile,
+  tokens: Token[]
+): ModuleRecord[] {
   const records: ModuleRecord[] = [];
   let currentModule: ModuleRecord | undefined;
 
@@ -789,6 +1042,8 @@ function scanSourceModules(file: ProductionSourceFile, tokens: Token[]): ModuleR
       currentModule = {
         id: createModuleId(name.token.value),
         name: name.token.value,
+        packageName: packageNameForFile(file),
+        external: isExternalFile(file),
         file: file.path,
         imports: [],
         span: spanBetweenTokens(token, name.token, file.path)
@@ -961,6 +1216,8 @@ function moduleRecord(moduleDecl: ModuleDecl, file: string): ModuleRecord {
   return {
     id: createModuleId(moduleDecl.name),
     name: moduleDecl.name,
+    packageName: "$project",
+    external: false,
     file,
     imports: moduleDecl.body
       .filter((decl): decl is ImportDecl => decl.kind === "ImportDecl")
@@ -970,6 +1227,14 @@ function moduleRecord(moduleDecl: ModuleDecl, file: string): ModuleRecord {
       })),
     span: moduleDecl.span
   };
+}
+
+function packageNameForFile(file: ProductionSourceFile | ProjectSourceFile): string {
+  return "packageName" in file ? file.packageName : "$project";
+}
+
+function isExternalFile(file: ProductionSourceFile | ProjectSourceFile): boolean {
+  return "external" in file ? file.external : false;
 }
 
 function normalizeProjectName(name: string): string {

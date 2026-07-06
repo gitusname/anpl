@@ -114,6 +114,33 @@ describe("project system", () => {
     ]);
   });
 
+  it("parses external dependency manifests with package source overrides", () => {
+    const result = parseManifestResult(
+      JSON.stringify({
+        name: "app",
+        dependencies: {
+          math: "../math",
+          crm: {
+            path: "../crm",
+            source: ["lib/**/*.anpl"]
+          }
+        }
+      }),
+      "/project/anpl.json"
+    );
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.manifest.dependencies).toEqual({
+      math: {
+        path: "../math"
+      },
+      crm: {
+        path: "../crm",
+        source: ["lib/**/*.anpl"]
+      }
+    });
+  });
+
   it("discovers manifest source globs and always includes the entry file", async () => {
     const host = memoryHost({
       "/project/anpl.json": JSON.stringify({
@@ -242,7 +269,8 @@ fn main() -> int {
       {
         from: "app",
         to: "math",
-        kind: "import"
+        kind: "import",
+        external: false
       }
     ]);
     expect(graph.diagnostics).toEqual([]);
@@ -277,9 +305,125 @@ fn main() -> int {
       {
         from: "app",
         to: "math",
-        kind: "import"
+        kind: "import",
+        external: false
       }
     ]);
+  });
+
+  it("loads external dependency package sources and marks cross-package edges", async () => {
+    const project = await loadProject(
+      "/project",
+      memoryHost({
+        "/project/anpl.json": JSON.stringify({
+          name: "app-pkg",
+          entry: "src/app.anpl",
+          source: ["src/**/*.anpl"],
+          dependencies: {
+            mathlib: {
+              path: "/mathlib",
+              source: ["lib/**/*.anpl"]
+            }
+          }
+        }),
+        "/project/src/app.anpl": `module app
+
+import math
+
+fn main() -> int {
+  return add(2, 3)
+}`,
+        "/mathlib/lib/math.anpl": `module math
+
+fn add(a: int, b: int) -> int {
+  return a + b
+}`
+      })
+    );
+
+    expect(project.diagnostics).toEqual([]);
+    expect(project.packages.map((projectPackage) => ({
+      name: projectPackage.name,
+      external: projectPackage.external,
+      files: projectPackage.files
+    }))).toEqual([
+      {
+        name: "app-pkg",
+        external: false,
+        files: ["/project/src/app.anpl"]
+      },
+      {
+        name: "mathlib",
+        external: true,
+        files: ["/mathlib/lib/math.anpl"]
+      }
+    ]);
+    expect(project.files.map((file) => ({
+      path: file.path,
+      packageName: file.packageName,
+      external: file.external
+    }))).toEqual([
+      {
+        path: "/project/src/app.anpl",
+        packageName: "app-pkg",
+        external: false
+      },
+      {
+        path: "/mathlib/lib/math.anpl",
+        packageName: "mathlib",
+        external: true
+      }
+    ]);
+    expect(project.moduleGraph.modules.get("math" as never)).toMatchObject({
+      packageName: "mathlib",
+      external: true
+    });
+    expect(project.moduleGraph.edges).toEqual([
+      {
+        from: "app",
+        to: "math",
+        kind: "import",
+        external: true
+      }
+    ]);
+    expect(project.cache.packageHashes.mathlib).toEqual(expect.any(String));
+    expect(project.cache.sourceHashes["/mathlib/lib/math.anpl"]).toEqual(
+      project.files.find((file) => file.path === "/mathlib/lib/math.anpl")?.hash
+    );
+  });
+
+  it("reports missing external dependency roots as project diagnostics", async () => {
+    const project = await loadProject(
+      "/project",
+      memoryHost({
+        "/project/anpl.json": JSON.stringify({
+          name: "app",
+          entry: "src/app.anpl",
+          source: ["src/**/*.anpl"],
+          dependencies: {
+            missing: "/missing"
+          }
+        }),
+        "/project/src/app.anpl": `module app
+
+fn main() -> int {
+  return 1
+}`
+      })
+    );
+
+    expect(project.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      "ANPL_PROJECT_DEPENDENCY_NOT_FOUND"
+    );
+    expect(project.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "ANPL_PROJECT_DEPENDENCY_NOT_FOUND",
+          symbol: "missing",
+          expected: "readable ANPL dependency root"
+        })
+      ])
+    );
   });
 
   it("reports missing project graph imports from loaded sources", async () => {

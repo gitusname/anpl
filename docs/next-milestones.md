@@ -55,10 +55,13 @@ Implemented foundation:
   missing source files, unreadable source patterns, and source read failures.
 - Expose project cache metadata from the effective manifest and resolved source
   hashes through the compiler result.
+- Resolve path-based external package dependencies from `anpl.json`, load their
+  source files through the compiler host, preserve package boundaries on source
+  files and module graph records, and mark cross-package import edges.
 
 Next work:
 
-- Add package boundaries and external dependency resolution.
+- Add package registries, version constraints, and package-qualified imports.
 - Add incremental compilation cache storage on top of the current cache key
   metadata.
 

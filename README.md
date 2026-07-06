@@ -229,7 +229,7 @@ Current implemented foundation:
 * source, project, syntax, symbols, types, HIR, MIR, formatter, stdlib, compiler, LSP, and testkit package foundations
 * lexer with keywords, operators, strings, numbers, comment/whitespace trivia, and source spans
 * parser for modules, imports, type declarations, functions, blocks, control flow, calls, records, members, enum type references, CST output, and recovery metadata
-* project manifest loading, source glob discovery, invalid manifest/source diagnostics, source-hash cache keys, and same-project module graph checks
+* project manifest loading, source glob discovery, path-based external package dependencies, invalid manifest/source diagnostics, source-hash cache keys, and package-aware module graph checks
 * pass-oriented semantic analyzer with module imports, module-aware symbol tables, type registry output, scope checks, type checks, return checks, record checks, enum field checks, and structured diagnostics
 * compiler facade with host abstraction, timings, artifacts, and CLI delegation
 * HIR/MIR foundations with import-aware HIR metadata, real MIR function-body lowering, and MIR optimizer pass architecture

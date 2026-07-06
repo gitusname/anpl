@@ -87,6 +87,8 @@ core
   <- lexer
   <- diagnostics
   <- runtime
+  <- source <- core
+  <- project <- ast + core + lexer + source + symbols
   <- parser <- lexer + ast + core
   <- symbols <- core + types
   <- types
@@ -95,7 +97,7 @@ core
   <- mir <- hir + symbols + types
   <- ir <- ast
   <- optimizer <- ir + mir
-  <- compiler-js <- ir + core
+  <- compiler-js <- ir + mir + runtime + core
   <- interpreter <- ir + mir + runtime + core
   <- compiler <- parser + semantic + project + source + formatter + hir + mir + ir + optimizer + interpreter + compiler-js
   <- cli <- compiler + diagnostics
@@ -107,16 +109,42 @@ Rules:
 - `core` must not depend on other ANPL packages.
 - `ast` may depend on `core`.
 - `lexer` may depend on `core`.
+- `source` may depend on `core`.
+- `project` may depend on `ast`, `core`, `lexer`, `source`, and `symbols`.
 - `parser` may depend on `lexer`, `ast`, and `core`.
 - `semantic` may depend on `ast`, `core`, `symbols`, and `types`.
 - `compiler` owns the production pipeline orchestration.
 - `ir` may depend on `ast`.
 - `optimizer` may depend on `ir` and `mir`.
-- `compiler-js` may depend on `ir` and `core`.
+- `compiler-js` may depend on `ir`, `mir`, `runtime`, and `core`.
 - `interpreter` may depend on `ir`, `mir`, `runtime`, and `core`.
 - `cli` may orchestrate the full pipeline.
 - `benchmark` stays independent unless a benchmark needs to call a specific
   pipeline stage.
+
+## Project System
+
+ANPL projects are loaded from `anpl.json`. The project package owns the local
+source files and may declare path-based external dependency packages:
+
+```json
+{
+  "name": "app-pkg",
+  "entry": "src/app.anpl",
+  "source": ["src/**/*.anpl"],
+  "dependencies": {
+    "mathlib": {
+      "path": "../mathlib",
+      "source": ["lib/**/*.anpl"]
+    }
+  }
+}
+```
+
+The loader resolves dependency sources through the compiler host, keeps package
+metadata on source files and module graph records, and marks cross-package import
+edges. This is a package-boundary foundation, not a package registry or version
+solver.
 
 ## Language v0.1 Scope
 
@@ -148,9 +176,9 @@ Current implementation status:
   member access, enum type references, structured compiler/runtime diagnostics.
 - Implemented execution paths: semantic check, IR emission, optimization,
   interpreter, JavaScript build target.
-- Still intentionally small: no package manager, no external dependency
-  resolution, no advanced generics, no WASM/LLVM/Python backend, and no
-  self-hosted runtime.
+- Still intentionally small: path-based external dependencies are supported, but
+  there is no package registry, version solver, package-qualified import syntax,
+  advanced generics, WASM/LLVM/Python backend, or self-hosted runtime.
 
 Example:
 
