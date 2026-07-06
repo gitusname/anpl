@@ -234,7 +234,7 @@ Current implemented foundation:
 * compiler facade with host abstraction, timings, artifacts, and CLI delegation
 * HIR/MIR foundations with import-aware HIR metadata, real MIR function-body lowering, and MIR optimizer pass architecture
 * MIR interpreter that runs `main()` with tagged runtime values and runtime stack diagnostics
-* module-aware MIR interpreter calls and MIR JavaScript/TypeScript compiler namespace output
+* module-aware MIR interpreter calls and MIR JavaScript/TypeScript compiler namespace output plus optional ESM-per-module output
 * JavaScript/TypeScript backend source-map artifacts for MIR functions, blocks, instructions, and terminators
 * generated JavaScript/TypeScript runtime policy guards for built-in effects, execution timeout checks, and estimated memory accounting
 * runtime built-ins, sandbox effect policy, timeout checks, and estimated memory checks for `uuid()`, `now()`, `print(value)`, `len(value)`

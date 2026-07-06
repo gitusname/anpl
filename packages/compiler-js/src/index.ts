@@ -15,8 +15,12 @@ export type BackendArtifact = {
   content: string;
 };
 
+export type BackendModuleFormat = "namespace" | "esm";
+
 export type BackendContext = {
   outFile?: string;
+  outDir?: string;
+  moduleFormat?: BackendModuleFormat;
   runtimePolicy?: Partial<SandboxPolicy>;
 };
 
@@ -63,10 +67,50 @@ export type Backend = {
   emit(program: MirProgram, context?: BackendContext): BackendResult;
 };
 
+export type BackendSourceMapOptions = {
+  moduleFormat?: BackendModuleFormat;
+  moduleImportNames?: ReadonlyMap<string, string>;
+};
+
 export const javascriptBackend: Backend = {
   name: "javascript",
   target: "js",
   emit(program, context = {}) {
+    if (context.moduleFormat === "esm") {
+      const generated = compileMirProgramToJavaScriptModuleFiles(program, {
+        outDir: context.outDir ?? outputDirectoryFor(context.outFile) ?? "generated",
+        runtimePolicy: context.runtimePolicy
+      });
+
+      return {
+        artifacts: generated.flatMap((file) => {
+          const sourceMap = createMirBackendSourceMap(
+            { functions: file.functions },
+            "js",
+            file.path,
+            file.content,
+            {
+              moduleFormat: "esm",
+              moduleImportNames: file.moduleImportNames
+            }
+          );
+          return [
+            {
+              kind: "js" as const,
+              path: file.path,
+              content: file.content
+            },
+            {
+              kind: "map" as const,
+              path: `${file.path}.map.json`,
+              content: JSON.stringify(sourceMap, null, 2)
+            }
+          ];
+        }),
+        diagnostics: []
+      };
+    }
+
     const generated = compileMirProgramToJavaScriptFile(
       program,
       context.outFile ?? "generated/anpl.js",
@@ -98,6 +142,41 @@ export const typescriptBackend: Backend = {
   name: "typescript",
   target: "ts",
   emit(program, context = {}) {
+    if (context.moduleFormat === "esm") {
+      const generated = compileMirProgramToTypeScriptModuleFiles(program, {
+        outDir: context.outDir ?? outputDirectoryFor(context.outFile) ?? "generated",
+        runtimePolicy: context.runtimePolicy
+      });
+
+      return {
+        artifacts: generated.flatMap((file) => {
+          const sourceMap = createMirBackendSourceMap(
+            { functions: file.functions },
+            "ts",
+            file.path,
+            file.content,
+            {
+              moduleFormat: "esm",
+              moduleImportNames: file.moduleImportNames
+            }
+          );
+          return [
+            {
+              kind: "ts" as const,
+              path: file.path,
+              content: file.content
+            },
+            {
+              kind: "map" as const,
+              path: `${file.path}.map.json`,
+              content: JSON.stringify(sourceMap, null, 2)
+            }
+          ];
+        }),
+        diagnostics: []
+      };
+    }
+
     const generated = compileMirProgramToTypeScriptFile(
       program,
       context.outFile ?? "generated/anpl.ts",
@@ -127,6 +206,10 @@ export const typescriptBackend: Backend = {
 
 export type BackendEmitOptions = {
   runtimePolicy?: Partial<SandboxPolicy>;
+};
+
+export type BackendMultiFileEmitOptions = BackendEmitOptions & {
+  outDir?: string;
 };
 
 export function compileProgramToJavaScript(
@@ -171,6 +254,15 @@ export function compileMirProgramToJavaScriptFile(
   };
 }
 
+export function compileMirProgramToJavaScriptFiles(
+  program: MirProgram,
+  options: BackendMultiFileEmitOptions = {}
+): GeneratedFile[] {
+  return compileMirProgramToJavaScriptModuleFiles(program, options).map(
+    ({ moduleName: _moduleName, functions: _functions, moduleImportNames: _moduleImportNames, ...file }) => file
+  );
+}
+
 export function compileMirProgramToTypeScript(
   program: MirProgram,
   options: BackendEmitOptions = {}
@@ -193,29 +285,48 @@ export function compileMirProgramToTypeScriptFile(
   };
 }
 
+export function compileMirProgramToTypeScriptFiles(
+  program: MirProgram,
+  options: BackendMultiFileEmitOptions = {}
+): GeneratedFile[] {
+  return compileMirProgramToTypeScriptModuleFiles(program, options).map(
+    ({ moduleName: _moduleName, functions: _functions, moduleImportNames: _moduleImportNames, ...file }) => file
+  );
+}
+
 export function createMirBackendSourceMap(
   program: MirProgram,
   target: BackendSourceMap["target"],
   outFile: string,
-  content: string
+  content: string,
+  options: BackendSourceMapOptions = {}
 ): BackendSourceMap {
   return {
     version: 1,
     target,
     outFile,
     mappings: program.functions.flatMap((fn) =>
-      createMirFunctionSourceMapEntries(fn, content)
+      createMirFunctionSourceMapEntries(fn, content, {
+        language: target,
+        moduleFormat: options.moduleFormat ?? "namespace",
+        currentModule: moduleNameForSymbol(fn.id),
+        moduleImportNames: options.moduleImportNames
+      })
     )
   };
 }
 
 function createMirFunctionSourceMapEntries(
   fn: MirFunction,
-  content: string
+  content: string,
+  emitContext: MirEmitContext
 ): BackendSourceMapEntry[] {
   const moduleName = moduleNameForSymbol(fn.id);
   const functionName = functionNameForSymbol(fn.id);
-  const symbol = `__anpl_modules[${JSON.stringify(moduleName)}].${functionName}`;
+  const symbol =
+    emitContext.moduleFormat === "esm"
+      ? `${moduleName}.${functionName}`
+      : `__anpl_modules[${JSON.stringify(moduleName)}].${functionName}`;
   const generated = generatedLocationForFunction(content, moduleName, functionName);
   const entries: BackendSourceMapEntry[] = [
     {
@@ -261,7 +372,7 @@ function createMirFunctionSourceMapEntries(
     block.instructions.forEach((instruction, index) => {
       const instructionGenerated = generatedLocationForSnippet(
         content,
-        compileMirInstruction(instruction),
+        compileMirInstruction(instruction, emitContext),
         cursorLine
       );
       entries.push({
@@ -360,9 +471,16 @@ function compileExpr(expr: IRExpr): string {
   }
 }
 
-function compileCallee(callee: string): string {
+function compileCallee(callee: string, context?: MirEmitContext): string {
   const [moduleName, functionName, ...rest] = callee.split(".");
   if (moduleName !== undefined && functionName !== undefined && rest.length === 0) {
+    if (context?.moduleFormat === "esm") {
+      if (moduleName === context.currentModule) {
+        return functionName;
+      }
+      const importName = context.moduleImportNames?.get(moduleName) ?? moduleImportIdentifierBase(moduleName);
+      return `${importName}.${functionName}`;
+    }
     return `__anpl_modules[${JSON.stringify(moduleName)}].${functionName}`;
   }
   return callee;
@@ -393,16 +511,146 @@ function groupMirFunctionsByModule(program: MirProgram): Array<[string, MirFunct
 
 type BackendLanguage = "js" | "ts";
 
+type MirEmitContext = {
+  language: BackendLanguage;
+  moduleFormat: BackendModuleFormat;
+  currentModule: string;
+  moduleImportNames?: ReadonlyMap<string, string>;
+};
+
+type GeneratedMirModuleFile = GeneratedFile & {
+  moduleName: string;
+  functions: MirFunction[];
+  moduleImportNames: ReadonlyMap<string, string>;
+};
+
 function compileMirModule(
   moduleName: string,
   functions: MirFunction[],
   language: BackendLanguage
 ): string {
-  const members = functions.map((fn) => compileMirFunctionMember(fn, language)).join(",\n\n");
+  const members = functions
+    .map((fn) =>
+      compileMirFunctionMember(fn, {
+        language,
+        moduleFormat: "namespace",
+        currentModule: moduleName
+      })
+    )
+    .join(",\n\n");
   return `__anpl_modules[${JSON.stringify(moduleName)}] = {\n${indent(members)}\n};`;
 }
 
-function compileMirFunctionMember(fn: MirFunction, language: BackendLanguage): string {
+function compileMirProgramToJavaScriptModuleFiles(
+  program: MirProgram,
+  options: BackendMultiFileEmitOptions = {}
+): GeneratedMirModuleFile[] {
+  return compileMirProgramToModuleFiles(program, "js", options);
+}
+
+function compileMirProgramToTypeScriptModuleFiles(
+  program: MirProgram,
+  options: BackendMultiFileEmitOptions = {}
+): GeneratedMirModuleFile[] {
+  return compileMirProgramToModuleFiles(program, "ts", options);
+}
+
+function compileMirProgramToModuleFiles(
+  program: MirProgram,
+  language: BackendLanguage,
+  options: BackendMultiFileEmitOptions
+): GeneratedMirModuleFile[] {
+  const modules = groupMirFunctionsByModule(program);
+  const moduleNames = modules.map(([moduleName]) => moduleName);
+  const moduleFileNames = uniqueModuleNames(moduleNames, moduleFileBaseName);
+  const moduleImportNames = uniqueModuleNames(moduleNames, moduleImportIdentifierBase);
+  const outDir = normalizeOutDir(options.outDir ?? "generated");
+
+  return modules.map(([moduleName, functions]) => {
+    const extension = language === "ts" ? "ts" : "js";
+    const fileName = moduleFileNames.get(moduleName) ?? moduleFileBaseName(moduleName);
+    const content = compileMirEsmModule(
+      moduleName,
+      functions,
+      language,
+      moduleFileNames,
+      moduleImportNames,
+      options.runtimePolicy
+    );
+
+    return {
+      moduleName,
+      functions,
+      moduleImportNames,
+      path: `${outDir}/${fileName}.${extension}`,
+      content
+    };
+  });
+}
+
+function compileMirEsmModule(
+  moduleName: string,
+  functions: MirFunction[],
+  language: BackendLanguage,
+  moduleFileNames: ReadonlyMap<string, string>,
+  moduleImportNames: ReadonlyMap<string, string>,
+  runtimePolicy: Partial<SandboxPolicy> = {}
+): string {
+  const imports = compileMirModuleImports(moduleName, functions, moduleFileNames, moduleImportNames);
+  const declarations = functions
+    .map((fn) =>
+      compileMirFunctionMember(fn, {
+        language,
+        moduleFormat: "esm",
+        currentModule: moduleName,
+        moduleImportNames
+      })
+    )
+    .join("\n\n");
+
+  return [imports, runtimePrelude(language, runtimePolicy), declarations]
+    .filter((part) => part.length > 0)
+    .join("\n\n")
+    .concat("\n");
+}
+
+function compileMirModuleImports(
+  currentModule: string,
+  functions: MirFunction[],
+  moduleFileNames: ReadonlyMap<string, string>,
+  moduleImportNames: ReadonlyMap<string, string>
+): string {
+  return externalMirModuleDependencies(currentModule, functions)
+    .map((moduleName) => {
+      const importName = moduleImportNames.get(moduleName) ?? moduleImportIdentifierBase(moduleName);
+      const fileName = moduleFileNames.get(moduleName) ?? moduleFileBaseName(moduleName);
+      return `import * as ${importName} from ${JSON.stringify(`./${fileName}.js`)};`;
+    })
+    .join("\n");
+}
+
+function externalMirModuleDependencies(currentModule: string, functions: MirFunction[]): string[] {
+  const modules = new Set<string>();
+
+  for (const fn of functions) {
+    for (const block of fn.blocks) {
+      for (const instruction of block.instructions) {
+        if (instruction.op !== "call") {
+          continue;
+        }
+        const moduleName = qualifiedModuleName(instruction.callee);
+        if (moduleName !== undefined && moduleName !== currentModule) {
+          modules.add(moduleName);
+        }
+      }
+    }
+  }
+
+  return [...modules].sort();
+}
+
+function compileMirFunctionMember(fn: MirFunction, context: MirEmitContext): string {
+  const { language } = context;
   const params = fn.params
     .map((param) => (language === "ts" ? `${param.name}: any` : param.name))
     .join(", ");
@@ -422,7 +670,7 @@ function compileMirFunctionMember(fn: MirFunction, language: BackendLanguage): s
     "while (true) {",
     indent("__anpl_check_runtime_limits();"),
     indent("switch (__block) {"),
-    indent(fn.blocks.map(compileMirBlock).join("\n"), 2),
+    indent(fn.blocks.map((block) => compileMirBlock(block, context)).join("\n"), 2),
     indent("default:"),
     indent("throw new Error(`Unknown ANPL MIR block ${__block}`);", 2),
     indent("}"),
@@ -430,18 +678,32 @@ function compileMirFunctionMember(fn: MirFunction, language: BackendLanguage): s
   ].join("\n");
 
   const returnType = language === "ts" ? ": any" : "";
-  return `${functionNameForSymbol(fn.id)}(${params})${returnType} {\n${indent(body)}\n}`;
+  const name = functionNameForSymbol(fn.id);
+  if (context.moduleFormat === "esm") {
+    return `export function ${name}(${params})${returnType} {\n${indent(body)}\n}`;
+  }
+
+  return `${name}(${params})${returnType} {\n${indent(body)}\n}`;
 }
 
-function compileMirBlock(block: MirBlock): string {
-  const instructions = block.instructions.map(compileMirInstruction).join("\n");
+function compileMirBlock(block: MirBlock, context: MirEmitContext): string {
+  const instructions = block.instructions
+    .map((instruction) => compileMirInstruction(instruction, context))
+    .join("\n");
   const terminator = compileMirTerminator(block.terminator);
   const body = [instructions, terminator].filter((part) => part.length > 0).join("\n");
 
   return `case ${JSON.stringify(block.id)}: {\n${indent(body)}\n}`;
 }
 
-function compileMirInstruction(instruction: MirInstruction): string {
+function compileMirInstruction(
+  instruction: MirInstruction,
+  context: MirEmitContext = {
+    language: "js",
+    moduleFormat: "namespace",
+    currentModule: "$main"
+  }
+): string {
   switch (instruction.op) {
     case "const":
       return `${valueSlot(instruction.target)} = __anpl_track_value(${JSON.stringify(instruction.value)});`;
@@ -452,7 +714,7 @@ function compileMirInstruction(instruction: MirInstruction): string {
     case "binary":
       return `${valueSlot(instruction.target)} = __anpl_track_value((${valueSlot(instruction.left)} ${compileOperator(instruction.operator)} ${valueSlot(instruction.right)}));`;
     case "call": {
-      const call = `${compileCallee(instruction.callee)}(${instruction.args.map(valueSlot).join(", ")})`;
+      const call = `${compileCallee(instruction.callee, context)}(${instruction.args.map(valueSlot).join(", ")})`;
       return instruction.target === undefined
         ? `${call};`
         : `${valueSlot(instruction.target)} = __anpl_track_value(${call});`;
@@ -489,6 +751,57 @@ function moduleNameForSymbol(symbol: string): string {
 function functionNameForSymbol(symbol: string): string {
   const index = symbol.lastIndexOf(".");
   return index === -1 ? symbol : symbol.slice(index + 1);
+}
+
+function qualifiedModuleName(symbol: string): string | undefined {
+  const [moduleName, functionName, ...rest] = symbol.split(".");
+  if (moduleName !== undefined && functionName !== undefined && rest.length === 0) {
+    return moduleName;
+  }
+  return undefined;
+}
+
+function outputDirectoryFor(path: string | undefined): string | undefined {
+  if (path === undefined) {
+    return undefined;
+  }
+  const index = path.lastIndexOf("/");
+  return index === -1 ? "." : path.slice(0, index);
+}
+
+function normalizeOutDir(path: string): string {
+  return path.replace(/\/+$/, "") || ".";
+}
+
+function uniqueModuleNames(
+  moduleNames: string[],
+  baseName: (moduleName: string) => string
+): Map<string, string> {
+  const used = new Map<string, number>();
+  const names = new Map<string, string>();
+
+  for (const moduleName of moduleNames) {
+    const base = baseName(moduleName);
+    const count = used.get(base) ?? 0;
+    used.set(base, count + 1);
+    names.set(moduleName, count === 0 ? base : `${base}_${count + 1}`);
+  }
+
+  return names;
+}
+
+function moduleFileBaseName(moduleName: string): string {
+  if (moduleName === "$main") {
+    return "main";
+  }
+  const safe = moduleName.replace(/[^A-Za-z0-9_-]/g, "_").replace(/^_+|_+$/g, "");
+  return safe.length > 0 ? safe : "module";
+}
+
+function moduleImportIdentifierBase(moduleName: string): string {
+  const safe = moduleName.replace(/[^A-Za-z0-9_$]/g, "_");
+  const identifier = safe.length > 0 ? safe : "module";
+  return /^[A-Za-z_$]/.test(identifier) ? `__anpl_${identifier}` : `__anpl_${identifier.replace(/^[^A-Za-z_$]/, "_")}`;
 }
 
 function generatedLocationForFunction(

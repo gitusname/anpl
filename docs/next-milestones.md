@@ -9,17 +9,17 @@ schema-generator territory.
 The first function-level namespace fix is implemented: semantic results expose
 module-aware symbols, structured IR records qualified function names, the
 interpreter resolves module-qualified calls, and JavaScript output uses
-`__anpl_modules`.
+`__anpl_modules` by default. JavaScript and TypeScript builds can also emit one
+ESM artifact per ANPL module.
 
 Next hardening work:
 
 - Carry module-qualified type IDs through HIR and MIR.
 - Extend namespace handling from same-project cross-file modules to
   multi-package projects.
-- Decide whether emitted JavaScript should stay object-namespaced or become
-  one ESM file per ANPL module.
 - Add more collision tests for types, imported symbols, and multiple `main`
   functions.
+- Add a shared emitted runtime prelude strategy for ESM module builds.
 
 ## 2. Canonical Formatter
 
@@ -132,13 +132,14 @@ Implemented foundation:
   blocks, instructions, and terminators.
 - Generated JavaScript and TypeScript runtime policy guards for built-in effects,
   execution timeout checks, and estimated emitted-code memory accounting.
+- Optional ESM-per-module JavaScript and TypeScript backend output.
 - Starter MIR passes for constant folding, copy propagation, dead branch
   removal, and unused local elimination.
 
 Next work:
 
 - Document the current structured ANPL IR v0.1 contract.
-- Decide ESM-per-module output policy.
+- Deduplicate or externalize the emitted runtime prelude for ESM module builds.
 - Keep AST-to-IR/HIR/MIR lowering deterministic and easy for AI tools to
   inspect.
 

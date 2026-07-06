@@ -2,7 +2,11 @@ import { existsSync, statSync } from "node:fs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, extname, join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
-import { javascriptBackend, typescriptBackend } from "@anpl/compiler-js";
+import {
+  javascriptBackend,
+  typescriptBackend,
+  type BackendModuleFormat
+} from "@anpl/compiler-js";
 import type { Diagnostic } from "@anpl/core";
 import { createDiagnostic } from "@anpl/core";
 import { formatProgram } from "@anpl/formatter";
@@ -42,6 +46,7 @@ export type CompilerOptions = {
   projectRoot: string;
   entry?: string;
   outDir?: string;
+  moduleFormat?: BackendModuleFormat;
   diagnosticsFormat?: "human" | "json" | "yaml";
   strict?: boolean;
   runtimePolicy?: Partial<SandboxPolicy>;
@@ -367,10 +372,14 @@ async function runMode(
         target === "ts"
           ? typescriptBackend.emit(state.mir, {
               outFile: join(outDir, "anpl.ts"),
+              outDir,
+              moduleFormat: options.moduleFormat,
               runtimePolicy: options.runtimePolicy
             })
           : javascriptBackend.emit(state.mir, {
               outFile: join(outDir, "anpl.js"),
+              outDir,
+              moduleFormat: options.moduleFormat,
               runtimePolicy: options.runtimePolicy
             });
       artifacts.push(...backend.artifacts);

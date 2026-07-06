@@ -311,6 +311,74 @@ fn main() -> int {
     );
   });
 
+  it("builds ESM JavaScript files per module through the MIR backend", async () => {
+    const files: Record<string, string> = {
+      "/project/anpl.json": JSON.stringify({
+        name: "esm-build",
+        entry: "src/app.anpl",
+        source: ["src/**/*.anpl"]
+      }),
+      "/project/src/math.anpl": `module math
+
+fn add(a: int, b: int) -> int {
+  return a + b
+}`,
+      "/project/src/app.anpl": `module app
+
+import math
+
+fn main() -> int {
+  return add(2, 3)
+}`
+    };
+    const result = await compileProject(
+      {
+        mode: "build",
+        projectRoot: "/project",
+        outDir: "dist",
+        moduleFormat: "esm"
+      },
+      memoryHost(files)
+    );
+
+    expect(result.ok).toBe(true);
+    expect(files["/project/dist/math.js"]).toContain("export function add");
+    expect(files["/project/dist/app.js"]).toContain(
+      "import * as __anpl_math from \"./math.js\";"
+    );
+    expect(files["/project/dist/app.js"]).toContain("__anpl_math.add(");
+    expect(files["/project/dist/anpl.js"]).toBeUndefined();
+    expect(result.artifacts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "js",
+          path: "dist/math.js"
+        }),
+        expect.objectContaining({
+          kind: "js",
+          path: "dist/app.js"
+        }),
+        expect.objectContaining({
+          kind: "map",
+          path: "dist/app.js.map.json"
+        })
+      ])
+    );
+    const sourceMap = JSON.parse(files["/project/dist/app.js.map.json"] ?? "{}");
+    expect(sourceMap).toMatchObject({
+      target: "js",
+      outFile: "dist/app.js",
+      mappings: expect.arrayContaining([
+        expect.objectContaining({
+          generated: expect.objectContaining({
+            module: "app",
+            symbol: "app.main"
+          })
+        })
+      ])
+    });
+  });
+
   it("passes runtime policy into generated JavaScript builds", async () => {
     const files: Record<string, string> = {
       "/project/main.anpl": `module ids

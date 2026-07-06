@@ -41,7 +41,8 @@ remain planned.
   member access, calls, basic operators, tagged runtime values, runtime stack
   evidence, sandbox effect checks, timeout checks, estimated memory checks,
   runtime built-ins, and module-qualified function lookup.
-- JavaScript and TypeScript compiler targets for MIR with module namespace output.
+- JavaScript and TypeScript compiler targets for MIR with default module
+  namespace output and optional ESM-per-module output.
 - JavaScript and TypeScript backend source-map artifacts mapping generated module
   functions, MIR blocks, MIR instructions, and MIR terminators back to ANPL
   source spans.
@@ -85,10 +86,11 @@ remain planned.
   and path-based external dependency packages. Project cache keys are derived
   from the effective manifest, external package manifests, and resolved source
   hashes.
-- JavaScript and TypeScript output have module namespacing, MIR block lowering,
-  function/block/instruction source-map artifacts, target runtime policy guards,
-  and emitted-code memory accounting, but they do not yet implement
-  ESM-per-module output.
+- JavaScript and TypeScript output have module namespacing, optional
+  ESM-per-module artifacts, MIR block lowering, function/block/instruction
+  source-map artifacts, target runtime policy guards, and emitted-code memory
+  accounting. ESM module output currently duplicates the small runtime prelude
+  per emitted module.
 - Runtime memory enforcement uses estimated runtime value allocation, not exact
   process heap measurement.
 - The formatter is deterministic for the current AST surface, but comment/trivia
@@ -111,7 +113,8 @@ remain planned.
 - Deeper module namespace model for type IDs and HIR/MIR.
 - Phase-specific repair patches and evidence across parser, semantic, runtime,
   and backend diagnostics.
-- Deeper runtime module instance model and more precise memory accounting.
+- Shared emitted runtime prelude strategy for ESM module builds, deeper runtime
+  module instance model, and more precise memory accounting.
 - Real benchmark suite comparing direct human-first target code generation with
   human intent -> ANPL -> compiler flows.
 - Expanded type system and effect model.

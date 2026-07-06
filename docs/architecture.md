@@ -356,7 +356,7 @@ fn add(a: int, b: int) -> int {
 }
 ```
 
-Generated JavaScript/TypeScript:
+Generated JavaScript/TypeScript namespace output:
 
 ```js
 const __anpl_modules = {};
@@ -366,6 +366,18 @@ __anpl_modules["math"] = {
     // MIR block dispatch emitted here.
   }
 };
+```
+
+`anpl build --module-format esm` can instead emit one JavaScript or TypeScript
+artifact per ANPL module. Cross-module MIR calls become ESM imports:
+
+```js
+import * as __anpl_math from "./math.js";
+
+export function main() {
+  // MIR block dispatch emitted here.
+  return __anpl_math.add(2, 3);
+}
 ```
 
 Builds also emit a machine-readable `*.map.json` artifact that maps generated

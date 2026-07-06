@@ -114,12 +114,25 @@ program
   .option("--project-root <dir>", "project root when no file is provided")
   .option("--target <target>", "compiler target", "js")
   .option("--out <dir>", "output directory", "generated")
+  .option("--module-format <format>", "backend module format: namespace or esm", "namespace")
   .description("compile an ANPL file or project")
-  .action(async (file: string | undefined, options: { projectRoot?: string; target: "js" | "ts"; out: string }) => {
+  .action(async (
+    file: string | undefined,
+    options: { projectRoot?: string; target: "js" | "ts"; out: string; moduleFormat: string }
+  ) => {
+    const moduleFormat = parseModuleFormat(options.moduleFormat);
+    if (moduleFormat === undefined) {
+      console.error(`Unknown module format: ${options.moduleFormat}`);
+      console.error("Expected one of: namespace, esm");
+      process.exitCode = 1;
+      return;
+    }
+
     const result = await compileInput("build", file, {
       projectRoot: options.projectRoot,
       target: options.target,
-      outDir: options.out
+      outDir: options.out,
+      moduleFormat
     });
     if (!result.ok) {
       printDiagnostics(result.diagnostics);
@@ -353,6 +366,13 @@ function diagnosticOutputFormat(options: { json?: boolean; yaml?: boolean }): Di
     return "json";
   }
   return "human";
+}
+
+function parseModuleFormat(value: string): "namespace" | "esm" | undefined {
+  if (value === "namespace" || value === "esm") {
+    return value;
+  }
+  return undefined;
 }
 
 function printDiagnostics(

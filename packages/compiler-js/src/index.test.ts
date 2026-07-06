@@ -231,6 +231,72 @@ fn main() -> int {
     expect(result.artifacts[0]?.content).toContain("__anpl_modules[\"math\"]");
   });
 
+  it("emits ESM JavaScript files per MIR module", () => {
+    const parsed = parseAnpl(`module math
+
+fn add(a: int, b: int) -> int {
+  return a + b
+}
+
+module app
+
+import math
+
+fn main() -> int {
+  return add(2, 3)
+}`);
+    if (!parsed.ok) {
+      throw new Error(parsed.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+
+    const result = javascriptBackend.emit(lowerHirToMir(lowerProgramToHir(parsed.program)), {
+      outDir: "dist",
+      moduleFormat: "esm"
+    });
+    const math = result.artifacts.find((artifact) => artifact.path === "dist/math.js");
+    const app = result.artifacts.find((artifact) => artifact.path === "dist/app.js");
+    const appMap = result.artifacts.find((artifact) => artifact.path === "dist/app.js.map.json");
+
+    expect(result.diagnostics).toEqual([]);
+    expect(result.artifacts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: "js",
+          path: "dist/math.js"
+        }),
+        expect.objectContaining({
+          kind: "js",
+          path: "dist/app.js"
+        }),
+        expect.objectContaining({
+          kind: "map",
+          path: "dist/math.js.map.json"
+        }),
+        expect.objectContaining({
+          kind: "map",
+          path: "dist/app.js.map.json"
+        })
+      ])
+    );
+    expect(math?.content).toContain("export function add(a, b)");
+    expect(app?.content).toContain("import * as __anpl_math from \"./math.js\";");
+    expect(app?.content).toContain("export function main()");
+    expect(app?.content).toContain("__anpl_math.add(");
+    expect(app?.content).not.toContain("__anpl_modules");
+    expect(JSON.parse(appMap?.content ?? "{}")).toMatchObject({
+      target: "js",
+      outFile: "dist/app.js",
+      mappings: expect.arrayContaining([
+        expect.objectContaining({
+          generated: expect.objectContaining({
+            module: "app",
+            symbol: "app.main"
+          })
+        })
+      ])
+    });
+  });
+
   it("emits a block and instruction source map for MIR JavaScript", () => {
     const parsed = parseAnpl(`module math
 
@@ -382,5 +448,47 @@ fn main() -> int {
       ])
     );
     expect(result.artifacts[0]?.content).toContain("__anpl_modules[\"math\"]");
+  });
+
+  it("emits ESM TypeScript files per MIR module", () => {
+    const parsed = parseAnpl(`module math
+
+fn add(a: int, b: int) -> int {
+  return a + b
+}
+
+module app
+
+import math
+
+fn main() -> int {
+  return add(2, 3)
+}`);
+    if (!parsed.ok) {
+      throw new Error(parsed.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+
+    const result = typescriptBackend.emit(lowerHirToMir(lowerProgramToHir(parsed.program)), {
+      outDir: "dist",
+      moduleFormat: "esm"
+    });
+    const math = result.artifacts.find((artifact) => artifact.path === "dist/math.ts");
+    const app = result.artifacts.find((artifact) => artifact.path === "dist/app.ts");
+    const transpiled = ts.transpileModule(app?.content ?? "", {
+      compilerOptions: {
+        module: ts.ModuleKind.ESNext,
+        target: ts.ScriptTarget.ES2022,
+        strict: true
+      },
+      reportDiagnostics: true
+    });
+
+    expect(result.diagnostics).toEqual([]);
+    expect(math?.content).toContain("export function add(a: any, b: any): any");
+    expect(app?.content).toContain("import * as __anpl_math from \"./math.js\";");
+    expect(app?.content).toContain("export function main(): any");
+    expect(app?.content).toContain("__anpl_math.add(");
+    expect(app?.content).not.toContain("const __anpl_modules");
+    expect(transpiled.diagnostics ?? []).toEqual([]);
   });
 });
