@@ -96,8 +96,9 @@ Implemented foundation:
   punctuation.
 - Semantic diagnostics carry phase-specific category, cause, fix, and evidence
   through the semantic diagnostic helper.
-- Diagnostic registry covers the current semantic diagnostic family used by
-  `anpl explain`.
+- Diagnostic registry covers current parse, semantic, runtime, backend,
+  project, and tooling diagnostic codes used by `anpl explain`.
+- Registry coverage tests assert that emitted diagnostic codes have definitions.
 - Runtime diagnostics now use specific machine-readable codes for missing or
   ambiguous entrypoints, missing callees, invalid member access, invalid
   conditions, undefined values, blocked effects, unexpected values, and sandbox
@@ -108,8 +109,7 @@ Next work:
 - Add phase-specific `repair` patches to more semantic, runtime, backend, and
   project diagnostics where a safe source edit can be inferred.
 - Keep diagnostic codes stable and machine-readable.
-- Add more backend and project diagnostic registry coverage as new codes are
-  introduced.
+- Keep coverage tests updated as new diagnostic families are introduced.
 
 ## 5. Real Benchmark Suite
 

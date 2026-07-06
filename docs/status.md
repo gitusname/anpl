@@ -63,8 +63,10 @@ remain planned.
   categories, expected/received values, cause/fix hints, evidence, repair patch
   slots, and confidence.
 - Diagnostic registry enrichment for machine-readable JSON output and diagnostic
-  code explanations, including the current semantic and runtime diagnostic
-  families.
+  code explanations, including the current parse, semantic, runtime, backend,
+  project, and tooling diagnostic families.
+- Diagnostic registry coverage tests assert that emitted diagnostic codes have
+  registry definitions.
 - Parser expected-token diagnostics include insert repair patches for missing
   punctuation, and semantic diagnostics include phase-specific cause, fix, and
   evidence metadata.

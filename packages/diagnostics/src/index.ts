@@ -33,6 +33,96 @@ export const diagnosticRegistry = {
     fixTemplate: "Use the expected grammar shape near the reported location.",
     aiRepairable: true
   },
+  ANPL_PARSE_EXPECTED_IDENTIFIER: {
+    code: "ANPL_PARSE_EXPECTED_IDENTIFIER",
+    category: "parse",
+    severity: "error",
+    messageTemplate: "Expected identifier.",
+    causeTemplate: "The parser expected an ANPL identifier at this location.",
+    fixTemplate: "Insert or replace the token with a valid ANPL identifier.",
+    aiRepairable: true
+  },
+  ANPL_PARSE_EXPECTED_TYPE: {
+    code: "ANPL_PARSE_EXPECTED_TYPE",
+    category: "parse",
+    severity: "error",
+    messageTemplate: "Expected type name.",
+    causeTemplate: "The parser expected a primitive, declared, or enum type reference.",
+    fixTemplate: "Insert a valid ANPL type name.",
+    aiRepairable: true
+  },
+  ANPL_PARSE_EXPECTED_COLON: {
+    code: "ANPL_PARSE_EXPECTED_COLON",
+    category: "parse",
+    severity: "error",
+    messageTemplate: "Expected ':'.",
+    causeTemplate: "The parser expected a colon separator.",
+    fixTemplate: "Insert ':' at the reported location.",
+    aiRepairable: true
+  },
+  ANPL_PARSE_EXPECTED_LBRACE: {
+    code: "ANPL_PARSE_EXPECTED_LBRACE",
+    category: "parse",
+    severity: "error",
+    messageTemplate: "Expected '{'.",
+    causeTemplate: "The parser expected the start of a block, type body, or record body.",
+    fixTemplate: "Insert '{' at the reported location.",
+    aiRepairable: true
+  },
+  ANPL_PARSE_EXPECTED_RBRACE: {
+    code: "ANPL_PARSE_EXPECTED_RBRACE",
+    category: "parse",
+    severity: "error",
+    messageTemplate: "Expected '}'.",
+    causeTemplate: "The parser expected the end of a block, type body, or record body.",
+    fixTemplate: "Insert '}' at the reported location.",
+    aiRepairable: true
+  },
+  ANPL_PARSE_EXPECTED_LPAREN: {
+    code: "ANPL_PARSE_EXPECTED_LPAREN",
+    category: "parse",
+    severity: "error",
+    messageTemplate: "Expected '('.",
+    causeTemplate: "The parser expected an opening parenthesis.",
+    fixTemplate: "Insert '(' at the reported location.",
+    aiRepairable: true
+  },
+  ANPL_PARSE_EXPECTED_RPAREN: {
+    code: "ANPL_PARSE_EXPECTED_RPAREN",
+    category: "parse",
+    severity: "error",
+    messageTemplate: "Expected ')'.",
+    causeTemplate: "The parser expected a closing parenthesis.",
+    fixTemplate: "Insert ')' at the reported location.",
+    aiRepairable: true
+  },
+  ANPL_PARSE_EXPECTED_ARROW: {
+    code: "ANPL_PARSE_EXPECTED_ARROW",
+    category: "parse",
+    severity: "error",
+    messageTemplate: "Expected '->'.",
+    causeTemplate: "The parser expected a function return type arrow.",
+    fixTemplate: "Insert '->' before the return type.",
+    aiRepairable: true
+  },
+  ANPL_PARSE_EXPECTED_EQUAL: {
+    code: "ANPL_PARSE_EXPECTED_EQUAL",
+    category: "parse",
+    severity: "error",
+    messageTemplate: "Expected '='.",
+    causeTemplate: "The parser expected an assignment separator.",
+    fixTemplate: "Insert '=' at the reported location.",
+    aiRepairable: true
+  },
+  ANPL_PARSE_EXPECTED_RBRACKET: {
+    code: "ANPL_PARSE_EXPECTED_RBRACKET",
+    category: "parse",
+    severity: "error",
+    messageTemplate: "Expected ']'.",
+    causeTemplate: "The parser expected the end of a type argument list.",
+    fixTemplate: "Insert ']' at the reported location.",
+    aiRepairable: true
+  },
   ANPL_SEMANTIC_UNKNOWN_SYMBOL: {
     code: "ANPL_SEMANTIC_UNKNOWN_SYMBOL",
     category: "semantic",
@@ -283,6 +373,15 @@ export const diagnosticRegistry = {
     messageTemplate: "Could not read ANPL source file '{symbol}'.",
     causeTemplate: "A resolved source path could not be read by the compiler host.",
     fixTemplate: "Make the file readable or remove it from the manifest source patterns.",
+    aiRepairable: true
+  },
+  ANPL_PROJECT_DEPENDENCY_NOT_FOUND: {
+    code: "ANPL_PROJECT_DEPENDENCY_NOT_FOUND",
+    category: "project",
+    severity: "error",
+    messageTemplate: "Dependency '{symbol}' was not found.",
+    causeTemplate: "The project manifest declares a dependency path that the compiler host cannot resolve.",
+    fixTemplate: "Create the dependency project, correct the dependency path, or remove the dependency from anpl.json.",
     aiRepairable: true
   },
   ANPL_PROJECT_UNKNOWN_MODULE: {
