@@ -63,10 +63,15 @@ remain planned.
   categories, expected/received values, cause/fix hints, evidence, repair patch
   slots, and confidence.
 - Diagnostic registry enrichment for machine-readable JSON output and diagnostic
-  code explanations, including the current semantic diagnostic family.
+  code explanations, including the current semantic and runtime diagnostic
+  families.
 - Parser expected-token diagnostics include insert repair patches for missing
   punctuation, and semantic diagnostics include phase-specific cause, fix, and
   evidence metadata.
+- Runtime diagnostics include specific codes, cause/fix metadata, and stack
+  evidence for missing or ambiguous entrypoints, missing call targets, invalid
+  member access, invalid conditions, undefined values, blocked effects,
+  unexpected values, and sandbox limit violations.
 - Canonical AST formatter with stable nested block indentation and fixture-level
   idempotency conformance over valid programs.
 - Initial conformance fixture suite with valid programs, invalid diagnostic
@@ -111,8 +116,8 @@ remain planned.
   process heap measurement.
 - The formatter is deterministic for the current AST surface, but comment/trivia
   preservation and broader CST-aware formatting are still future work.
-- Diagnostic registry entries provide baseline cause/fix templates, but runtime
-  and backend phases still need more specific repair suggestions at each call
+- Diagnostic registry entries provide baseline cause/fix templates, but backend
+  and project phases still need more specific repair suggestions at each call
   site.
 - The `diagnose` CLI command enriches simple heuristic log classifications, but
   it is not yet a full AI-optimized error compression system.

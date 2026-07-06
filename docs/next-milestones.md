@@ -98,14 +98,18 @@ Implemented foundation:
   through the semantic diagnostic helper.
 - Diagnostic registry covers the current semantic diagnostic family used by
   `anpl explain`.
+- Runtime diagnostics now use specific machine-readable codes for missing or
+  ambiguous entrypoints, missing callees, invalid member access, invalid
+  conditions, undefined values, blocked effects, unexpected values, and sandbox
+  limit violations.
 
 Next work:
 
 - Add phase-specific `repair` patches to more semantic, runtime, backend, and
   project diagnostics where a safe source edit can be inferred.
 - Keep diagnostic codes stable and machine-readable.
-- Improve runtime diagnostics for invalid calls, invalid member access, missing
-  entrypoints, and unexpected values.
+- Add more backend and project diagnostic registry coverage as new codes are
+  introduced.
 
 ## 5. Real Benchmark Suite
 

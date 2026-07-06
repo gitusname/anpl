@@ -29,6 +29,10 @@ describe("diagnostics formatting", () => {
       causeTemplate: "A value was used where a different ANPL type is required.",
       aiRepairable: true
     });
+    expect(getDiagnosticDefinition("ANPL_RUNTIME_INVALID_MEMBER_ACCESS")).toMatchObject({
+      category: "runtime",
+      aiRepairable: true
+    });
   });
 
   it("enriches diagnostics with registry metadata for AI repair loops", () => {
@@ -76,6 +80,11 @@ describe("diagnostics formatting", () => {
       code: "ANPL_RETURN_MISSING",
       category: "semantic",
       aiRepairable: true
+    });
+    expect(explainDiagnosticCode("ANPL_RUNTIME_ENTRY_NOT_FOUND")).toMatchObject({
+      code: "ANPL_RUNTIME_ENTRY_NOT_FOUND",
+      category: "runtime",
+      summary: expect.stringContaining("runtime diagnostic")
     });
   });
 });

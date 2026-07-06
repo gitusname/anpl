@@ -48,6 +48,15 @@ type ReturnSignal = {
   value: RuntimeValue | undefined;
 };
 
+type RuntimeDiagnosticDetail = {
+  code?: string;
+  expected?: string;
+  received?: string;
+  cause?: string;
+  fix?: string;
+  evidence?: string[];
+};
+
 export function interpretProgram(
   program: IRProgram,
   entry = "main",
@@ -85,7 +94,13 @@ class Interpreter {
     const fn = this.resolveEntry(entry);
     if (fn === undefined) {
       if (this.diagnostics.length === 0) {
-        this.runtimeError(`Entry function '${entry}' was not found.`, entry);
+        this.runtimeError(`Entry function '${entry}' was not found.`, entry, {
+          code: "ANPL_RUNTIME_ENTRY_NOT_FOUND",
+          expected: "entry function",
+          received: "missing",
+          cause: "Runtime execution could not find the requested entry function.",
+          fix: "Pass a module-qualified entry name or declare a main function."
+        });
       }
       return this.fail();
     }
@@ -150,8 +165,11 @@ class Interpreter {
             `If condition must be bool, received ${runtimeTypeName(condition)}.`,
             "if",
             {
+              code: "ANPL_RUNTIME_INVALID_CONDITION",
               expected: "bool",
-              received: runtimeTypeName(condition)
+              received: runtimeTypeName(condition),
+              cause: "Runtime control flow requires a boolean condition.",
+              fix: "Return or compute a bool expression before the if branch."
             }
           );
           return undefined;
@@ -183,7 +201,14 @@ class Interpreter {
     if (matches.length > 1) {
       this.runtimeError(
         `Entry function '${entry}' is ambiguous. Use a module-qualified entry name.`,
-        entry
+        entry,
+        {
+          code: "ANPL_RUNTIME_ENTRY_AMBIGUOUS",
+          expected: "single entry function",
+          received: `${matches.length} candidates`,
+          cause: "More than one runtime function has the requested unqualified entry name.",
+          fix: "Use a module-qualified entry such as module.main."
+        }
       );
     }
 
@@ -198,7 +223,13 @@ class Interpreter {
         if (env.has(expr.name)) {
           return env.get(expr.name) ?? runtimeNull();
         }
-        this.runtimeError(`Variable '${expr.name}' is not defined.`, expr.name);
+        this.runtimeError(`Variable '${expr.name}' is not defined.`, expr.name, {
+          code: "ANPL_RUNTIME_UNDEFINED_VALUE",
+          expected: "defined runtime value",
+          received: "undefined",
+          cause: "The runtime attempted to read a variable that is not present in the current frame.",
+          fix: "Ensure the value is initialized before it is read."
+        });
         return runtimeNull();
       }
       case "binary":
@@ -217,8 +248,11 @@ class Interpreter {
               `Builtin '${expr.callee}' requires blocked effect '${effect}'.`,
               expr.callee,
               {
+                code: "ANPL_RUNTIME_EFFECT_BLOCKED",
                 expected: effect,
-                received: "blocked"
+                received: "blocked",
+                cause: "The builtin requires a capability that is not allowed by the runtime sandbox.",
+                fix: "Allow the required effect in the sandbox policy or avoid the builtin."
               }
             );
             return runtimeNull();
@@ -227,7 +261,13 @@ class Interpreter {
         }
         const fn = this.functions.get(expr.callee);
         if (fn === undefined) {
-          this.runtimeError(`Function '${expr.callee}' is not defined.`, expr.callee);
+          this.runtimeError(`Function '${expr.callee}' is not defined.`, expr.callee, {
+            code: "ANPL_RUNTIME_FUNCTION_NOT_FOUND",
+            expected: "runtime function",
+            received: "missing",
+            cause: "A runtime call target did not resolve to a function.",
+            fix: "Check the callee name, imports, and module-qualified symbol."
+          });
           return runtimeNull();
         }
         return this.callFunction(fn, args) ?? runtimeNull();
@@ -248,8 +288,11 @@ class Interpreter {
           `Cannot read property '${expr.property}' on ${runtimeTypeName(object)}.`,
           expr.property,
           {
+            code: "ANPL_RUNTIME_INVALID_MEMBER_ACCESS",
             expected: "record",
-            received: runtimeTypeName(object)
+            received: runtimeTypeName(object),
+            cause: "Member access requires a record runtime value.",
+            fix: "Access a declared record field or change the expression to produce a record."
           }
         );
         return runtimeNull();
@@ -272,8 +315,11 @@ class Interpreter {
             `Cannot apply '${operator}' to ${runtimeTypeName(left)} and ${runtimeTypeName(right)}.`,
             operator,
             {
+              code: "ANPL_RUNTIME_UNEXPECTED_VALUE",
               expected: "number",
-              received: `${runtimeTypeName(left)}, ${runtimeTypeName(right)}`
+              received: `${runtimeTypeName(left)}, ${runtimeTypeName(right)}`,
+              cause: "A numeric runtime operator received a non-numeric value.",
+              fix: "Convert the operands to numbers or use an operator supported by their types."
             }
           );
           return runtimeNull();
@@ -296,8 +342,11 @@ class Interpreter {
             `Cannot compare ${runtimeTypeName(left)} and ${runtimeTypeName(right)}.`,
             operator,
             {
+              code: "ANPL_RUNTIME_UNEXPECTED_VALUE",
               expected: "number",
-              received: `${runtimeTypeName(left)}, ${runtimeTypeName(right)}`
+              received: `${runtimeTypeName(left)}, ${runtimeTypeName(right)}`,
+              cause: "A comparison runtime operator received a non-numeric value.",
+              fix: "Compare numeric values or change the expression."
             }
           );
           return runtimeNull();
@@ -313,8 +362,11 @@ class Interpreter {
             `Cannot apply '${operator}' to ${runtimeTypeName(left)} and ${runtimeTypeName(right)}.`,
             operator,
             {
+              code: "ANPL_RUNTIME_UNEXPECTED_VALUE",
               expected: "bool",
-              received: `${runtimeTypeName(left)}, ${runtimeTypeName(right)}`
+              received: `${runtimeTypeName(left)}, ${runtimeTypeName(right)}`,
+              cause: "A boolean runtime operator received a non-boolean value.",
+              fix: "Convert the operands to bool or change the expression."
             }
           );
           return runtimeNull();
@@ -322,7 +374,13 @@ class Interpreter {
         return runtimeBool(operator === "and" ? leftBool && rightBool : leftBool || rightBool);
       }
       default:
-        this.runtimeError(`Unknown binary operator '${operator}'.`, operator);
+        this.runtimeError(`Unknown binary operator '${operator}'.`, operator, {
+          code: "ANPL_RUNTIME_UNEXPECTED_VALUE",
+          expected: "known binary operator",
+          received: operator,
+          cause: "The runtime reached an operator that is not implemented.",
+          fix: "Lower only supported ANPL binary operators into runtime instructions."
+        });
         return runtimeNull();
     }
   }
@@ -330,20 +388,20 @@ class Interpreter {
   private runtimeError(
     message: string,
     symbol?: string,
-    detail: { expected?: string; received?: string } = {}
+    detail: RuntimeDiagnosticDetail = {}
   ): void {
     this.diagnostics.push(
       createDiagnostic({
-        code: "ANPL_RUNTIME_ERROR",
+        code: detail.code ?? "ANPL_RUNTIME_ERROR",
         severity: "error",
         category: "runtime",
         message,
         symbol,
         expected: detail.expected,
         received: detail.received,
-        evidence: this.host.frames.map((frame) => `at ${frame.function}`),
-        cause: "Runtime evaluation reached an invalid value or blocked capability.",
-        fix: "Inspect the runtime stack and repair the failing expression or sandbox policy.",
+        evidence: detail.evidence ?? this.host.frames.map((frame) => `at ${frame.function}`),
+        cause: detail.cause ?? "Runtime evaluation reached an invalid value or blocked capability.",
+        fix: detail.fix ?? "Inspect the runtime stack and repair the failing expression or sandbox policy.",
         confidence: "high"
       })
     );
@@ -380,7 +438,13 @@ class MirInterpreter {
     const fn = this.resolveEntry(entry);
     if (fn === undefined) {
       if (this.diagnostics.length === 0) {
-        this.runtimeError(`Entry function '${entry}' was not found.`, entry);
+        this.runtimeError(`Entry function '${entry}' was not found.`, entry, {
+          code: "ANPL_RUNTIME_ENTRY_NOT_FOUND",
+          expected: "entry function",
+          received: "missing",
+          cause: "Runtime execution could not find the requested MIR entry function.",
+          fix: "Pass a module-qualified entry name or declare a main function."
+        });
       }
       return this.fail();
     }
@@ -436,7 +500,13 @@ class MirInterpreter {
 
       const block = blocks.get(currentId);
       if (block === undefined) {
-        this.runtimeError(`MIR block '${currentId}' was not found.`, fn.id);
+        this.runtimeError(`MIR block '${currentId}' was not found.`, fn.id, {
+          code: "ANPL_RUNTIME_UNEXPECTED_VALUE",
+          expected: "known MIR block",
+          received: currentId,
+          cause: "MIR control flow jumped to a block that is not present in the function.",
+          fix: "Inspect MIR lowering or optimizer output for an invalid jump target."
+        });
         return undefined;
       }
 
@@ -488,7 +558,13 @@ class MirInterpreter {
       case "load": {
         const value = env.get(instruction.symbol);
         if (value === undefined) {
-          this.runtimeError(`Variable '${instruction.symbol}' is not defined.`, instruction.symbol);
+          this.runtimeError(`Variable '${instruction.symbol}' is not defined.`, instruction.symbol, {
+            code: "ANPL_RUNTIME_UNDEFINED_VALUE",
+            expected: "defined runtime value",
+            received: "undefined",
+            cause: "MIR attempted to load a local value that has not been stored.",
+            fix: "Ensure MIR lowering stores the local before any load instruction."
+          });
           this.setRegister(registers, instruction.target, runtimeNull());
           return;
         }
@@ -539,8 +615,11 @@ class MirInterpreter {
           `Cannot read property '${instruction.field}' on ${runtimeTypeName(object)}.`,
           instruction.field,
           {
+            code: "ANPL_RUNTIME_INVALID_MEMBER_ACCESS",
             expected: "record",
-            received: runtimeTypeName(object)
+            received: runtimeTypeName(object),
+            cause: "MIR member access requires a record runtime value.",
+            fix: "Check semantic typing or MIR lowering for the member expression."
           }
         );
         this.setRegister(registers, instruction.target, runtimeNull());
@@ -579,8 +658,11 @@ class MirInterpreter {
             `If condition must be bool, received ${runtimeTypeName(condition)}.`,
             "if",
             {
+              code: "ANPL_RUNTIME_INVALID_CONDITION",
               expected: "bool",
-              received: runtimeTypeName(condition)
+              received: runtimeTypeName(condition),
+              cause: "MIR branch terminators require a boolean condition value.",
+              fix: "Ensure the branch condition lowers from a bool expression."
             }
           );
           return {
@@ -609,8 +691,11 @@ class MirInterpreter {
           `Builtin '${callee}' requires blocked effect '${effect}'.`,
           callee,
           {
+            code: "ANPL_RUNTIME_EFFECT_BLOCKED",
             expected: effect,
-            received: "blocked"
+            received: "blocked",
+            cause: "The builtin requires a capability that is not allowed by the runtime sandbox.",
+            fix: "Allow the required effect in the sandbox policy or avoid the builtin."
           }
         );
         return runtimeNull();
@@ -620,7 +705,13 @@ class MirInterpreter {
 
     const fn = this.functions.get(callee);
     if (fn === undefined) {
-      this.runtimeError(`Function '${callee}' is not defined.`, callee);
+      this.runtimeError(`Function '${callee}' is not defined.`, callee, {
+        code: "ANPL_RUNTIME_FUNCTION_NOT_FOUND",
+        expected: "runtime function",
+        received: "missing",
+        cause: "A MIR call target did not resolve to a runtime function.",
+        fix: "Check the callee symbol, imports, and module-qualified MIR IDs."
+      });
       return runtimeNull();
     }
 
@@ -640,7 +731,14 @@ class MirInterpreter {
     if (matches.length > 1) {
       this.runtimeError(
         `Entry function '${entry}' is ambiguous. Use a module-qualified entry name.`,
-        entry
+        entry,
+        {
+          code: "ANPL_RUNTIME_ENTRY_AMBIGUOUS",
+          expected: "single entry function",
+          received: `${matches.length} candidates`,
+          cause: "More than one MIR function has the requested unqualified entry name.",
+          fix: "Use a module-qualified entry such as module.main."
+        }
       );
     }
 
@@ -650,7 +748,13 @@ class MirInterpreter {
   private readRegister(registers: RegisterFile, name: string): RuntimeValue {
     const value = registers.get(name);
     if (value === undefined) {
-      this.runtimeError(`MIR value '${name}' is not defined.`, name);
+      this.runtimeError(`MIR value '${name}' is not defined.`, name, {
+        code: "ANPL_RUNTIME_UNDEFINED_VALUE",
+        expected: "defined MIR register",
+        received: "undefined",
+        cause: "A MIR instruction attempted to read a register before it was written.",
+        fix: "Inspect MIR lowering or optimizer output for invalid register ordering."
+      });
       return runtimeNull();
     }
     return value;
@@ -674,6 +778,7 @@ class MirInterpreter {
     const violation = trackRuntimeValue(this.host, value);
     if (violation !== undefined) {
       this.runtimeError(violation.message, symbol, {
+        code: "ANPL_RUNTIME_LIMIT_EXCEEDED",
         expected: violation.expected,
         received: violation.received,
         cause:
@@ -699,6 +804,7 @@ class MirInterpreter {
     }
 
     this.runtimeError(violation.message, symbol, {
+      code: "ANPL_RUNTIME_LIMIT_EXCEEDED",
       expected: violation.expected,
       received: violation.received,
       cause:
@@ -728,8 +834,11 @@ class MirInterpreter {
             `Cannot apply '${operator}' to ${runtimeTypeName(left)} and ${runtimeTypeName(right)}.`,
             operator,
             {
+              code: "ANPL_RUNTIME_UNEXPECTED_VALUE",
               expected: "number",
-              received: `${runtimeTypeName(left)}, ${runtimeTypeName(right)}`
+              received: `${runtimeTypeName(left)}, ${runtimeTypeName(right)}`,
+              cause: "A numeric MIR operator received a non-numeric runtime value.",
+              fix: "Check semantic typing or MIR lowering for the binary expression."
             }
           );
           return runtimeNull();
@@ -752,8 +861,11 @@ class MirInterpreter {
             `Cannot compare ${runtimeTypeName(left)} and ${runtimeTypeName(right)}.`,
             operator,
             {
+              code: "ANPL_RUNTIME_UNEXPECTED_VALUE",
               expected: "number",
-              received: `${runtimeTypeName(left)}, ${runtimeTypeName(right)}`
+              received: `${runtimeTypeName(left)}, ${runtimeTypeName(right)}`,
+              cause: "A comparison MIR operator received a non-numeric runtime value.",
+              fix: "Check semantic typing or MIR lowering for the comparison expression."
             }
           );
           return runtimeNull();
@@ -769,8 +881,11 @@ class MirInterpreter {
             `Cannot apply '${operator}' to ${runtimeTypeName(left)} and ${runtimeTypeName(right)}.`,
             operator,
             {
+              code: "ANPL_RUNTIME_UNEXPECTED_VALUE",
               expected: "bool",
-              received: `${runtimeTypeName(left)}, ${runtimeTypeName(right)}`
+              received: `${runtimeTypeName(left)}, ${runtimeTypeName(right)}`,
+              cause: "A boolean MIR operator received a non-boolean runtime value.",
+              fix: "Check semantic typing or MIR lowering for the boolean expression."
             }
           );
           return runtimeNull();
@@ -778,7 +893,13 @@ class MirInterpreter {
         return runtimeBool(operator === "and" ? leftBool && rightBool : leftBool || rightBool);
       }
       default:
-        this.runtimeError(`Unknown binary operator '${operator}'.`, operator);
+        this.runtimeError(`Unknown binary operator '${operator}'.`, operator, {
+          code: "ANPL_RUNTIME_UNEXPECTED_VALUE",
+          expected: "known binary operator",
+          received: operator,
+          cause: "The MIR runtime reached an operator that is not implemented.",
+          fix: "Lower only supported ANPL binary operators into MIR."
+        });
         return runtimeNull();
     }
   }
@@ -786,18 +907,18 @@ class MirInterpreter {
   private runtimeError(
     message: string,
     symbol?: string,
-    detail: { expected?: string; received?: string; cause?: string; fix?: string } = {}
+    detail: RuntimeDiagnosticDetail = {}
   ): void {
     this.diagnostics.push(
       createDiagnostic({
-        code: "ANPL_RUNTIME_ERROR",
+        code: detail.code ?? "ANPL_RUNTIME_ERROR",
         severity: "error",
         category: "runtime",
         message,
         symbol,
         expected: detail.expected,
         received: detail.received,
-        evidence: this.host.frames.map((frame) => `at ${frame.function}`),
+        evidence: detail.evidence ?? this.host.frames.map((frame) => `at ${frame.function}`),
         cause: detail.cause ?? "Runtime evaluation reached an invalid value or blocked capability.",
         fix: detail.fix ?? "Inspect the runtime stack and repair the failing expression or sandbox policy.",
         confidence: "high"

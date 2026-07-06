@@ -141,6 +141,87 @@ export const diagnosticRegistry = {
     fixTemplate: "Inspect the runtime symbol, stack, and evidence to repair the failing expression.",
     aiRepairable: true
   },
+  ANPL_RUNTIME_ENTRY_NOT_FOUND: {
+    code: "ANPL_RUNTIME_ENTRY_NOT_FOUND",
+    category: "runtime",
+    severity: "error",
+    messageTemplate: "Entry function '{symbol}' was not found.",
+    causeTemplate: "Runtime execution could not find the requested entry function.",
+    fixTemplate: "Declare the entry function or pass a module-qualified entry name.",
+    aiRepairable: true
+  },
+  ANPL_RUNTIME_ENTRY_AMBIGUOUS: {
+    code: "ANPL_RUNTIME_ENTRY_AMBIGUOUS",
+    category: "runtime",
+    severity: "error",
+    messageTemplate: "Entry function '{symbol}' is ambiguous.",
+    causeTemplate: "More than one runtime function matches the requested unqualified entry name.",
+    fixTemplate: "Use a module-qualified entry such as module.main.",
+    aiRepairable: true
+  },
+  ANPL_RUNTIME_FUNCTION_NOT_FOUND: {
+    code: "ANPL_RUNTIME_FUNCTION_NOT_FOUND",
+    category: "runtime",
+    severity: "error",
+    messageTemplate: "Function '{symbol}' is not defined.",
+    causeTemplate: "A runtime call target did not resolve to a function.",
+    fixTemplate: "Check the callee name, imports, and module-qualified symbol.",
+    aiRepairable: true
+  },
+  ANPL_RUNTIME_INVALID_MEMBER_ACCESS: {
+    code: "ANPL_RUNTIME_INVALID_MEMBER_ACCESS",
+    category: "runtime",
+    severity: "error",
+    messageTemplate: "Cannot access member '{symbol}' on {received}.",
+    causeTemplate: "Member access requires a record runtime value.",
+    fixTemplate: "Access a declared record field or change the expression to produce a record.",
+    aiRepairable: true
+  },
+  ANPL_RUNTIME_INVALID_CONDITION: {
+    code: "ANPL_RUNTIME_INVALID_CONDITION",
+    category: "runtime",
+    severity: "error",
+    messageTemplate: "Runtime condition must be {expected}, received {received}.",
+    causeTemplate: "Runtime control flow requires a boolean condition.",
+    fixTemplate: "Change the condition expression so it produces a bool value.",
+    aiRepairable: true
+  },
+  ANPL_RUNTIME_UNDEFINED_VALUE: {
+    code: "ANPL_RUNTIME_UNDEFINED_VALUE",
+    category: "runtime",
+    severity: "error",
+    messageTemplate: "Runtime value '{symbol}' is not defined.",
+    causeTemplate: "The runtime attempted to read a value before it was initialized.",
+    fixTemplate: "Ensure the value is stored before it is read.",
+    aiRepairable: true
+  },
+  ANPL_RUNTIME_UNEXPECTED_VALUE: {
+    code: "ANPL_RUNTIME_UNEXPECTED_VALUE",
+    category: "runtime",
+    severity: "error",
+    messageTemplate: "Expected {expected} but received {received}.",
+    causeTemplate: "The runtime reached a value or instruction shape that violates execution expectations.",
+    fixTemplate: "Inspect semantic analysis, MIR lowering, or optimizer output for the invalid value.",
+    aiRepairable: true
+  },
+  ANPL_RUNTIME_EFFECT_BLOCKED: {
+    code: "ANPL_RUNTIME_EFFECT_BLOCKED",
+    category: "runtime",
+    severity: "error",
+    messageTemplate: "Runtime effect '{expected}' was blocked.",
+    causeTemplate: "A builtin requires a capability that is not allowed by the runtime sandbox.",
+    fixTemplate: "Allow the required effect in the sandbox policy or avoid the builtin.",
+    aiRepairable: true
+  },
+  ANPL_RUNTIME_LIMIT_EXCEEDED: {
+    code: "ANPL_RUNTIME_LIMIT_EXCEEDED",
+    category: "runtime",
+    severity: "error",
+    messageTemplate: "Runtime limit exceeded: expected {expected}, received {received}.",
+    causeTemplate: "Runtime execution exceeded a sandbox time or memory policy.",
+    fixTemplate: "Increase the runtime limit or simplify the executed program.",
+    aiRepairable: false
+  },
   ANPL_UNSUPPORTED_TARGET: {
     code: "ANPL_UNSUPPORTED_TARGET",
     category: "backend",
@@ -220,6 +301,15 @@ export const diagnosticRegistry = {
     messageTemplate: "Module '{symbol}' is already defined in the project graph.",
     causeTemplate: "Two or more resolved source files declare the same module.",
     fixTemplate: "Rename one module or remove the duplicate source from the project manifest.",
+    aiRepairable: true
+  },
+  ANPL_PROJECT_AMBIGUOUS_MODULE_IMPORT: {
+    code: "ANPL_PROJECT_AMBIGUOUS_MODULE_IMPORT",
+    category: "project",
+    severity: "error",
+    messageTemplate: "Imported module '{symbol}' is ambiguous across project packages.",
+    causeTemplate: "More than one resolved package exports a module with this local name.",
+    fixTemplate: "Use a package-qualified import such as import package.module.",
     aiRepairable: true
   },
   ANPL_PROJECT_INIT_EXISTS: {

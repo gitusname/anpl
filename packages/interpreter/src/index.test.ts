@@ -187,7 +187,7 @@ fn main() -> uuid {
     expect(result.diagnostics).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          code: "ANPL_RUNTIME_ERROR",
+          code: "ANPL_RUNTIME_EFFECT_BLOCKED",
           expected: "random.uuid",
           evidence: ["at app.main"]
         })
@@ -260,8 +260,9 @@ fn main() -> int {
     expect(ambiguous.diagnostics).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          code: "ANPL_RUNTIME_ERROR",
+          code: "ANPL_RUNTIME_ENTRY_AMBIGUOUS",
           symbol: "main",
+          expected: "single entry function",
           message: expect.stringContaining("ambiguous")
         })
       ])
@@ -309,7 +310,7 @@ fn main() -> int {
     expect(result.diagnostics).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          code: "ANPL_RUNTIME_ERROR",
+          code: "ANPL_RUNTIME_LIMIT_EXCEEDED",
           expected: "<= 1ms",
           received: "2ms",
           evidence: ["at app.main"]
@@ -336,11 +337,121 @@ fn main() -> int {
     expect(result.diagnostics).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          code: "ANPL_RUNTIME_ERROR",
+          code: "ANPL_RUNTIME_LIMIT_EXCEEDED",
           expected: "<= 0MB",
           evidence: ["at app.main"]
         })
       ])
     );
+  });
+
+  it("reports missing MIR entrypoints with a specific runtime diagnostic", () => {
+    const result = interpretMirProgram({
+      functions: []
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({
+        code: "ANPL_RUNTIME_ENTRY_NOT_FOUND",
+        symbol: "main",
+        expected: "entry function",
+        received: "missing"
+      })
+    ]);
+  });
+
+  it("reports missing MIR callees with a specific runtime diagnostic", () => {
+    const result = interpretMirProgram(
+      {
+        functions: [
+          {
+            id: "app.main" as never,
+            params: [],
+            returnType: "int" as never,
+            blocks: [
+              {
+                id: "app.main.entry",
+                instructions: [
+                  {
+                    op: "call",
+                    target: "%1",
+                    callee: "missing.value" as never,
+                    args: [],
+                    type: "int" as never
+                  }
+                ],
+                terminator: {
+                  kind: "return",
+                  value: "%1"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "app.main"
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({
+        code: "ANPL_RUNTIME_FUNCTION_NOT_FOUND",
+        symbol: "missing.value",
+        expected: "runtime function",
+        received: "missing",
+        evidence: ["at app.main"]
+      })
+    ]);
+  });
+
+  it("reports invalid MIR member access with a specific runtime diagnostic", () => {
+    const result = interpretMirProgram(
+      {
+        functions: [
+          {
+            id: "app.main" as never,
+            params: [],
+            returnType: "int" as never,
+            blocks: [
+              {
+                id: "app.main.entry",
+                instructions: [
+                  {
+                    op: "const",
+                    target: "%1",
+                    value: "Ada",
+                    type: "text" as never
+                  },
+                  {
+                    op: "member",
+                    target: "%2",
+                    object: "%1",
+                    field: "length",
+                    type: "int" as never
+                  }
+                ],
+                terminator: {
+                  kind: "return",
+                  value: "%2"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "app.main"
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({
+        code: "ANPL_RUNTIME_INVALID_MEMBER_ACCESS",
+        symbol: "length",
+        expected: "record",
+        received: "text",
+        evidence: ["at app.main"]
+      })
+    ]);
   });
 });
