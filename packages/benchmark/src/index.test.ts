@@ -48,6 +48,28 @@ fn add(a: int, b: int) -> int {
     expect(result.runs.map((run) => run.mode)).toEqual(
       expect.arrayContaining(["direct-ts", "direct-python", "anpl-first"])
     );
+    expect(
+      result.runs.find(
+        (run) => run.taskId === "multi-file-order-total" && run.mode === "anpl-first"
+      )
+    ).toMatchObject({
+      success: true,
+      parseSuccess: true,
+      semanticSuccess: true,
+      buildSuccess: true,
+      runSuccess: true
+    });
+    expect(
+      result.runs.find(
+        (run) => run.taskId === "package-qualified-import" && run.mode === "anpl-first"
+      )
+    ).toMatchObject({
+      success: true,
+      parseSuccess: true,
+      semanticSuccess: true,
+      buildSuccess: true,
+      runSuccess: true
+    });
   });
 
   it("serializes benchmark results for CLI output", async () => {

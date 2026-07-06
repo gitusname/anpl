@@ -80,10 +80,11 @@ remain planned.
   expectations, MIR execution checks, JavaScript execution checks, valid
   parser/AST/HIR/MIR/JavaScript snapshots, and invalid parser/AST/diagnostic
   snapshots, plus process-level CLI integration tests.
-- Offline benchmark fixture suite in `packages/benchmark` with 11 tasks, direct
-  TypeScript and Python fixture comparison, ANPL-first
-  parse/semantic/build/run metrics, per-language direct fixture success rates,
-  diagnostic token counts, generated-target token counts, and CLI
+- Offline benchmark fixture suite in `packages/benchmark` with 13 tasks,
+  including single-source, multi-file project, and package-qualified dependency
+  fixtures; direct TypeScript and Python fixture comparison; ANPL-first
+  parse/semantic/build/run metrics; per-language direct fixture success rates;
+  diagnostic token counts; generated-target token counts; and CLI
   `anpl benchmark`.
 
 ## Experimental
@@ -123,9 +124,9 @@ remain planned.
   site.
 - The `diagnose` CLI command enriches simple heuristic log classifications, but
   it is not yet a full AI-optimized error compression system.
-- Benchmark utilities are offline fixtures; they do not yet prove real model
-  success rate, provider-specific repair loop reduction, or production build
-  reliability on large projects.
+- Benchmark utilities are offline fixtures, including early project-level
+  fixtures; they do not yet prove real model success rate, provider-specific
+  repair loop reduction, or production build reliability on large projects.
 - Conformance coverage is still small; it is a starting suite, not yet a full
   language compatibility matrix or fuzzing system.
 
@@ -138,8 +139,8 @@ remain planned.
 - Phase-specific repair patches and evidence across parser, semantic, runtime,
   and backend diagnostics.
 - Deeper runtime module instance model and more precise memory accounting.
-- Real benchmark suite comparing direct human-first target code generation with
-  human intent -> ANPL -> compiler flows.
+- Real provider-backed benchmark suite comparing direct human-first target code
+  generation with human intent -> ANPL -> compiler flows.
 - Expanded type system and effect model.
 - Additional compiler targets such as Python, WASM, or LLVM.
 - More complete runtime and standard library primitives.

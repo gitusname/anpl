@@ -32,6 +32,9 @@ importers:
 
   packages/benchmark:
     dependencies:
+      '@anpl/compiler':
+        specifier: workspace:*
+        version: link:../compiler
       '@anpl/compiler-js':
         specifier: workspace:*
         version: link:../compiler-js

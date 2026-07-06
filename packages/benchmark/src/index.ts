@@ -1,4 +1,9 @@
 import type { Diagnostic } from "@anpl/core";
+import {
+  compileProject,
+  type CompilerHost,
+  type CompilerResult
+} from "@anpl/compiler";
 import { compileMirProgramToJavaScript } from "@anpl/compiler-js";
 import { lowerProgramToHir } from "@anpl/hir";
 import { lowerHirToMir } from "@anpl/mir";
@@ -32,11 +37,17 @@ export type BenchmarkTask = {
   expectedBehavior: string[];
   tests?: string[];
   anplSource?: string;
+  anplFiles?: BenchmarkProjectFile[];
   directTargetSource?: string;
   directTargetVariants?: BenchmarkDirectTarget[];
   expectedResult?: unknown;
   entryModule?: string;
   entryFunction?: string;
+};
+
+export type BenchmarkProjectFile = {
+  path: string;
+  content: string;
 };
 
 export type BenchmarkTargetLanguage = "ts" | "python";
@@ -165,6 +176,24 @@ def main() -> int:
 `,
   "text-length": `def main() -> int:
     return len("Ada")
+`,
+  "multi-file-order-total": `def add(a: int, b: int) -> int:
+    return a + b
+
+
+def main() -> int:
+    return add(40, 2)
+`,
+  "package-qualified-import": `def local_add(a: int, b: int) -> int:
+    return 100
+
+
+def mathlib_add(a: int, b: int) -> int:
+    return a + b
+
+
+def main() -> int:
+    return mathlib_add(2, 3)
 `
 };
 
@@ -479,6 +508,146 @@ fn main() -> int {
 `,
     expectedResult: 3,
     entryModule: "words"
+  },
+  {
+    id: "multi-file-order-total",
+    title: "Load a multi-file project from a manifest",
+    intent:
+      "Create pricing.add in one ANPL file and app.main in another file; app imports pricing and returns add(40, 2).",
+    expectedBehavior: [
+      "compiler discovers both files from anpl.json source globs",
+      "app.main returns 42"
+    ],
+    anplFiles: [
+      {
+        path: "anpl.json",
+        content: `${JSON.stringify(
+          {
+            name: "order-total",
+            entry: "src/app.anpl",
+            source: ["src/**/*.anpl"]
+          },
+          null,
+          2
+        )}\n`
+      },
+      {
+        path: "src/pricing.anpl",
+        content: `module pricing
+
+fn add(a: int, b: int) -> int {
+  return a + b
+}
+`
+      },
+      {
+        path: "src/app.anpl",
+        content: `module app
+
+import pricing
+
+fn main() -> int {
+  return add(40, 2)
+}
+`
+      }
+    ],
+    directTargetSource: `export namespace pricing {
+  export function add(a: number, b: number): number {
+    return a + b;
+  }
+}
+
+export namespace app {
+  export function main(): number {
+    return pricing.add(40, 2);
+  }
+}
+`,
+    expectedResult: 42,
+    entryModule: "app"
+  },
+  {
+    id: "package-qualified-import",
+    title: "Resolve a package-qualified dependency import",
+    intent:
+      "Create a local math module returning 100 and an external mathlib.math module returning a + b; app imports mathlib.math and returns add(2, 3).",
+    expectedBehavior: [
+      "package-qualified import resolves the dependency module",
+      "same-named local module does not shadow mathlib.math",
+      "app.main returns 5"
+    ],
+    anplFiles: [
+      {
+        path: "anpl.json",
+        content: `${JSON.stringify(
+          {
+            name: "package-import",
+            entry: "src/app.anpl",
+            source: ["src/**/*.anpl"],
+            dependencies: {
+              mathlib: {
+                path: "/mathlib",
+                source: ["lib/**/*.anpl"]
+              }
+            }
+          },
+          null,
+          2
+        )}\n`
+      },
+      {
+        path: "src/app.anpl",
+        content: `module app
+
+import mathlib.math
+
+fn main() -> int {
+  return add(2, 3)
+}
+`
+      },
+      {
+        path: "src/math.anpl",
+        content: `module math
+
+fn add(a: int, b: int) -> int {
+  return 100
+}
+`
+      },
+      {
+        path: "/mathlib/lib/math.anpl",
+        content: `module math
+
+fn add(a: int, b: int) -> int {
+  return a + b
+}
+`
+      }
+    ],
+    directTargetSource: `export namespace math {
+  export function add(a: number, b: number): number {
+    return 100;
+  }
+}
+
+export namespace mathlib {
+  export namespace math {
+    export function add(a: number, b: number): number {
+      return a + b;
+    }
+  }
+}
+
+export namespace app {
+  export function main(): number {
+    return mathlib.math.add(2, 3);
+  }
+}
+`,
+    expectedResult: 5,
+    entryModule: "app"
   }
 ]);
 
@@ -599,6 +768,10 @@ async function runAnplFirstBenchmark(
   task: BenchmarkTask,
   options: BenchmarkSuiteOptions
 ): Promise<BenchmarkRun> {
+  if (task.anplFiles !== undefined) {
+    return runAnplProjectBenchmark(task, options);
+  }
+
   const start = Date.now();
   const source = task.anplSource ?? "";
   const diagnostics: Diagnostic[] = [];
@@ -653,6 +826,85 @@ async function runAnplFirstBenchmark(
   };
 }
 
+async function runAnplProjectBenchmark(
+  task: BenchmarkTask,
+  options: BenchmarkSuiteOptions
+): Promise<BenchmarkRun> {
+  const start = Date.now();
+  const projectRoot = projectRootForTask(task);
+  const hostFiles = projectFilesForTask(task, projectRoot);
+  const source = anplSourceForTask(task);
+  const sourceTokens = measureSource(source).estimatedTokens;
+  const diagnostics: Diagnostic[] = [];
+  let parseSuccess = false;
+  let semanticSuccess = false;
+  let buildSuccess = false;
+  let runSuccess = false;
+  let generatedTargetTokens = 0;
+
+  const checkHost = benchmarkCompilerHost({ ...hostFiles });
+  const check = await compileProject(
+    {
+      mode: "check",
+      projectRoot
+    },
+    checkHost
+  );
+  diagnostics.push(...check.diagnostics);
+  parseSuccess = !hasDiagnosticCategory(check.diagnostics, ["lex", "parse"]);
+  semanticSuccess = check.ok;
+
+  if (check.ok) {
+    const buildHost = benchmarkCompilerHost({ ...hostFiles });
+    const build = await compileProject(
+      {
+        mode: "build",
+        projectRoot,
+        outDir: "dist"
+      },
+      buildHost
+    );
+    diagnostics.push(...build.diagnostics);
+    buildSuccess = build.ok;
+    generatedTargetTokens = generatedArtifactTokens(build);
+
+    const runHost = benchmarkCompilerHost({ ...hostFiles });
+    const run = await compileProject(
+      {
+        mode: "run",
+        projectRoot
+      },
+      runHost
+    );
+    diagnostics.push(...run.diagnostics);
+    runSuccess = run.ok && runtimeResultMatches(run.value, task.expectedResult);
+  }
+
+  const uniqueDiagnostics = dedupeDiagnostics(diagnostics);
+
+  return {
+    taskId: task.id,
+    mode: "anpl-first",
+    model: options.model,
+    promptTokens: measureSource(task.intent).estimatedTokens,
+    outputTokens: sourceTokens,
+    repairLoops: uniqueDiagnostics.length === 0 ? 0 : 1,
+    success: parseSuccess && semanticSuccess && buildSuccess && runSuccess,
+    diagnostics: uniqueDiagnostics,
+    parseSuccess,
+    semanticSuccess,
+    buildSuccess,
+    runSuccess,
+    diagnosticTokens:
+      uniqueDiagnostics.length === 0
+        ? 0
+        : measureSource(JSON.stringify(uniqueDiagnostics)).estimatedTokens,
+    sourceTokens,
+    generatedTargetTokens,
+    durationMs: Date.now() - start
+  };
+}
+
 async function executeGeneratedMain(js: string, task: BenchmarkTask): Promise<boolean> {
   try {
     const module = (await import(
@@ -660,13 +912,160 @@ async function executeGeneratedMain(js: string, task: BenchmarkTask): Promise<bo
     )) as {
       __anpl_modules?: Record<string, Record<string, () => unknown>>;
     };
-    const moduleName = task.entryModule ?? moduleNameFromSource(task.anplSource ?? "");
+    const moduleName = task.entryModule ?? moduleNameFromSource(anplSourceForTask(task));
     const functionName = task.entryFunction ?? "main";
     const actual = module.__anpl_modules?.[moduleName]?.[functionName]?.();
     return task.expectedResult === undefined ? actual !== undefined : Object.is(actual, task.expectedResult);
   } catch {
     return false;
   }
+}
+
+function projectRootForTask(task: BenchmarkTask): string {
+  return `/benchmark/${task.id}`;
+}
+
+function projectFilesForTask(task: BenchmarkTask, projectRoot: string): Record<string, string> {
+  const files: Record<string, string> = {};
+
+  for (const file of task.anplFiles ?? []) {
+    files[absoluteProjectPath(projectRoot, file.path)] = file.content;
+  }
+
+  return files;
+}
+
+function absoluteProjectPath(projectRoot: string, path: string): string {
+  return path.startsWith("/") ? path : `${projectRoot}/${path}`;
+}
+
+function anplSourceForTask(task: BenchmarkTask): string {
+  if (task.anplSource !== undefined) {
+    return task.anplSource;
+  }
+
+  return (task.anplFiles ?? [])
+    .filter((file) => file.path.endsWith(".anpl"))
+    .map((file) => file.content)
+    .join("\n");
+}
+
+function benchmarkCompilerHost(files: Record<string, string>): CompilerHost {
+  let now = 0;
+
+  return {
+    readFile: async (path) => {
+      const content = files[path];
+      if (content === undefined) {
+        throw new Error(`Missing file ${path}`);
+      }
+      return content;
+    },
+    writeFile: async (path, content) => {
+      files[path] = content;
+    },
+    fileExists: async (path) => {
+      const normalizedPath = path.replace(/\/$/, "");
+      return (
+        files[normalizedPath] !== undefined ||
+        Object.keys(files).some((filePath) => filePath.startsWith(`${normalizedPath}/`))
+      );
+    },
+    resolvePath: async (from, specifier) =>
+      specifier.startsWith("/") ? specifier : `${from.replace(/\/$/, "")}/${specifier}`,
+    readDir: async (path) => {
+      const normalizedPath = path.replace(/\/$/, "");
+      const prefix = `${normalizedPath}/`;
+      const children = new Map<string, "file" | "directory">();
+
+      for (const filePath of Object.keys(files)) {
+        if (!filePath.startsWith(prefix)) {
+          continue;
+        }
+
+        const [name, ...rest] = filePath.slice(prefix.length).split("/");
+        if (name === undefined || name.length === 0) {
+          continue;
+        }
+
+        children.set(name, rest.length > 0 ? "directory" : "file");
+      }
+
+      return [...children.entries()].map(([name, kind]) => ({
+        name,
+        path: `${normalizedPath}/${name}`,
+        kind
+      }));
+    },
+    now: () => {
+      now += 1;
+      return now;
+    },
+    randomUUID: () => "00000000-0000-4000-8000-000000000000"
+  };
+}
+
+function hasDiagnosticCategory(
+  diagnostics: Diagnostic[],
+  categories: NonNullable<Diagnostic["category"]>[]
+): boolean {
+  return diagnostics.some((diagnostic) =>
+    diagnostic.category === undefined ? false : categories.includes(diagnostic.category)
+  );
+}
+
+function generatedArtifactTokens(result: CompilerResult): number {
+  return result.artifacts
+    .filter((artifact) => artifact.kind === "js" || artifact.kind === "ts")
+    .reduce((sum, artifact) => sum + measureSource(artifact.content).estimatedTokens, 0);
+}
+
+function runtimeResultMatches(value: unknown, expected: unknown): boolean {
+  if (!isRecord(value) || value.ok !== true) {
+    return false;
+  }
+
+  if (expected === undefined) {
+    return value.value !== undefined;
+  }
+
+  return runtimeValueMatches(value.value, expected);
+}
+
+function runtimeValueMatches(value: unknown, expected: unknown): boolean {
+  if (isRecord(value) && "value" in value) {
+    return Object.is(value.value, expected);
+  }
+
+  return Object.is(value, expected);
+}
+
+function dedupeDiagnostics(diagnostics: Diagnostic[]): Diagnostic[] {
+  const seen = new Set<string>();
+  const unique: Diagnostic[] = [];
+
+  for (const diagnostic of diagnostics) {
+    const key = [
+      diagnostic.code,
+      diagnostic.message,
+      diagnostic.file ?? "",
+      diagnostic.line ?? "",
+      diagnostic.column ?? ""
+    ].join("|");
+
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    unique.push(diagnostic);
+  }
+
+  return unique;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 function summarizeRuns(tasks: BenchmarkTask[], runs: BenchmarkRun[]): BenchmarkSummary {

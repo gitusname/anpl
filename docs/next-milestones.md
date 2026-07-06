@@ -117,19 +117,23 @@ The benchmark package now has an offline fixture harness.
 
 Implemented foundation:
 
-- 11 small software intent tasks.
+- 13 small software intent tasks.
 - Direct TypeScript and Python fixture comparison against
   human intent -> ANPL -> compiler flows.
 - Metrics for source tokens, parse success, semantic success, build success,
   run success, repair loop count, diagnostic token count, and generated target
   token count.
 - Per-language direct fixture success rates for offline comparisons.
+- Multi-file project fixtures loaded through the compiler facade and project
+  manifest path.
+- A package-qualified dependency fixture that exercises dependency module
+  namespacing in the benchmark path.
 - CLI `anpl benchmark` with human and JSON output.
 
 Next work:
 
 - Add real model/provider runs and persist benchmark result artifacts.
-- Add larger multi-file tasks and package-level benchmark projects.
+- Expand project-level benchmark coverage toward larger package graphs.
 - Keep benchmark claims separate from README positioning until provider data
   exists.
 

@@ -18,6 +18,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@anpl/compiler": "workspace:*",
     "@anpl/compiler-js": "workspace:*",
     "@anpl/core": "workspace:*",
     "@anpl/hir": "workspace:*",
