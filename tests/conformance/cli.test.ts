@@ -155,6 +155,35 @@ describe("CLI conformance", () => {
       });
     }
   });
+
+  it("writes benchmark JSON artifacts through the CLI process", async () => {
+    const tempDir = await mkdtemp(join(tmpdir(), "anpl-cli-benchmark-"));
+
+    try {
+      const outFile = join(tempDir, "artifacts/benchmark.json");
+      const benchmark = await runAnpl(["benchmark", "--json", "--out", outFile]);
+      expect(benchmark).toMatchObject({
+        code: 0,
+        stderr: ""
+      });
+
+      const stdout = JSON.parse(benchmark.stdout);
+      const artifact = JSON.parse(await readFile(outFile, "utf8"));
+      expect(stdout).toMatchObject({
+        summary: {
+          taskCount: 13,
+          runCount: 39,
+          anplFirstSuccessRate: 1
+        }
+      });
+      expect(artifact).toMatchObject(stdout);
+    } finally {
+      await rm(tempDir, {
+        recursive: true,
+        force: true
+      });
+    }
+  });
 });
 
 async function runAnpl(args: string[], cwd = repoRoot): Promise<CliResult> {

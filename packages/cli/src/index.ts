@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { Command } from "commander";
 import {
@@ -235,12 +235,23 @@ program
   .command("benchmark")
   .option("--json", "print benchmark results as JSON")
   .option("--no-execute", "skip generated JavaScript execution")
+  .option("--out <file>", "write benchmark results as a JSON artifact")
   .description("run the offline ANPL benchmark fixture suite")
-  .action(async (options: { json?: boolean; execute?: boolean }) => {
+  .action(async (options: { json?: boolean; execute?: boolean; out?: string }) => {
     const result = await runOfflineBenchmarkSuite(undefined, {
       executeGeneratedJavaScript: options.execute
     });
-    console.log(options.json ? benchmarkSuiteToJson(result) : benchmarkSuiteToText(result));
+    const json = benchmarkSuiteToJson(result);
+    if (options.out !== undefined) {
+      const outPath = resolve(options.out);
+      mkdirSync(dirname(outPath), { recursive: true });
+      writeFileSync(outPath, `${json}\n`, "utf8");
+    }
+
+    console.log(options.json ? json : benchmarkSuiteToText(result));
+    if (options.out !== undefined && options.json !== true) {
+      console.log(`Wrote ${options.out}`);
+    }
   });
 
 program

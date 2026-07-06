@@ -84,8 +84,9 @@ remain planned.
   including single-source, multi-file project, and package-qualified dependency
   fixtures; direct TypeScript and Python fixture comparison; ANPL-first
   parse/semantic/build/run metrics; per-language direct fixture success rates;
-  diagnostic token counts; generated-target token counts; and CLI
-  `anpl benchmark`.
+  diagnostic token counts; generated-target token counts; CLI
+  `anpl benchmark`; and benchmark JSON artifact persistence through
+  `anpl benchmark --out`.
 
 ## Experimental
 

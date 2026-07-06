@@ -129,10 +129,12 @@ Implemented foundation:
 - A package-qualified dependency fixture that exercises dependency module
   namespacing in the benchmark path.
 - CLI `anpl benchmark` with human and JSON output.
+- Benchmark JSON result artifacts can be persisted with
+  `anpl benchmark --out`.
 
 Next work:
 
-- Add real model/provider runs and persist benchmark result artifacts.
+- Add real model/provider runs.
 - Expand project-level benchmark coverage toward larger package graphs.
 - Keep benchmark claims separate from README positioning until provider data
   exists.
