@@ -86,4 +86,54 @@ fn main() -> text {
     expect(createCustomer?.returnType).toBe("record:crm.Customer");
     expect(Object.values(hir.typeFacts?.expressionTypes ?? {})).toContain("text");
   });
+
+  it("carries imported module-qualified type IDs for colliding local type names", () => {
+    const parsed = parseAnpl(`module crm
+
+type Customer {
+  name: text
+}
+
+fn createCustomer() -> Customer {
+  return Customer {
+    name: "Ada"
+  }
+}
+
+module billing
+
+type Customer {
+  total: int
+}
+
+module app
+
+import crm
+
+fn main() -> Customer {
+  return createCustomer()
+}`);
+    if (!parsed.ok) {
+      throw new Error(parsed.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+    const semantic = analyzeProgram(parsed.program);
+    if (!semantic.ok) {
+      throw new Error(semantic.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+
+    const hir = lowerProgramToHir(parsed.program, semantic.typedProgram);
+    const crmCustomer = hir.modules
+      .find((moduleDecl) => moduleDecl.name === "crm")
+      ?.types.find((typeDecl) => typeDecl.name === "Customer");
+    const billingCustomer = hir.modules
+      .find((moduleDecl) => moduleDecl.name === "billing")
+      ?.types.find((typeDecl) => typeDecl.name === "Customer");
+    const appMain = hir.modules
+      .find((moduleDecl) => moduleDecl.name === "app")
+      ?.functions.find((fn) => fn.name === "main");
+
+    expect(crmCustomer?.type).toBe("record:crm.Customer");
+    expect(billingCustomer?.type).toBe("record:billing.Customer");
+    expect(appMain?.returnType).toBe("record:crm.Customer");
+  });
 });

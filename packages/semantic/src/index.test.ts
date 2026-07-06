@@ -73,6 +73,89 @@ fn main() -> int {
     expect(result.typedProgram.visibleSymbolsByModule.get("app")?.functions.has("add")).toBe(true);
   });
 
+  it("keeps same-named record types module-qualified across imports", () => {
+    const result = analyze(`module crm
+
+type Customer {
+  name: text
+}
+
+fn createCustomer() -> Customer {
+  return Customer {
+    name: "Ada"
+  }
+}
+
+module billing
+
+type Customer {
+  total: int
+}
+
+module app
+
+import crm
+
+fn main() -> Customer {
+  return createCustomer()
+}`);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) {
+      throw new Error(result.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+
+    const crmCustomer = result.symbols.symbols.get(
+      result.symbols.byQualifiedName.get("crm.Customer")!
+    );
+    const billingCustomer = result.symbols.symbols.get(
+      result.symbols.byQualifiedName.get("billing.Customer")!
+    );
+    const appMain = result.symbols.symbols.get(result.symbols.byQualifiedName.get("app.main")!);
+    const appMainType = result.types.get(appMain!.type!);
+
+    expect(crmCustomer?.type).toBe("record:crm.Customer");
+    expect(billingCustomer?.type).toBe("record:billing.Customer");
+    expect(crmCustomer?.type).not.toBe(billingCustomer?.type);
+    expect(appMainType).toMatchObject({
+      kind: "FunctionType",
+      returnType: "record:crm.Customer"
+    });
+  });
+
+  it("reports conflicts when two imports expose the same local type name", () => {
+    const result = analyze(`module crm
+
+type Customer {
+  name: text
+}
+
+module billing
+
+type Customer {
+  total: int
+}
+
+module app
+
+import crm
+import billing
+
+fn main() -> int {
+  return 1
+}`);
+
+    expect(result.ok).toBe(false);
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "ANPL_SEMANTIC_IMPORT_CONFLICT",
+          symbol: "Customer"
+        })
+      ])
+    );
+  });
+
   it("accepts enum variants in record fields", () => {
     const result = analyze(`module crm
 

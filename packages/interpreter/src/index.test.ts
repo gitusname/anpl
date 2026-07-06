@@ -28,7 +28,9 @@ function runMir(source: string) {
   if (!semantic.ok) {
     throw new Error(semantic.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
   }
-  return interpretMirProgram(lowerHirToMir(lowerProgramToHir(parsed.program)));
+  return interpretMirProgram(
+    lowerHirToMir(lowerProgramToHir(parsed.program, semantic.typedProgram))
+  );
 }
 
 function buildMir(source: string) {
@@ -40,7 +42,7 @@ function buildMir(source: string) {
   if (!semantic.ok) {
     throw new Error(semantic.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
   }
-  return lowerHirToMir(lowerProgramToHir(parsed.program));
+  return lowerHirToMir(lowerProgramToHir(parsed.program, semantic.typedProgram));
 }
 
 describe("interpreter", () => {
@@ -233,6 +235,49 @@ fn main() -> int {
       value: {
         kind: "int",
         value: 6
+      }
+    });
+  });
+
+  it("requires module-qualified MIR entry names when multiple modules define main", () => {
+    const mir = buildMir(`module utility
+
+fn main() -> int {
+  return 9
+}
+
+module app
+
+fn main() -> int {
+  return 5
+}`);
+
+    const ambiguous = interpretMirProgram(mir);
+    const app = interpretMirProgram(mir, "app.main");
+    const utility = interpretMirProgram(mir, "utility.main");
+
+    expect(ambiguous.ok).toBe(false);
+    expect(ambiguous.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "ANPL_RUNTIME_ERROR",
+          symbol: "main",
+          message: expect.stringContaining("ambiguous")
+        })
+      ])
+    );
+    expect(app).toMatchObject({
+      ok: true,
+      value: {
+        kind: "int",
+        value: 5
+      }
+    });
+    expect(utility).toMatchObject({
+      ok: true,
+      value: {
+        kind: "int",
+        value: 9
       }
     });
   });

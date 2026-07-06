@@ -32,7 +32,8 @@ remain planned.
   module-aware symbol tables, type registry output, and structured diagnostics.
 - HIR lowering with module import metadata, MIR lowering for function bodies,
   statements, expressions, locals, calls, records, members, returns, and
-  conditional control-flow blocks, plus the current structured ANPL IR v0.1
+  conditional control-flow blocks, module-qualified record type IDs across
+  same-project type name collisions, plus the current structured ANPL IR v0.1
   lowering from AST and a documented IR v0.1 contract.
 - Optimizer support for the current structured IR plus a MIR optimization pass
   architecture with constant folding, copy propagation, dead branch removal, and
@@ -90,6 +91,9 @@ remain planned.
   and path-based external dependency packages. Project cache keys are derived
   from the effective manifest, external package manifests, and resolved source
   hashes.
+- Same-project namespace handling is module-aware for colliding function names,
+  record type names, imported callees, import conflicts, and ambiguous MIR
+  entrypoints.
 - JavaScript and TypeScript output have module namespacing, optional
   ESM-per-module artifacts, MIR block lowering, function/block/instruction
   source-map artifacts, target runtime policy guards, and emitted-code memory
@@ -115,7 +119,8 @@ remain planned.
 
 - Deeper package model beyond path-based dependencies, including package
   registries, version constraints, and package-qualified imports.
-- Deeper module namespace model for type IDs and HIR/MIR.
+- Package-level namespace collision tests and package-qualified type/function
+  identities beyond the current same-project module-qualified model.
 - Phase-specific repair patches and evidence across parser, semantic, runtime,
   and backend diagnostics.
 - Deeper runtime module instance model and more precise memory accounting.

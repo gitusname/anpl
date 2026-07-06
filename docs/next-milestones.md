@@ -12,12 +12,22 @@ interpreter resolves module-qualified calls, and JavaScript output uses
 `__anpl_modules` by default. JavaScript and TypeScript builds can also emit one
 ESM artifact per ANPL module.
 
+Implemented foundation:
+
+- Carry module-qualified record type IDs through semantic analysis, HIR, and
+  MIR when same-named types exist in different modules.
+- Preserve imported callee resolution when another module has the same local
+  function name.
+- Report import conflicts when two imported modules expose the same local type
+  name.
+- Require module-qualified MIR entry names when multiple modules define
+  `main`.
+
 Next hardening work:
 
-- Carry module-qualified type IDs through HIR and MIR.
 - Extend namespace handling from same-project cross-file modules to
   multi-package projects.
-- Add more collision tests for types, imported symbols, and multiple `main`
+- Add package-level collision tests for types, imported symbols, and entry
   functions.
 - Keep ESM runtime artifact naming reserved and collision-safe as module/package
   naming grows.

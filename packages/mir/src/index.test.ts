@@ -201,6 +201,75 @@ fn main() -> text {
       })
     );
   });
+
+  it("keeps colliding record type names module-qualified in MIR", () => {
+    const parsed = parseAnpl(`module crm
+
+type Customer {
+  name: text
+}
+
+fn createCustomer() -> Customer {
+  return Customer {
+    name: "Ada"
+  }
+}
+
+module billing
+
+type Customer {
+  total: int
+}
+
+fn createCustomer() -> Customer {
+  return Customer {
+    total: 7
+  }
+}
+
+module app
+
+import crm
+
+fn main() -> Customer {
+  return createCustomer()
+}`);
+    if (!parsed.ok) {
+      throw new Error(parsed.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+    const semantic = analyzeProgram(parsed.program);
+    if (!semantic.ok) {
+      throw new Error(semantic.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+
+    const mir = lowerHirToMir(lowerProgramToHir(parsed.program, semantic.typedProgram));
+    const crmCreateCustomer = mir.functions.find((fn) => fn.id === "crm.createCustomer");
+    const billingCreateCustomer = mir.functions.find((fn) => fn.id === "billing.createCustomer");
+    const appMain = mir.functions.find((fn) => fn.id === "app.main");
+
+    expect(crmCreateCustomer?.returnType).toBe("record:crm.Customer");
+    expect(crmCreateCustomer?.blocks[0]?.instructions).toContainEqual(
+      expect.objectContaining({
+        op: "record",
+        type: "record:crm.Customer"
+      })
+    );
+    expect(billingCreateCustomer?.returnType).toBe("record:billing.Customer");
+    expect(billingCreateCustomer?.blocks[0]?.instructions).toContainEqual(
+      expect.objectContaining({
+        op: "record",
+        type: "record:billing.Customer"
+      })
+    );
+    expect(appMain?.returnType).toBe("record:crm.Customer");
+    expect(appMain?.blocks[0]?.instructions).toContainEqual(
+      expect.objectContaining({
+        op: "call",
+        callee: "crm.createCustomer",
+        type: "record:crm.Customer"
+      })
+    );
+  });
 });
 
 function stripInstructionSpans(instructions: Array<{ span?: unknown }>): unknown[] {
