@@ -414,7 +414,7 @@ function compileMirFunctionMember(fn: MirFunction, language: BackendLanguage): s
       ? "const __values: Record<string, any> = Object.create(null);"
       : "const __values = Object.create(null);",
     ...fn.params.map(
-      (param) => `__locals[${JSON.stringify(`${fn.id}.${param.name}`)}] = ${param.name};`
+      (param) => `__locals[${JSON.stringify(`${fn.id}.${param.name}`)}] = __anpl_track_value(${param.name});`
     ),
     language === "ts"
       ? `let __block: string = ${JSON.stringify(fn.blocks[0]?.id ?? `${fn.id}.entry`)};`
@@ -444,25 +444,25 @@ function compileMirBlock(block: MirBlock): string {
 function compileMirInstruction(instruction: MirInstruction): string {
   switch (instruction.op) {
     case "const":
-      return `${valueSlot(instruction.target)} = ${JSON.stringify(instruction.value)};`;
+      return `${valueSlot(instruction.target)} = __anpl_track_value(${JSON.stringify(instruction.value)});`;
     case "load":
-      return `${valueSlot(instruction.target)} = __locals[${JSON.stringify(instruction.symbol)}];`;
+      return `${valueSlot(instruction.target)} = __anpl_track_value(__locals[${JSON.stringify(instruction.symbol)}]);`;
     case "store":
-      return `__locals[${JSON.stringify(instruction.symbol)}] = ${valueSlot(instruction.value)};`;
+      return `__locals[${JSON.stringify(instruction.symbol)}] = __anpl_track_value(${valueSlot(instruction.value)});`;
     case "binary":
-      return `${valueSlot(instruction.target)} = (${valueSlot(instruction.left)} ${compileOperator(instruction.operator)} ${valueSlot(instruction.right)});`;
+      return `${valueSlot(instruction.target)} = __anpl_track_value((${valueSlot(instruction.left)} ${compileOperator(instruction.operator)} ${valueSlot(instruction.right)}));`;
     case "call": {
       const call = `${compileCallee(instruction.callee)}(${instruction.args.map(valueSlot).join(", ")})`;
       return instruction.target === undefined
         ? `${call};`
-        : `${valueSlot(instruction.target)} = ${call};`;
+        : `${valueSlot(instruction.target)} = __anpl_track_value(${call});`;
     }
     case "record":
-      return `${valueSlot(instruction.target)} = { ${Object.entries(instruction.fields)
+      return `${valueSlot(instruction.target)} = __anpl_track_value({ ${Object.entries(instruction.fields)
         .map(([field, value]) => `${JSON.stringify(field)}: ${valueSlot(value)}`)
-        .join(", ")} };`;
+        .join(", ")} });`;
     case "member":
-      return `${valueSlot(instruction.target)} = ${valueSlot(instruction.object)}[${JSON.stringify(instruction.field)}];`;
+      return `${valueSlot(instruction.target)} = __anpl_track_value(${valueSlot(instruction.object)}[${JSON.stringify(instruction.field)}]);`;
   }
 }
 
@@ -581,6 +581,7 @@ function runtimePrelude(
 
 const __anpl_runtime_policy: __AnplRuntimePolicy = ${policySource};
 const __anpl_runtime_started_at = Date.now();
+let __anpl_runtime_memory_bytes = 0;
 
 function __anpl_effect_allowed(effect: string): boolean {
   if (effect.startsWith("io.")) {
@@ -603,6 +604,33 @@ function __anpl_check_runtime_limits(): void {
   if (elapsed > __anpl_runtime_policy.maxExecutionMs) {
     throw new Error(\`ANPL runtime policy exceeded maxExecutionMs \${__anpl_runtime_policy.maxExecutionMs}.\`);
   }
+  const maxBytes = __anpl_runtime_policy.maxMemoryMb * 1024 * 1024;
+  if (__anpl_runtime_memory_bytes > maxBytes) {
+    throw new Error(\`ANPL runtime policy exceeded maxMemoryMb \${__anpl_runtime_policy.maxMemoryMb}.\`);
+  }
+}
+
+function __anpl_estimate_value_bytes(value: any): number {
+  if (typeof value === "number") return 16;
+  if (typeof value === "boolean" || value === null || value === undefined) return 8;
+  if (typeof value === "string") return 24 + value.length * 2;
+  if (typeof value === "function") return 24;
+  if (Array.isArray(value)) {
+    return 32 + value.reduce((sum, item) => sum + __anpl_estimate_value_bytes(item), 0);
+  }
+  if (typeof value === "object") {
+    return 48 + Object.entries(value).reduce(
+      (sum, [key, item]) => sum + key.length * 2 + __anpl_estimate_value_bytes(item),
+      0
+    );
+  }
+  return 8;
+}
+
+function __anpl_track_value<T>(value: T): T {
+  __anpl_runtime_memory_bytes += __anpl_estimate_value_bytes(value);
+  __anpl_check_runtime_limits();
+  return value;
 }
 
 function uuid(): string {
@@ -630,6 +658,7 @@ function len(value: any): number {
 
   return `const __anpl_runtime_policy = ${policySource};
 const __anpl_runtime_started_at = Date.now();
+let __anpl_runtime_memory_bytes = 0;
 
 function __anpl_effect_allowed(effect) {
   if (effect.startsWith("io.")) {
@@ -652,6 +681,33 @@ function __anpl_check_runtime_limits() {
   if (elapsed > __anpl_runtime_policy.maxExecutionMs) {
     throw new Error(\`ANPL runtime policy exceeded maxExecutionMs \${__anpl_runtime_policy.maxExecutionMs}.\`);
   }
+  const maxBytes = __anpl_runtime_policy.maxMemoryMb * 1024 * 1024;
+  if (__anpl_runtime_memory_bytes > maxBytes) {
+    throw new Error(\`ANPL runtime policy exceeded maxMemoryMb \${__anpl_runtime_policy.maxMemoryMb}.\`);
+  }
+}
+
+function __anpl_estimate_value_bytes(value) {
+  if (typeof value === "number") return 16;
+  if (typeof value === "boolean" || value === null || value === undefined) return 8;
+  if (typeof value === "string") return 24 + value.length * 2;
+  if (typeof value === "function") return 24;
+  if (Array.isArray(value)) {
+    return 32 + value.reduce((sum, item) => sum + __anpl_estimate_value_bytes(item), 0);
+  }
+  if (typeof value === "object") {
+    return 48 + Object.entries(value).reduce(
+      (sum, [key, item]) => sum + key.length * 2 + __anpl_estimate_value_bytes(item),
+      0
+    );
+  }
+  return 8;
+}
+
+function __anpl_track_value(value) {
+  __anpl_runtime_memory_bytes += __anpl_estimate_value_bytes(value);
+  __anpl_check_runtime_limits();
+  return value;
 }
 
 function uuid() {

@@ -334,6 +334,8 @@ fn main() -> uuid {
 
     expect(result.ok).toBe(true);
     expect(files["/project/dist/anpl.js"]).toContain("\"allowedEffects\":[]");
+    expect(files["/project/dist/anpl.js"]).toContain("\"maxMemoryMb\":128");
+    expect(files["/project/dist/anpl.js"]).toContain("__anpl_track_value");
     expect(files["/project/dist/anpl.js"]).toContain(
       "__anpl_require_effect(\"random.uuid\", \"uuid\")"
     );

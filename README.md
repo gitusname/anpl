@@ -236,7 +236,7 @@ Current implemented foundation:
 * MIR interpreter that runs `main()` with tagged runtime values and runtime stack diagnostics
 * module-aware MIR interpreter calls and MIR JavaScript/TypeScript compiler namespace output
 * JavaScript/TypeScript backend source-map artifacts for MIR functions, blocks, instructions, and terminators
-* generated JavaScript/TypeScript runtime policy guards for built-in effects and execution timeout checks
+* generated JavaScript/TypeScript runtime policy guards for built-in effects, execution timeout checks, and estimated memory accounting
 * runtime built-ins, sandbox effect policy, timeout checks, and estimated memory checks for `uuid()`, `now()`, `print(value)`, `len(value)`
 * CLI commands: `init`, `check`, `run`, `build`, `emit ast|hir|mir|ir`, `emit-ast`, `emit-hir`, `emit-mir`, `emit-ir`, `format`, `diagnose`, `benchmark`, `explain`
 * canonical formatter with stable nested block indentation and fixture-level idempotency conformance

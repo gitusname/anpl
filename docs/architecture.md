@@ -374,8 +374,8 @@ source spans.
 
 Generated JavaScript and TypeScript also embed a target runtime policy object.
 The emitted prelude guards effect-capable built-ins such as `uuid`, `now`, and
-`print`, and checks the configured execution timeout inside the MIR dispatch
-loop.
+`print`, checks the configured execution timeout inside the MIR dispatch loop,
+and estimates emitted-code value allocation against `maxMemoryMb`.
 
 Future targets:
 

@@ -130,15 +130,15 @@ Implemented foundation:
   runs.
 - JavaScript and TypeScript backend source-map artifacts for MIR functions,
   blocks, instructions, and terminators.
-- Generated JavaScript and TypeScript runtime policy guards for built-in effects
-  and execution timeout checks.
+- Generated JavaScript and TypeScript runtime policy guards for built-in effects,
+  execution timeout checks, and estimated emitted-code memory accounting.
 - Starter MIR passes for constant folding, copy propagation, dead branch
   removal, and unused local elimination.
 
 Next work:
 
 - Document the current structured ANPL IR v0.1 contract.
-- Add emitted-code memory accounting and decide ESM-per-module output policy.
+- Decide ESM-per-module output policy.
 - Keep AST-to-IR/HIR/MIR lowering deterministic and easy for AI tools to
   inspect.
 

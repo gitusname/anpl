@@ -173,6 +173,34 @@ fn main() -> uuid {
     );
   });
 
+  it("enforces emitted JavaScript memory limits", async () => {
+    const parsed = parseAnpl(`module memory
+
+fn main() -> text {
+  return "allocated"
+}`);
+    if (!parsed.ok) {
+      throw new Error(parsed.diagnostics.map((diagnostic) => diagnostic.message).join("\n"));
+    }
+
+    const js = compileMirProgramToJavaScript(lowerHirToMir(lowerProgramToHir(parsed.program)), {
+      runtimePolicy: {
+        maxMemoryMb: 0
+      }
+    });
+    const module = (await import(
+      `data:text/javascript;charset=utf-8,${encodeURIComponent(js)}`
+    )) as {
+      __anpl_modules: Record<string, Record<string, (...args: unknown[]) => unknown>>;
+    };
+
+    expect(js).toContain("__anpl_runtime_memory_bytes");
+    expect(js).toContain("__anpl_track_value(\"allocated\")");
+    expect(() => module.__anpl_modules.memory?.main()).toThrow(
+      "ANPL runtime policy exceeded maxMemoryMb 0."
+    );
+  });
+
   it("exposes a backend interface for MIR JavaScript emission", () => {
     const parsed = parseAnpl(`module math
 
@@ -319,6 +347,7 @@ fn main() -> int {
 
     expect(source).toContain("type __AnplFunction");
     expect(source).toContain("const __anpl_runtime_policy");
+    expect(source).toContain("function __anpl_track_value<T>(value: T): T");
     expect(source).toContain("__anpl_check_runtime_limits();");
     expect(source).toContain("const __anpl_modules: Record<string, Record<string, __AnplFunction>>");
     expect(source).toContain("add(a: any, b: any): any");
